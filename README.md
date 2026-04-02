@@ -19,9 +19,9 @@
 
 ## GIỚI THIỆU MÔN HỌC
 <a name="gioithieumonhoc"></a>
-* **Tên môn học**: Lập trình Java
-* **Mã môn học**: IS216
-* **Lớp học**: IS216.Q23
+* **Tên môn học**: Quản lý dự án công nghệ thông tin
+* **Mã môn học**: IS208
+* **Lớp học**: IS208.Q21
 * **Năm học**: 2025-2026
 
 
