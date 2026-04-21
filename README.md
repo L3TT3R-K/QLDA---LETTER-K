@@ -8,9 +8,15 @@
 <h3 align="center">Đồ án môn học: Hệ thống quản lý chuỗi cửa hàng cà phê Phụng Lộc Coffee</h3>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/UIT-IS208-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Năm học-2025--2026-green?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Đồ án-Nhóm-orange?style=for-the-badge" />
+  <a href="https://www.uit.edu.vn/" title="Trường Đại học Công nghệ Thông tin">
+    <img src="https://img.shields.io/badge/UIT-IS208-blue?style=for-the-badge" />
+  </a>
+  <a href="https://www.uit.edu.vn/" title="Trường Đại học Công nghệ Thông tin">
+    <img src="https://img.shields.io/badge/Năm học-2025--2026-green?style=for-the-badge" />
+  </a>
+  <a href="https://www.uit.edu.vn/" title="Trường Đại học Công nghệ Thông tin">
+    <img src="https://img.shields.io/badge/Đồ án-Nhóm-orange?style=for-the-badge" />
+  </a>
 </p>
 
 ---
