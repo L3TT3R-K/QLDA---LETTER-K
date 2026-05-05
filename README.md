@@ -53,7 +53,7 @@
 | 2 | 24520887 | Nguyễn Trung Kiên | [24520887-TKNguyen](https://github.com/24520887-TKNguyen) | 24520887@gm.uit.edu.vn |
 | 3 | 24520868 | Tăng Anh Khôi | [khoitang-tech](https://github.com/khoitang-tech) | 24520868@gm.uit.edu.vn |
 | 4 | 24520909 | Phạm Hào Kiệt | [KeanuPham25](https://github.com/KeanuPham25) | 24520909@gm.uit.edu.vn |
-| 5 | 24522074 | Huỳnh Đăng Khoa | [KhoaHuynh]https://github.com/Khoa-Huynh-212006 | 24522074@gm.uit.edu.vn |
+| 5 | 24522074 | Huỳnh Đăng Khoa | [KhoaHuynh](https://github.com/Khoa-Huynh-212006) | 24522074@gm.uit.edu.vn |
 
 ---
 
