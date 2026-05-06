@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  # Cấu hình kết nối PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/phungloc_db
+    username: postgres
+    password: 123456 
+    driver-class-name: org.postgresql.Driver
+
+  # JPA: Tự động cập nhật bảng và in câu lệnh SQL
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
