@@ -1,0 +1,132 @@
+# Quy tắc code Backend (API)
+Đọc kỹ trước khi bắt tay vào code!!!
+
+---
+
+## 1. Cấu Trúc Thư Mục (Package Structure)
+Code phần nào phải được đặt đúng vào thư mục tương ứng trong `src/main/java/com/phungloccoffee/backend`:
+
+* **`entity`**: Chứa các class ánh xạ với bảng trong Database (VD: `ChiNhanh.java`, `NhanVien.java`). 
+
+* **`repository`**: Chứa các Interface tương tác với Database (`extends JpaRepository`)
+    * Tuyệt đối **không** viết logic tính toán ở đây. CHỈ TƯƠNG TÁC VỚI DATABASE.
+    * Tên file: `[Name]Repository.java` (VD: `ProductRepository.java`).
+
+* **`service`**: Chứa toàn bộ code logic nghiệp vụ. Xử lý tính toán, kiểm tra điều kiện, gọi `repository` để lưu/lấy data. 
+    * Khai báo hàm, và viết logic luôn.
+    * Tên file: `[Name]Service.java` (VD: `ProductService.java`).
+
+    * Class này phải có annotation `@Service`.
+
+* **`controller`**: 
+    * Chỉ dùng để tiếp nhận Request từ Frontend và trả về Response. 
+    * **Chỉ gọi sang Service**, tuyệt đối không gọi thẳng Repository.
+    * Tên file: `[Name]Controller.java` (VD: `ProductController.java`).
+
+* **`dto` (Data Transfer Object)**:
+    * Chứa các class dùng để nhận dữ liệu đầu vào (`Request`) và bọc dữ liệu trả ra (`Response`).
+    * **Tuyệt đối KHÔNG** dùng trực tiếp class `entity` để trả thẳng về Frontend.
+    * **Quy tắc đặt tên:**
+        * Class nhận dữ liệu: `[Name]Request.java` (VD: `LoginRequest.java`).
+        * Class trả dữ liệu: `[Name]Response.java` (VD: `LoginResponse.java`).
+    * **Luật cho file Request:** Phải khai báo đầy đủ các trường (fields) tương ứng với dữ liệu user/frontend gửi lên.
+    * **Luật cho file Response & Vỏ bọc `ApiResponse<T>`:**
+        * Các file `[Name]Response` chỉ dùng để gom những dữ liệu đặc thù của chức năng đó (VD: `LoginResponse` chứa token, quyền; `ProductResponse` chứa tên thuốc, giá bán).
+        * Tuy nhiên, khi Controller `return` dữ liệu, **BẮT BUỘC** phải lấy cái `[Name]Response` đó nhét vào phần `data` của vỏ hộp chung mang tên `ApiResponse<T>`.
+        * Status: thành công: 200, thất bại: 400
+
+    * **Ví dụ cụ thể**
+        Giả sử cần trả về thông tin đăng nhập (`LoginResponse`). Controller của bạn phải định nghĩa là `ResponseEntity<ApiResponse<LoginResponse>>`.
+        Lúc này, cấu trúc JSON trả về:
+        ```json
+        {
+        "status": 200,                      // <-- Thuộc tính của ApiResponse
+        "message": "Đăng nhập thành công",  // <-- Thuộc tính của ApiResponse
+        "data": {                           // <-- Toàn bộ cục data này chính là cái LoginResponse
+            "token": "eyJhbGciOiJIUzI1Ni...",
+            "hoten": "Nguyễn Văn A",
+            "vaiTro": "ADMIN"
+        }
+        }
+
+* **`config`**: Nơi chứa các file cấu hình hệ thống (VD: CORS, Swagger, Admin Seeder).
+
+* **`security`**: Nơi chứa các cấu hình bảo mật, JWT, Filter, và phân quyền.
+=> *Phần này cấu hình sau, không đụng vào phần này, chỉ đọc hiểu nếu cần gọi ra sử dụng*
+
+---
+
+## 2. Luồng Kiến Trúc & Xử Lý Dữ Liệu (Architecture Flow)
+Luồng xử lý dữ liệu bắt buộc phải đi theo 3 lớp (3-tier architecture) và theo **1 hướng duy nhất**. Tuyệt đối **KHÔNG** gọi trực tiếp Repository từ Controller.
+
+`[Client] => Controller => Service Interface => ServiceImpl => Repository => [Database]`
+
+**Chi tiết luồng xử lý:**
+
+1. **Controller** nhận JSON Request, ánh xạ vào một file `RequestDTO`.
+2. Truyền `RequestDTO` đó sang **Service**.
+3. **Service** xử lý logic, chuyển DTO thành `entity` tương ứng và gọi **Repository**.
+4. **Repository** lưu vào Database, trả kết quả về Service.
+5. **Service** chuyển kết quả thành `ResponseDTO` rồi ném lại cho Controller.
+6. **Controller** bọc kết quả vào class `ApiResponse` và trả về cho Frontend (Kèm HTTP Status).
+
+---
+
+## 3. Quy Tắc Đặt Tên & Phân Luồng API
+
+Toàn bộ API của hệ thống bắt buộc phải bắt đầu bằng tiền tố `/api` và được phân nhánh cụ thể dựa theo vai trò (Role) đã cấu hình trong Security. Tuyệt đối tuân thủ các Prefix sau để tránh bị block bởi lỗi `403 Forbidden`:
+
+### Phân Luồng Prefix Theo Quyền
+    * Chưa có!
+
+### Quy tắc đặt tên
+    * Chưa có!
+
+### Quy Ước Sử Dụng HTTP Method & Annotation (Spring Boot)
+    * Chưa có!
+
+## 5. Danh Sách API Nghiệp Vụ Cốt Lõi (Core APIs)
+    * Chưa xác định!
+## 6. Quy Tắc Xử Lý Lỗi (Exception Handling) & GlobalExceptionHandler
+    * Chưa có!
+
+## 7. Quy ước sử dụng Mapper (DTO & Entity)
+
+Để giữ cho tầng **Service** luôn sạch sẽ (chuẩn Clean Architecture) và chỉ tập trung vào xử lý logic nghiệp vụ, toàn bộ các thao tác chuyển đổi/gán dữ liệu giữa `entity (Entity)` và `DTO` BẮT BUỘC phải được tách ra các class `Mapper`.
+
+### Quy tắc chung
+* **Vị trí lưu trữ:** Đặt tại package `mapper` (VD: `src/main/java/com/pharmacy/backend/mapper/`).
+* **Naming convention:** Tên file có hậu tố `Mapper` (VD: `ProductMapper`, `CustomerMapper`).
+* **Hàm tĩnh:** Các hàm bên trong Mapper phải là `public static` để Service có thể gọi trực tiếp mà không cần khởi tạo (`new`).
+* **Không chứa Business Logic:** Tuyệt đối không gọi `Repository` hay viết code xử lý logic (tính toán phức tạp, check tồn tại...) trong Mapper. Mapper chỉ làm đúng 1 việc duy nhất: **"Chuyển đổi và Gán dữ liệu"**.
+
+### Chiều trả dữ liệu: Entity -> Response DTO
+* **Mục đích:** Lấy dữ liệu từ DB (Entity) đóng gói thành DTO để trả về cho Frontend.
+* **Quy tắc:** Bắt buộc gắn annotation `@Builder` vào các class `Response` DTO. Trong Mapper, dùng hàm `builder()` để khởi tạo và trả về cho code gọn gàng, an toàn.
+* **Code mẫu:**
+```java
+public static CategoryResponse toResponse(Category category) {
+    return CategoryResponse.builder()
+            .madm(category.getMadm())
+            .tendm(category.getTendm())
+            .build();
+}
+```
+
+### Chiều nhận dữ liệu: Request DTO -> Entity
+* **Mục đích:** Nhận dữ liệu từ Frontend (Request) đổ vào một Entity để lưu xuống Database (dùng chung cho cả Thêm mới và Cập nhật).
+* **Quy tắc:** Truyền Entity cần thay đổi vào làm tham số. Bắt buộc dùng các hàm `set()` truyền thống để thay đổi giá trị (Tuyệt đối KHÔNG dùng Builder cho việc update đối tượng đã tồn tại).
+* **Code mẫu:**
+```java
+public static void updateCategoryFromRequest(Category category, CategoryRequest request) {
+    category.setTendm(request.getTendm());
+    category.setMota(request.getMota());
+}
+```
+
+### Các trường hợp ngoại lệ (Không dùng Mapper)
+* **Action Payload:** Không viết Mapper cho các Request chỉ mang tính chất truyền tham số hành động như `LoginRequest`, `ForgotPasswordRequest`, `ChangePasswordRequest`. Các request này được bóc tách trực tiếp tại Controller và ném các biến `String` xuống Service.
+* **Seeder/Config:** Không dùng Mapper trong các file cấu hình hoặc tạo dữ liệu mẫu ngầm định (VD: `AdminSeeder`), vì các data này dùng để khởi tạo hệ thống chứ không đến từ Frontend Request.
+```
+# 8. Lưu ý
+    * Nhóm mình dùng Soft Delete nên feature delete chỉ cần chuyển IsDeleted = -1 chứ không xóa dữ liệu thật!!!
