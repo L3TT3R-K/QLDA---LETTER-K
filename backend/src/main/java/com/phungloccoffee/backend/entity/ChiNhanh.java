@@ -1,14 +1,20 @@
 package com.phungloccoffee.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chinhanh")
-@Data
+@Getter // Dùng cái này thay vì @Data
+@Setter // Dùng cái này thay vì @Data
+@NoArgsConstructor // Tạo constructor không tham số cho Hibernate
+@AllArgsConstructor // Tạo constructor đầy đủ tham số
 public class ChiNhanh {
 
     @Id // Khóa chính không tự tăng vì là VARCHAR
