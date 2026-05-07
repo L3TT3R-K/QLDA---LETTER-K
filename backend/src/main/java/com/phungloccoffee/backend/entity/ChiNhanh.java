@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chinhanh")
-@Getter // Dùng cái này thay vì @Data
-@Setter // Dùng cái này thay vì @Data
-@NoArgsConstructor // Tạo constructor không tham số cho Hibernate
-@AllArgsConstructor // Tạo constructor đầy đủ tham số
+@Getter
+@Setter
+@NoArgsConstructor 
+@AllArgsConstructor
 public class ChiNhanh {
 
     @Id // Khóa chính không tự tăng vì là VARCHAR
