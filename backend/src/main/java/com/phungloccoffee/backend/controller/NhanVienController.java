@@ -5,6 +5,7 @@ import com.phungloccoffee.backend.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.phungloccoffee.backend.dto.NhanVienResponse;
 
 import java.util.List;
 
@@ -15,7 +16,7 @@ public class NhanVienController {
     private NhanVienService service; 
 
     @GetMapping 
-    public List<NhanVien> getAll(){
+    public List<NhanVienResponse> getAll(){
         return service.getAllNhanVien();
     }
 
