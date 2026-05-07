@@ -11,7 +11,7 @@ import java.util.Optional;
 @Service
 public class ChiNhanhService {
 
-    @Autowired
+    @Autowired // Spring tự động nhét object dependency vào cho mình
     private ChiNhanhRepository repository;
 
     // [R] Lấy danh sách tất cả
