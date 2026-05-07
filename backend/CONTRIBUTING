@@ -1,6 +1,8 @@
 # Quy tắc code Backend (API)
 Đọc kỹ trước khi bắt tay vào code!!!
 
+## 0. Làm việc trên github
+Không được code vào nhánh main (và cũng không được merge vào!!!), chỉ làm việc trên nhánh develop (nên từ nhánh develop mà tạo ra 1 nhánh riêng cho bản thân để an toàn). 
 ---
 
 ## 1. Cấu Trúc Thư Mục (Package Structure)
