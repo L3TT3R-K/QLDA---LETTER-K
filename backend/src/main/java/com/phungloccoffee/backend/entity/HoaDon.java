@@ -41,7 +41,7 @@ public class HoaDon {
     private BigDecimal tongTien;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "trangthai")
