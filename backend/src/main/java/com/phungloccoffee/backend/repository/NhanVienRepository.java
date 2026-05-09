@@ -10,5 +10,5 @@ import java.util.Optional;
 
 public interface NhanVienRepository extends JpaRepository<NhanVien, String>{
     // Spring Data JPA sẽ tự động hiểu lệnh này là: SELECT * FROM nhanvien WHERE username = ?
-    Optional<NhanVien> findByUserName(String username);
+    Optional<NhanVien> findByUserName(String userName);
 }
