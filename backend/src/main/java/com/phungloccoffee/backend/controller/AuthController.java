@@ -31,7 +31,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         // 1. Tìm nhân viên theo Username
-        Optional<NhanVien> optionalNhanVien = nhanVienRepository.findByUsername(loginRequest.getUsername());
+        Optional<NhanVien> optionalNhanVien = nhanVienRepository.findByUserName(loginRequest.getUsername());
 
         if (optionalNhanVien.isPresent()) {
             NhanVien nhanVien = optionalNhanVien.get();
