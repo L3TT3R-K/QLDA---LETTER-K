@@ -1,15 +1,15 @@
 
 
-CREATE DATABASE "PhungLocCoffee"
-    WITH
-    OWNER = postgres
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'English_world.1258'
-    LC_CTYPE = 'English_world.1258'
-    LOCALE_PROVIDER = 'libc'
-    TABLESPACE = pg_default
-    CONNECTION LIMIT = -1
-    IS_TEMPLATE = False;
+-- CREATE DATABASE "PhungLocCoffee"
+--     WITH
+--     OWNER = postgres
+--     ENCODING = 'UTF8'
+--     LC_COLLATE = 'English_world.1258'
+--     LC_CTYPE = 'English_world.1258'
+--     LOCALE_PROVIDER = 'libc'
+--     TABLESPACE = pg_default
+--     CONNECTION LIMIT = -1
+--     IS_TEMPLATE = False;
 
 
 CREATE TABLE CHINHANH (
@@ -265,4 +265,15 @@ CREATE TABLE CONFLICTLOG (
     ConflictID VARCHAR(50) PRIMARY KEY,
     DataLocal JSONB,
     DataServer JSONB
+);
+
+CREATE TABLE AUDITLOG (
+    LogID VARCHAR(50) PRIMARY KEY,
+    MaNV VARCHAR(50),          -- Ai là người thao tác? (Chỉ lưu Text chuỗi mã NV)
+    ThucThe VARCHAR(50),       -- Tác động lên bảng nào? (VD: 'DINHMUCCONGTHUC', 'NHANVIEN')
+    RecordID VARCHAR(50),      -- Mã của dòng dữ liệu bị tác động (VD: 'PB_SP_CFF01_260504')
+    HanhDong VARCHAR(20),      -- Hành động gì? (Chỉ nhận 3 giá trị: 'INSERT', 'UPDATE', 'DELETE')
+    DuLieuCu JSONB NULL,       -- Trạng thái dữ liệu TRƯỚC khi sửa/xóa (Lưu nguyên cục JSON)
+    DuLieuMoi JSONB NULL,      -- Trạng thái dữ liệu SAU khi thêm/sửa (Lưu nguyên cục JSON)
+    CreatedAt TIMESTAMP        -- Thời điểm thao tác
 );
