@@ -50,7 +50,7 @@ public class HoaDonService {
         hoaDon.setMaHD(maHD);
         hoaDon.setMaCa(request.getMaCa());
         hoaDon.setChiNhanh(chiNhanh);
-        hoaDon.setTrangThai(1);
+        hoaDon.setTrangThai(0);
         hoaDon.setIsSynced(false);
 
         // Lưu trước để có hóa đơn cha
