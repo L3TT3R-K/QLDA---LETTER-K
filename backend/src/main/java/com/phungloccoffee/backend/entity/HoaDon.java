@@ -40,6 +40,9 @@ public class HoaDon {
     @Column(name = "tongtien")
     private BigDecimal tongTien;
 
+    @Column(name = "giamgia")
+    private BigDecimal giamGia;
+
     @CreationTimestamp
     @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
