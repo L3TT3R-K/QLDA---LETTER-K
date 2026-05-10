@@ -27,13 +27,11 @@ public class SecurityConfig {
             
             // LUẬT PHÂN QUYỀN VÀO CÁC CỬA (API)
             .authorizeHttpRequests(auth -> auth
-                // 1. Cửa Đăng nhập: Ai cũng được vào
                 .requestMatchers("/api/auth/**").permitAll()
                 
-                // 2. Chỉ QUANLY mới được xem/ xóa/ sửa/ thêm danh sách nhân viên
                 .requestMatchers("/api/nhanvien/**").hasRole("QUANLY")
+                .requestMatchers("/api/baocao/").hasRole("QUANLY")
                 
-                // 3. Tất cả các cửa còn lại: Phải có thẻ (đã đăng nhập) mới được vào
                 .anyRequest().authenticated()
             );
 
