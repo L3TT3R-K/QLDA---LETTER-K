@@ -1,5 +1,6 @@
 package com.phungloccoffee.backend.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -15,5 +16,6 @@ import lombok.Setter;
 public class HoaDonRequest {
     private String maCN;
     private String maCa;
+    private BigDecimal giamGia;
     private List<CTHDRequest> danhSachMon;
 }
