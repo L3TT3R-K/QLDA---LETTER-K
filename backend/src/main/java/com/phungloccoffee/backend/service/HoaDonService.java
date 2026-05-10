@@ -3,12 +3,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.List;
+import java.util.Random;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.phungloccoffee.backend.dto.CTHDRequest;
+import com.phungloccoffee.backend.dto.CTHDResponse;
 import com.phungloccoffee.backend.dto.ChiTietBillResponse;
 import com.phungloccoffee.backend.dto.HoaDonRequest;
 import com.phungloccoffee.backend.dto.HoaDonResponse;
@@ -108,11 +110,9 @@ public class HoaDonService {
                 return null;
         }
 
-        List<CTHD> listCTHD =
-            cthdRepository.findByHoaDon(hoaDon);
+        List<CTHD> listCTHD = cthdRepository.findByHoaDon(hoaDon);
 
-        List<CTHDResponse> danhSachMon =
-            new ArrayList<>();
+        List<CTHDResponse> danhSachMon = new ArrayList<>();
 
         for (CTHD item : listCTHD) {
                 CTHDResponse dto = new CTHDResponse();
