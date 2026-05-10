@@ -2,12 +2,14 @@ package com.phungloccoffee.backend.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Random;
-
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.phungloccoffee.backend.dto.CTHDRequest;
+import com.phungloccoffee.backend.dto.ChiTietBillResponse;
 import com.phungloccoffee.backend.dto.HoaDonRequest;
 import com.phungloccoffee.backend.dto.HoaDonResponse;
 import com.phungloccoffee.backend.entity.CTHD;
@@ -94,6 +96,63 @@ public class HoaDonService {
                 "Tạo hóa đơn thành công"
         );
     }
+
+    public ChiTietBillResponse getChiTietHoaDon(
+        String maHD
+) {
+        HoaDon hoaDon = hoaDonRepository
+            .findById(maHD)
+            .orElse(null);
+
+        if (hoaDon == null) {
+                return null;
+        }
+
+        List<CTHD> listCTHD =
+            cthdRepository.findByHoaDon(hoaDon);
+
+        List<CTHDResponse> danhSachMon =
+            new ArrayList<>();
+
+        for (CTHD item : listCTHD) {
+                CTHDResponse dto = new CTHDResponse();
+                dto.setTenSP(
+                        item.getSanPham().getTenSP()
+                );
+
+                dto.setSoLuong(
+                        item.getSoLuong()
+                );
+
+                dto.setDonGia(
+                        item.getGiaBanTaiThoiDiem()
+                );
+
+        // thành tiền
+                dto.setThanhTien(
+                        item.getGiaBanTaiThoiDiem()
+                                .multiply(
+                                        java.math.BigDecimal.valueOf(
+                                                item.getSoLuong()
+                                        )
+                                )
+                );
+
+                dto.setGhiChu(
+                        item.getGhiChu()
+                );
+
+        danhSachMon.add(dto);
+    }
+
+    return new ChiTietBillResponse(
+            hoaDon.getMaHD(),
+            hoaDon.getChiNhanh().getTenCN(),
+            hoaDon.getTongTien(),
+            hoaDon.getTrangThai(),
+            danhSachMon
+    );
+}
 
     // Hàm tạo mã hóa đơn
     private String taoMaHoaDon(String maCN) {
