@@ -28,9 +28,11 @@ public class SecurityConfig {
             // LUẬT PHÂN QUYỀN VÀO CÁC CỬA (API)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/error").permitAll()
                 
                 .requestMatchers("/api/nhanvien/**").hasRole("QUANLY")
-                .requestMatchers("/api/baocao/").hasRole("QUANLY")
+                .requestMatchers("/api/kiemkho", "/api/kiemkho/**").hasAnyRole("QUANLY", "KHO")
+                .requestMatchers("/api/baocao/**").hasRole("QUANLY")
                 
                 .anyRequest().authenticated()
             );

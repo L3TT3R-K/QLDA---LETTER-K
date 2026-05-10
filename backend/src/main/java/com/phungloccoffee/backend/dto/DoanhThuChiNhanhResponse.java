@@ -1,7 +1,9 @@
 package com.phungloccoffee.backend.dto;
 
+import java.math.BigDecimal;
+
 public interface DoanhThuChiNhanhResponse {
     String getMaCN();
-    Double getTongDoanhThu();
-    Long getSoLuongDon();
+    BigDecimal getTongDoanhThu();
+    Long getSoLuongDon(); 
 }
