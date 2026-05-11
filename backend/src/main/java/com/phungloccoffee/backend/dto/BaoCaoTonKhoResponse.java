@@ -11,11 +11,14 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class BaoCaoTonKhoResponse {
+    private String maCN;
     private String maNL;
     private String tenNL;
     private Double soLuongTon;
     private Double tonToiThieu;
-    private String trangThai; //"Bình thường" hoặc "Cần nhập hàng"
+    private String trangThai;
+    private String loaiCanhBao;
+    private String mucDo;
+    private String thongDiep;
 }

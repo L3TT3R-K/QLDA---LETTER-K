@@ -1,0 +1,25 @@
+package com.phungloccoffee.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class PhieuXuatKhoResponse {
+    private String maPX;
+    private String maCN;
+    private String tenCN;
+    private String maNV;
+    private String tenNV;
+    private LocalDateTime ngayXuat;
+    private String lyDo;
+    private Integer trangThai;
+    private List<CTPhieuXuatKhoResponse> chiTiet;
+}

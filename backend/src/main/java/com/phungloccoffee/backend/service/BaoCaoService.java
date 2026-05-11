@@ -5,12 +5,14 @@ import com.phungloccoffee.backend.dto.BaoCaoTonKhoResponse;
 import com.phungloccoffee.backend.dto.DoanhThuChiNhanhResponse;
 import com.phungloccoffee.backend.dto.DoanhThuSanPhamResponse;
 import com.phungloccoffee.backend.entity.CTKK;
+import com.phungloccoffee.backend.entity.InventoryTransaction;
 import com.phungloccoffee.backend.entity.KiemKho;
 import com.phungloccoffee.backend.entity.NguyenLieu;
 import com.phungloccoffee.backend.entity.TonKho;
 import com.phungloccoffee.backend.repository.CTHDRepository;
 import com.phungloccoffee.backend.repository.CTKKRepository;
 import com.phungloccoffee.backend.repository.HoaDonRepository;
+import com.phungloccoffee.backend.repository.InventoryTransactionRepository;
 import com.phungloccoffee.backend.repository.KiemKhoRepository;
 import com.phungloccoffee.backend.repository.NguyenLieuRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
@@ -20,7 +22,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class BaoCaoService {
@@ -38,6 +42,8 @@ public class BaoCaoService {
     private KiemKhoRepository kiemKhoRepository;
     @Autowired 
     private CTKKRepository ctkkRepository;
+    @Autowired
+    private InventoryTransactionRepository inventoryTransactionRepository;
 
     public List<DoanhThuChiNhanhResponse> layDoanhThuChiNhanh(LocalDateTime tuNgay, LocalDateTime denNgay) {
         return hoaDonRepository.thongKeDoanhThuTheoChiNhanh(tuNgay, denNgay);
@@ -65,6 +71,7 @@ public class BaoCaoService {
             }
 
             ketQua.add(BaoCaoTonKhoResponse.builder()
+                .maCN(tk.getMaCN())
                 .maNL(tk.getMaNL())
                 .tenNL(nl.getTenNL())
                 .soLuongTon(tk.getSoLuongTon())
@@ -72,6 +79,64 @@ public class BaoCaoService {
                 .trangThai(trangThai)
                 .build());
         }
+        return ketQua;
+    }
+
+    public List<BaoCaoTonKhoResponse> layCanhBaoTonKho(String maCN) {
+        List<TonKho> danhSachTonKho = isBlank(maCN) ? tonKhoRepository.findAll() : tonKhoRepository.findByMaCN(maCN);
+        List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
+
+        for (TonKho tk : danhSachTonKho) {
+            NguyenLieu nl = nguyenLieuRepository.findById(tk.getMaNL()).orElse(null);
+            if (nl == null) continue;
+
+            double soLuongTon = tk.getSoLuongTon() != null ? tk.getSoLuongTon() : 0.0;
+            double tonToiThieu = nl.getTonToiThieu() != null ? nl.getTonToiThieu() : 0.0;
+
+            if (soLuongTon < 0) {
+                ketQua.add(BaoCaoTonKhoResponse.builder()
+                    .maCN(tk.getMaCN())
+                    .maNL(tk.getMaNL())
+                    .tenNL(nl.getTenNL())
+                    .soLuongTon(soLuongTon)
+                    .tonToiThieu(tonToiThieu)
+                    .trangThai("Tồn âm")
+                    .loaiCanhBao("TON_AM")
+                    .mucDo("NGHIEM_TRONG")
+                    .thongDiep("Nguyên liệu đang bị tồn âm, cần kiểm tra giao dịch kho")
+                    .build());
+            } else if (soLuongTon < tonToiThieu) {
+                ketQua.add(BaoCaoTonKhoResponse.builder()
+                    .maCN(tk.getMaCN())
+                    .maNL(tk.getMaNL())
+                    .tenNL(nl.getTenNL())
+                    .soLuongTon(soLuongTon)
+                    .tonToiThieu(tonToiThieu)
+                    .trangThai("Cần nhập hàng")
+                    .loaiCanhBao("DUOI_TON_TOI_THIEU")
+                    .mucDo("CANH_BAO")
+                    .thongDiep("Nguyên liệu dưới mức tồn tối thiểu")
+                    .build());
+            }
+        }
+
+        return ketQua;
+    }
+
+    public List<InventoryTransaction> layGiaoDichDongBoLoi(String maCN) {
+        return inventoryTransactionRepository.findCanhBaoDongBo(isBlank(maCN) ? null : maCN);
+    }
+
+    public Map<String, Object> layCanhBaoTongHop(String maCN) {
+        List<BaoCaoTonKhoResponse> canhBaoTonKho = layCanhBaoTonKho(maCN);
+        List<InventoryTransaction> giaoDichDongBoLoi = layGiaoDichDongBoLoi(maCN);
+
+        Map<String, Object> ketQua = new HashMap<>();
+        ketQua.put("canhBaoTonKho", canhBaoTonKho);
+        ketQua.put("giaoDichDongBoLoi", giaoDichDongBoLoi);
+        ketQua.put("soCanhBaoTonKho", canhBaoTonKho.size());
+        ketQua.put("soGiaoDichDongBoLoi", giaoDichDongBoLoi.size());
+        ketQua.put("tongCanhBao", canhBaoTonKho.size() + giaoDichDongBoLoi.size());
         return ketQua;
     }
 
@@ -110,5 +175,9 @@ public class BaoCaoService {
             }
         }
         return ketQua;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

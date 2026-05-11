@@ -1,0 +1,350 @@
+package com.phungloccoffee.backend.service;
+
+import com.phungloccoffee.backend.dto.CTPhieuDieuChuyenKhoRequest;
+import com.phungloccoffee.backend.dto.CTPhieuDieuChuyenKhoResponse;
+import com.phungloccoffee.backend.dto.CapNhatTrangThaiDieuChuyenRequest;
+import com.phungloccoffee.backend.dto.PhieuDieuChuyenKhoRequest;
+import com.phungloccoffee.backend.dto.PhieuDieuChuyenKhoResponse;
+import com.phungloccoffee.backend.entity.CTPhieuDieuChuyenKho;
+import com.phungloccoffee.backend.entity.ChiNhanh;
+import com.phungloccoffee.backend.entity.InventoryTransaction;
+import com.phungloccoffee.backend.entity.LoHang;
+import com.phungloccoffee.backend.entity.NguyenLieu;
+import com.phungloccoffee.backend.entity.NhanVien;
+import com.phungloccoffee.backend.entity.PhieuDieuChuyenKho;
+import com.phungloccoffee.backend.entity.TonKho;
+import com.phungloccoffee.backend.entity.TonKho_ID;
+import com.phungloccoffee.backend.repository.CTPhieuDieuChuyenKhoRepository;
+import com.phungloccoffee.backend.repository.ChiNhanhRepository;
+import com.phungloccoffee.backend.repository.InventoryTransactionRepository;
+import com.phungloccoffee.backend.repository.LoHangRepository;
+import com.phungloccoffee.backend.repository.NhanVienRepository;
+import com.phungloccoffee.backend.repository.PhieuDieuChuyenKhoRepository;
+import com.phungloccoffee.backend.repository.TonKhoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Service
+public class PhieuDieuChuyenKhoService {
+
+    private static final int CHO_GUI = 0;
+    private static final int DA_GUI = 1;
+    private static final int DA_NHAN = 2;
+    private static final int DA_HUY = -1;
+
+    @Autowired private PhieuDieuChuyenKhoRepository phieuDieuChuyenKhoRepository;
+    @Autowired private CTPhieuDieuChuyenKhoRepository ctPhieuDieuChuyenKhoRepository;
+    @Autowired private ChiNhanhRepository chiNhanhRepository;
+    @Autowired private NhanVienRepository nhanVienRepository;
+    @Autowired private LoHangRepository loHangRepository;
+    @Autowired private TonKhoRepository tonKhoRepository;
+    @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
+
+    @Transactional
+    public PhieuDieuChuyenKhoResponse taoPhieuDieuChuyen(PhieuDieuChuyenKhoRequest request) {
+        validateCreateRequest(request);
+
+        String maPC = normalizeMaPC(request.getMaPC());
+        if (phieuDieuChuyenKhoRepository.existsById(maPC)) {
+            throw new IllegalArgumentException("Ma phieu chuyen da ton tai: " + maPC);
+        }
+
+        chiNhanhRepository.findById(request.getMaCNXuat())
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh xuat: " + request.getMaCNXuat()));
+        chiNhanhRepository.findById(request.getMaCNNhap())
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh nhap: " + request.getMaCNNhap()));
+        NhanVien nhanVien = nhanVienRepository.findById(request.getMaNVTao())
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien: " + request.getMaNVTao()));
+
+        PhieuDieuChuyenKho phieu = new PhieuDieuChuyenKho();
+        phieu.setMaPC(maPC);
+        phieu.setMaCNXuat(request.getMaCNXuat().trim());
+        phieu.setMaCNNhap(request.getMaCNNhap().trim());
+        phieu.setNhanVien(nhanVien);
+        phieu.setTrangThai(CHO_GUI);
+        phieu.setIsSynced(false);
+
+        PhieuDieuChuyenKho savedPhieu = phieuDieuChuyenKhoRepository.save(phieu);
+
+        for (CTPhieuDieuChuyenKhoRequest chiTietRequest : request.getChiTiet()) {
+            LoHang loHang = loHangRepository.findById(chiTietRequest.getMaLo())
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTietRequest.getMaLo()));
+            if (loHang.getChiNhanh() == null || !savedPhieu.getMaCNXuat().equals(loHang.getChiNhanh().getMaCN())) {
+                throw new IllegalArgumentException("Lo hang khong thuoc chi nhanh xuat: " + chiTietRequest.getMaLo());
+            }
+
+            CTPhieuDieuChuyenKho chiTiet = new CTPhieuDieuChuyenKho();
+            chiTiet.setMaPC(savedPhieu.getMaPC());
+            chiTiet.setMaLo(loHang.getMaLo());
+            chiTiet.setSoLuong(toBigDecimal(chiTietRequest.getSoLuong()));
+            ctPhieuDieuChuyenKhoRepository.save(chiTiet);
+        }
+
+        return toResponse(savedPhieu);
+    }
+
+    @Transactional
+    public PhieuDieuChuyenKhoResponse guiPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
+        PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
+        if (phieu.getTrangThai() == null || phieu.getTrangThai() != CHO_GUI) {
+            throw new IllegalArgumentException("Chi co phieu CHO_GUI moi duoc gui");
+        }
+
+        for (CTPhieuDieuChuyenKho chiTiet : ctPhieuDieuChuyenKhoRepository.findByMaPC(phieu.getMaPC())) {
+            LoHang loHang = loHangRepository.findById(chiTiet.getMaLo())
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTiet.getMaLo()));
+            NguyenLieu nguyenLieu = getNguyenLieuFromLo(loHang);
+            double soLuong = valueOrZero(chiTiet.getSoLuong());
+            truLoHang(loHang, soLuong);
+            truTonKho(phieu.getMaCNXuat(), nguyenLieu.getMaNL(), soLuong);
+            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNXuat(), nguyenLieu.getMaNL(), loHang.getMaLo(), -soLuong, "DIEUCHUYEN_GUI");
+        }
+
+        phieu.setTrangThai(DA_GUI);
+        return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
+    }
+
+    @Transactional
+    public PhieuDieuChuyenKhoResponse nhanPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
+        PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
+        if (phieu.getTrangThai() == null || phieu.getTrangThai() != DA_GUI) {
+            throw new IllegalArgumentException("Chi co phieu DA_GUI moi duoc nhan");
+        }
+
+        ChiNhanh chiNhanhNhan = chiNhanhRepository.findById(phieu.getMaCNNhap())
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh nhap: " + phieu.getMaCNNhap()));
+        for (CTPhieuDieuChuyenKho chiTiet : ctPhieuDieuChuyenKhoRepository.findByMaPC(phieu.getMaPC())) {
+            LoHang loXuat = loHangRepository.findById(chiTiet.getMaLo())
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTiet.getMaLo()));
+            NguyenLieu nguyenLieu = getNguyenLieuFromLo(loXuat);
+            double soLuong = valueOrZero(chiTiet.getSoLuong());
+            LoHang loNhan = taoLoNhan(phieu, loXuat, chiNhanhNhan, soLuong);
+            congTonKho(phieu.getMaCNNhap(), nguyenLieu.getMaNL(), soLuong);
+            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNNhap(), nguyenLieu.getMaNL(), loNhan.getMaLo(), soLuong, "DIEUCHUYEN_NHAN");
+        }
+
+        phieu.setTrangThai(DA_NHAN);
+        return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
+    }
+
+    @Transactional
+    public PhieuDieuChuyenKhoResponse huyPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
+        PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
+        if (phieu.getTrangThai() == null || phieu.getTrangThai() != CHO_GUI) {
+            throw new IllegalArgumentException("Chi co phieu CHO_GUI moi duoc huy");
+        }
+        phieu.setTrangThai(DA_HUY);
+        return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
+    }
+
+    public List<PhieuDieuChuyenKhoResponse> getAll() {
+        return phieuDieuChuyenKhoRepository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PhieuDieuChuyenKhoResponse getById(String maPC) {
+        return toResponse(getPhieuOrThrow(maPC));
+    }
+
+    public List<PhieuDieuChuyenKhoResponse> getByKho(String maKho) {
+        return phieuDieuChuyenKhoRepository.findByMaCNXuatOrMaCNNhap(maKho, maKho).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<PhieuDieuChuyenKhoResponse> getByTrangThai(String trangThai) {
+        return phieuDieuChuyenKhoRepository.findByTrangThai(parseTrangThai(trangThai)).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    private void validateCreateRequest(PhieuDieuChuyenKhoRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Du lieu phieu chuyen khong duoc de trong");
+        }
+        if (isBlank(request.getMaCNXuat())) {
+            throw new IllegalArgumentException("Ma chi nhanh xuat khong duoc de trong");
+        }
+        if (isBlank(request.getMaCNNhap())) {
+            throw new IllegalArgumentException("Ma chi nhanh nhap khong duoc de trong");
+        }
+        if (request.getMaCNXuat().trim().equals(request.getMaCNNhap().trim())) {
+            throw new IllegalArgumentException("Chi nhanh xuat va nhap phai khac nhau");
+        }
+        if (isBlank(request.getMaNVTao())) {
+            throw new IllegalArgumentException("Ma nhan vien tao khong duoc de trong");
+        }
+        if (request.getChiTiet() == null || request.getChiTiet().isEmpty()) {
+            throw new IllegalArgumentException("Phieu chuyen phai co it nhat mot dong chi tiet");
+        }
+        for (CTPhieuDieuChuyenKhoRequest chiTiet : request.getChiTiet()) {
+            if (chiTiet == null || isBlank(chiTiet.getMaLo())) {
+                throw new IllegalArgumentException("Ma lo khong duoc de trong");
+            }
+            if (chiTiet.getSoLuong() == null || chiTiet.getSoLuong() <= 0) {
+                throw new IllegalArgumentException("So luong chuyen phai lon hon 0");
+            }
+        }
+    }
+
+    private void truLoHang(LoHang loHang, double soLuong) {
+        double soLuongCon = valueOrZero(loHang.getSoLuongCon());
+        if (soLuongCon < soLuong) {
+            throw new IllegalArgumentException("Khong du so luong trong lo " + loHang.getMaLo() + ". Con lai: " + soLuongCon);
+        }
+        loHang.setSoLuongCon(toBigDecimal(soLuongCon - soLuong));
+        loHangRepository.save(loHang);
+    }
+
+    private LoHang taoLoNhan(PhieuDieuChuyenKho phieu, LoHang loXuat, ChiNhanh chiNhanhNhan, double soLuong) {
+        LoHang loNhan = new LoHang();
+        loNhan.setMaLo("LO" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        loNhan.setNguyenLieu(getNguyenLieuFromLo(loXuat));
+        loNhan.setChiNhanh(chiNhanhNhan);
+        loNhan.setNgayNhap(LocalDateTime.now());
+        loNhan.setHanSuDung(loXuat.getHanSuDung());
+        loNhan.setSoLuongCon(toBigDecimal(soLuong));
+        loNhan.setIsSynced(false);
+        return loHangRepository.save(loNhan);
+    }
+
+    private void truTonKho(String maCN, String maNL, double soLuong) {
+        TonKho_ID tonKhoId = new TonKho_ID(maCN, maNL);
+        TonKho tonKho = tonKhoRepository.findById(tonKhoId)
+                .orElseThrow(() -> new IllegalArgumentException("Nguyen lieu chua co ton kho tai chi nhanh xuat: " + maNL));
+        double tonHienTai = valueOrZero(tonKho.getSoLuongTon());
+        if (tonHienTai < soLuong) {
+            throw new IllegalArgumentException("Khong du ton kho tai chi nhanh xuat cho nguyen lieu " + maNL + ". Ton hien tai: " + tonHienTai);
+        }
+        tonKho.setSoLuongTon(tonHienTai - soLuong);
+        tonKhoRepository.save(tonKho);
+    }
+
+    private void congTonKho(String maCN, String maNL, double soLuong) {
+        TonKho_ID tonKhoId = new TonKho_ID(maCN, maNL);
+        TonKho tonKho = tonKhoRepository.findById(tonKhoId)
+                .orElse(new TonKho(maCN, maNL, 0.0));
+        tonKho.setSoLuongTon(valueOrZero(tonKho.getSoLuongTon()) + soLuong);
+        tonKhoRepository.save(tonKho);
+    }
+
+    private void ghiGiaoDich(String maPC, String maCN, String maNL, String maLo, double soLuong, String loaiChungTu) {
+        InventoryTransaction trans = new InventoryTransaction();
+        trans.setMaTrans("TR_" + UUID.randomUUID().toString().substring(0, 8));
+        trans.setMaCN(maCN);
+        trans.setMaNL(maNL);
+        trans.setMaLo(maLo);
+        trans.setLoaiChungTu(loaiChungTu);
+        trans.setIdChungTu(maPC);
+        trans.setLoaiGiaoDich(2);
+        trans.setSoLuong(soLuong);
+        trans.setTrangThai(1);
+        trans.setIsSynced(false);
+        trans.setCreatedAt(LocalDateTime.now());
+        inventoryTransactionRepository.save(trans);
+    }
+
+    private PhieuDieuChuyenKhoResponse toResponse(PhieuDieuChuyenKho phieu) {
+        List<CTPhieuDieuChuyenKho> chiTietList = ctPhieuDieuChuyenKhoRepository.findByMaPC(phieu.getMaPC());
+        Map<String, LoHang> loHangMap = loHangRepository.findAllById(
+                chiTietList.stream().map(CTPhieuDieuChuyenKho::getMaLo).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(LoHang::getMaLo, Function.identity()));
+
+        List<CTPhieuDieuChuyenKhoResponse> chiTietResponses = chiTietList.stream()
+                .map(item -> {
+                    LoHang loHang = loHangMap.get(item.getMaLo());
+                    NguyenLieu nguyenLieu = loHang != null ? loHang.getNguyenLieu() : null;
+                    return new CTPhieuDieuChuyenKhoResponse(
+                            item.getMaLo(),
+                            nguyenLieu != null ? nguyenLieu.getMaNL() : null,
+                            nguyenLieu != null ? nguyenLieu.getTenNL() : null,
+                            toDouble(item.getSoLuong()),
+                            loHang != null ? loHang.getHanSuDung() : null
+                    );
+                })
+                .collect(Collectors.toList());
+
+        NhanVien nhanVien = phieu.getNhanVien();
+        return new PhieuDieuChuyenKhoResponse(
+                phieu.getMaPC(),
+                phieu.getMaCNXuat(),
+                phieu.getMaCNNhap(),
+                nhanVien != null ? nhanVien.getMaNV() : null,
+                nhanVien != null ? nhanVien.getTenNV() : null,
+                phieu.getCreatedAt(),
+                toTrangThaiText(phieu.getTrangThai()),
+                chiTietResponses
+        );
+    }
+
+    private PhieuDieuChuyenKho getPhieuOrThrow(String maPC) {
+        return phieuDieuChuyenKhoRepository.findById(maPC)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phieu chuyen: " + maPC));
+    }
+
+    private NguyenLieu getNguyenLieuFromLo(LoHang loHang) {
+        if (loHang.getNguyenLieu() == null) {
+            throw new IllegalArgumentException("Lo hang chua gan nguyen lieu: " + loHang.getMaLo());
+        }
+        return loHang.getNguyenLieu();
+    }
+
+    private String normalizeMaPC(String maPC) {
+        if (!isBlank(maPC)) {
+            return maPC.trim();
+        }
+        return "PC" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private int parseTrangThai(String trangThai) {
+        String value = trangThai.trim().toUpperCase();
+        if ("CHO_GUI".equals(value)) return CHO_GUI;
+        if ("DA_GUI".equals(value)) return DA_GUI;
+        if ("DA_NHAN".equals(value)) return DA_NHAN;
+        if ("DA_HUY".equals(value)) return DA_HUY;
+        return Integer.parseInt(value);
+    }
+
+    private String toTrangThaiText(Integer trangThai) {
+        if (trangThai == null) return null;
+        if (trangThai == CHO_GUI) return "CHO_GUI";
+        if (trangThai == DA_GUI) return "DA_GUI";
+        if (trangThai == DA_NHAN) return "DA_NHAN";
+        if (trangThai == DA_HUY) return "DA_HUY";
+        return String.valueOf(trangThai);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private double valueOrZero(Double value) {
+        return value != null ? value : 0.0;
+    }
+
+    private double valueOrZero(BigDecimal value) {
+        return value != null ? value.doubleValue() : 0.0;
+    }
+
+    private BigDecimal toBigDecimal(Double value) {
+        return value != null ? BigDecimal.valueOf(value) : null;
+    }
+
+    private BigDecimal toBigDecimal(double value) {
+        return BigDecimal.valueOf(value);
+    }
+
+    private Double toDouble(BigDecimal value) {
+        return value != null ? value.doubleValue() : null;
+    }
+}
