@@ -33,13 +33,13 @@ public class ChiNhanh {
     private String diaChi;
 
     @Column(name = "trangthai")
-    private Integer trangThai; // 1: Hoạt động, 0: Tạm đóng, -1: Giải thể
+    private Integer trangThai; //1: Hoạt động, 0: Tạm đóng, -1: Giải thể
 
-    @CreationTimestamp // Tự động lấy giờ hệ thống khi tạo mới
+    @CreationTimestamp //Tự động lấy giờ hệ thống khi tạo mới
     @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp // Tự động cập nhật giờ khi có chỉnh sửa
+    @UpdateTimestamp //Tự động cập nhật giờ khi có chỉnh sửa
     @Column(name = "updatedat")
     private LocalDateTime updatedAt;
 }
