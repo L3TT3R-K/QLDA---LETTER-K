@@ -1,13 +1,18 @@
 package com.phungloccoffee.backend.entity;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import java.time.LocalDateTime;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "chinhanh")
@@ -31,10 +36,10 @@ public class ChiNhanh {
     private Integer trangThai; // 1: Hoạt động, 0: Tạm đóng, -1: Giải thể
 
     @CreationTimestamp // Tự động lấy giờ hệ thống khi tạo mới
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp // Tự động cập nhật giờ khi có chỉnh sửa
-    @Column(name = "updated_at")
+    @Column(name = "updatedat")
     private LocalDateTime updatedAt;
 }
