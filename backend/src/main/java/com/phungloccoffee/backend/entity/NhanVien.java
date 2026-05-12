@@ -1,13 +1,20 @@
 package com.phungloccoffee.backend.entity;
 
-import jakarta.persistence.*;
-import lombok.Getter; 
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import java.time.LocalDateTime;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "nhanvien")
@@ -42,10 +49,10 @@ public class NhanVien {
     private Integer trangThai;
     
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false) // updatable = Không được update sau khi tạo
+    @Column(name = "createdat", updatable = false) //updatable = Không được update sau khi tạo
     private LocalDateTime createdAt; 
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updatedat")
     private LocalDateTime updatedAt; 
 }
