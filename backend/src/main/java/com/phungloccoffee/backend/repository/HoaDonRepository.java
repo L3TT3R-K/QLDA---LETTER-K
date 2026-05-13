@@ -16,7 +16,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
 
     @Query(value = "SELECT macn AS maCN, SUM(tongtien) AS tongDoanhThu, COUNT(mahd) AS soLuongDon " +
                    "FROM hoadon " +
-                   "WHERE trangthai = 1 AND createdat >= :tuNgay AND createdat <= :denNgay " +
+                   "WHERE trangthai = 'Đã thanh toán' AND createdat >= :tuNgay AND createdat <= :denNgay " +
                    "GROUP BY macn", 
            nativeQuery = true)
     List<DoanhThuChiNhanhResponse> thongKeDoanhThuTheoChiNhanh(

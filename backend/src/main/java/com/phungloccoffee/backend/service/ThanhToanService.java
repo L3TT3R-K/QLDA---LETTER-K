@@ -67,7 +67,7 @@ public class ThanhToanService {
         for (CTHD monMua : danhSachMonMua) {
             String maSP = monMua.getSanPham().getMaSP();
             int soLuongMua = monMua.getSoLuong();
-            //2. Tìm "Phiên bản công thức" đang áp dụng (TrangThai = 1) của món này
+            //2. Tìm "Phiên bản công thức" đang áp dụng của món này
             PhienBanCongThuc congThuc = phienBanCongThucRepository
                 .findByMaSPAndTrangThai(maSP, "Hoạt động")
                 .orElse(null);

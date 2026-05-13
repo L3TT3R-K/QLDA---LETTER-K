@@ -37,8 +37,8 @@ public class CaLamViec {
     @Column(name = "gioketthuc")
     private LocalTime gioKetThuc;
 
-    @Column(name = "trangthai") 
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

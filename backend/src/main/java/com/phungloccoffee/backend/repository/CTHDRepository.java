@@ -22,7 +22,7 @@ public interface CTHDRepository extends JpaRepository<CTHD, String> {
                    "FROM cthd c " +
                    "JOIN hoadon h ON c.mahd = h.mahd " +
                    "JOIN sanpham s ON c.masp = s.masp " +
-                   "WHERE h.trangthai = 1 AND h.macn = :maCN " +
+                   "WHERE h.trangthai = 'Đã thanh toán' AND h.macn = :maCN " +
                    "AND h.created_at >= :tuNgay AND h.created_at <= :denNgay " +
                    "GROUP BY c.masp, s.tensp " +
                    "ORDER BY tongDoanhThu DESC", 

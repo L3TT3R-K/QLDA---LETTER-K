@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class CaLamViecService {
+    private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
 
     @Autowired
     private CaLamViecRepository repository;
@@ -64,7 +65,7 @@ public class CaLamViecService {
         Optional<CaLamViec> optional = repository.findById(maCa);
         if (optional.isPresent()) {
             CaLamViec existing = optional.get();
-            existing.setTrangThai(-1); 
+            existing.setTrangThai(NGUNG_HOAT_DONG);
             repository.save(existing);
         }
     }

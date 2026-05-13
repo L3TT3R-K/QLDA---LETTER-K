@@ -18,7 +18,7 @@ public class CaLamViecResponse {
     private LocalDate ngayLamViec;
     private LocalTime gioBatDau;
     private LocalTime gioKetThuc;
-    private Integer trangThai;
+    private String trangThai;
     
     private String maNV;
     private String tenNV;
