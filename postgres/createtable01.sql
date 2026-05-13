@@ -1,0 +1,988 @@
+/* =========================================================
+   DATABASE: PHUNG LOC COFFEE - POSTGRESQL
+   ========================================================= */
+
+/* =========================================================
+   0. DROP TABLES
+   ========================================================= */
+
+DROP TABLE IF EXISTS AUDITLOG CASCADE;
+DROP TABLE IF EXISTS CONFLICTLOG CASCADE;
+DROP TABLE IF EXISTS SYNCLOG CASCADE;
+
+DROP TABLE IF EXISTS INVENTORYTRANSACTION CASCADE;
+
+DROP TABLE IF EXISTS CTPC CASCADE;
+DROP TABLE IF EXISTS PHIEUCHUYEN CASCADE;
+
+DROP TABLE IF EXISTS CTPX CASCADE;
+DROP TABLE IF EXISTS PHIEUXUAT CASCADE;
+
+DROP TABLE IF EXISTS CTPN CASCADE;
+DROP TABLE IF EXISTS PHIEUNHAP CASCADE;
+
+DROP TABLE IF EXISTS CTKK CASCADE;
+DROP TABLE IF EXISTS KIEMKHO CASCADE;
+
+DROP TABLE IF EXISTS LOHANG CASCADE;
+DROP TABLE IF EXISTS TONKHO CASCADE;
+
+DROP TABLE IF EXISTS THANHTOAN CASCADE;
+DROP TABLE IF EXISTS CTHD CASCADE;
+DROP TABLE IF EXISTS HOADON CASCADE;
+DROP TABLE IF EXISTS CALAMVIEC CASCADE;
+
+DROP TABLE IF EXISTS DINHMUCCONGTHUC CASCADE;
+DROP TABLE IF EXISTS PHIENBANCONGTHUC CASCADE;
+
+DROP TABLE IF EXISTS QUYDOIDONVI CASCADE;
+DROP TABLE IF EXISTS NGUYENLIEU_DONVI CASCADE;
+DROP TABLE IF EXISTS NGUYENLIEU CASCADE;
+
+DROP TABLE IF EXISTS TAIKHOAN CASCADE;
+DROP TABLE IF EXISTS NHANVIEN CASCADE;
+
+DROP TABLE IF EXISTS KHUYENMAI CASCADE;
+DROP TABLE IF EXISTS SANPHAM CASCADE;
+
+DROP TABLE IF EXISTS NHACUNGCAP CASCADE;
+DROP TABLE IF EXISTS DONVI CASCADE;
+DROP TABLE IF EXISTS CHINHANH CASCADE;
+
+
+/* =========================================================
+   1. MASTER DATA
+   ========================================================= */
+
+CREATE TABLE CHINHANH (
+    MaCN VARCHAR(20) PRIMARY KEY,
+    TenCN VARCHAR(100) NOT NULL,
+    DiaChi VARCHAR(255),
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_CHINHANH_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE DONVI (
+    MaDV VARCHAR(20) PRIMARY KEY,
+    TenDonVi VARCHAR(50) NOT NULL,
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_DONVI_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE NHACUNGCAP (
+    MaNCC VARCHAR(50) PRIMARY KEY,
+    TenNCC VARCHAR(150) NOT NULL,
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_NHACUNGCAP_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE SANPHAM (
+    MaSP VARCHAR(50) PRIMARY KEY,
+    TenSP VARCHAR(150) NOT NULL,
+    GiaHienTai DECIMAL(18,0) NOT NULL DEFAULT 0,
+    IsTopping BOOLEAN DEFAULT FALSE,
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_SANPHAM_GIA
+    CHECK (GiaHienTai >= 0),
+
+    CONSTRAINT CK_SANPHAM_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE KHUYENMAI (
+    MaKM VARCHAR(50) PRIMARY KEY,
+    TenKM VARCHAR(150) NOT NULL,
+
+    LoaiKM VARCHAR(20) NOT NULL,
+    -- PERCENT: giảm theo phần trăm
+    -- AMOUNT: giảm số tiền trực tiếp
+
+    GiaTri DECIMAL(18,2) NOT NULL,
+
+    DieuKienToiThieu DECIMAL(18,0) DEFAULT 0,
+    -- Hóa đơn tối thiểu để áp dụng khuyến mãi
+
+    GiaTriGiamToiDa DECIMAL(18,0),
+    -- Dùng cho giảm theo phần trăm, ví dụ giảm tối đa 50.000
+
+    NgayBatDau TIMESTAMP NOT NULL,
+    NgayKetThuc TIMESTAMP NOT NULL,
+
+    SoLuong INT,
+    -- NULL nghĩa là không giới hạn số lượt dùng
+
+    SoLuongDaDung INT DEFAULT 0,
+
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_KHUYENMAI_LOAI
+    CHECK (LoaiKM IN ('PERCENT', 'AMOUNT')),
+
+    CONSTRAINT CK_KHUYENMAI_GIATRI
+    CHECK (GiaTri > 0),
+
+    CONSTRAINT CK_KHUYENMAI_DIEUKIEN
+    CHECK (DieuKienToiThieu >= 0),
+
+    CONSTRAINT CK_KHUYENMAI_SOLUONG
+    CHECK (SoLuong IS NULL OR SoLuong >= 0),
+
+    CONSTRAINT CK_KHUYENMAI_DADUNG
+    CHECK (SoLuongDaDung >= 0),
+
+    CONSTRAINT CK_KHUYENMAI_TRANGTHAI
+    CHECK (TrangThai IN (0, 1)),
+
+    CONSTRAINT CK_KHUYENMAI_THOIGIAN
+    CHECK (NgayKetThuc > NgayBatDau)
+);
+
+
+/* =========================================================
+   2. NHÂN VIÊN - TÀI KHOẢN
+   ========================================================= */
+
+CREATE TABLE NHANVIEN (
+    MaNV VARCHAR(50) PRIMARY KEY,
+    TenNV VARCHAR(100) NOT NULL,
+    ChucVu VARCHAR(50),
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_NHANVIEN_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE TAIKHOAN (
+    MaTK VARCHAR(50) PRIMARY KEY,
+
+    MaNV VARCHAR(50) UNIQUE REFERENCES NHANVIEN(MaNV),
+
+    Username VARCHAR(50) UNIQUE NOT NULL,
+    PasswordHash VARCHAR(255) NOT NULL,
+
+    VaiTro VARCHAR(30) NOT NULL,
+    -- ADMIN
+    -- QUANLY_CHINHANH
+    -- NHANVIEN_BANHANG
+    -- NHANVIEN_KHO
+    -- KETOAN
+
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_TAIKHOAN_VAITRO
+    CHECK (VaiTro IN (
+        'ADMIN',
+        'QUANLY_CHINHANH',
+        'NHANVIEN_BANHANG',
+        'NHANVIEN_KHO',
+        'KETOAN'
+    )),
+
+    CONSTRAINT CK_TAIKHOAN_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+
+/* =========================================================
+   3. NGUYÊN LIỆU - ĐƠN VỊ - QUY ĐỔI
+   ========================================================= */
+
+CREATE TABLE NGUYENLIEU (
+    MaNL VARCHAR(50) PRIMARY KEY,
+    TenNL VARCHAR(150) NOT NULL,
+    DonViCoBan VARCHAR(20) REFERENCES DONVI(MaDV),
+    TonToiThieu DECIMAL(18,2) DEFAULT 0,
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_NGUYENLIEU_TONTOITHIEU
+    CHECK (TonToiThieu >= 0),
+
+    CONSTRAINT CK_NGUYENLIEU_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE NGUYENLIEU_DONVI (
+    MaNL VARCHAR(50) REFERENCES NGUYENLIEU(MaNL),
+    MaDV VARCHAR(20) REFERENCES DONVI(MaDV),
+    PRIMARY KEY (MaNL, MaDV)
+);
+
+CREATE TABLE QUYDOIDONVI (
+    MaDV_From VARCHAR(20) REFERENCES DONVI(MaDV),
+    MaDV_To VARCHAR(20) REFERENCES DONVI(MaDV),
+    TyLeQuyDoi DECIMAL(18,4) NOT NULL,
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MaDV_From, MaDV_To),
+
+    CONSTRAINT CK_QUYDOI_TYLE
+    CHECK (TyLeQuyDoi > 0),
+
+    CONSTRAINT CK_QUYDOI_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+
+/* =========================================================
+   4. CÔNG THỨC PHA CHẾ
+   ========================================================= */
+
+CREATE TABLE PHIENBANCONGTHUC (
+    MaPB VARCHAR(50) PRIMARY KEY,
+    MaSP VARCHAR(50) REFERENCES SANPHAM(MaSP),
+    NgayHieuLuc TIMESTAMP NOT NULL,
+    TrangThai INT DEFAULT 1,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_PBCT_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+CREATE TABLE DINHMUCCONGTHUC (
+    MaPB VARCHAR(50) REFERENCES PHIENBANCONGTHUC(MaPB),
+    MaNL VARCHAR(50) REFERENCES NGUYENLIEU(MaNL),
+    SoLuong DECIMAL(18,4) NOT NULL,
+
+    PRIMARY KEY (MaPB, MaNL),
+
+    CONSTRAINT CK_DINHMUC_SOLUONG
+    CHECK (SoLuong > 0)
+);
+
+
+/* =========================================================
+   5. POS - CA LÀM VIỆC - HÓA ĐƠN - THANH TOÁN
+   ========================================================= */
+
+CREATE TABLE CALAMVIEC (
+    MaCa VARCHAR(50) PRIMARY KEY,
+    MaNV VARCHAR(50) REFERENCES NHANVIEN(MaNV),
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+
+    ThoiGianMo TIMESTAMP NOT NULL,
+    ThoiGianDong TIMESTAMP NULL,
+
+    TienDauCa DECIMAL(18,0) DEFAULT 0,
+    TienCuoiCa DECIMAL(18,0) DEFAULT 0,
+    SoTienThatThoat DECIMAL(18,0) DEFAULT 0,
+
+    LyDoGiaiTrinh VARCHAR(255) NULL,
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_CALAMVIEC_TIEN
+    CHECK (
+        TienDauCa >= 0
+        AND TienCuoiCa >= 0
+        AND SoTienThatThoat >= 0
+    )
+);
+
+CREATE TABLE HOADON (
+    MaHD VARCHAR(50) PRIMARY KEY,
+
+    MaCa VARCHAR(50) REFERENCES CALAMVIEC(MaCa),
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+
+    MaKM VARCHAR(50) NULL REFERENCES KHUYENMAI(MaKM),
+
+    TongTien DECIMAL(18,0) DEFAULT 0,
+    TienGiam DECIMAL(18,0) DEFAULT 0,
+    TongTienSauGiam DECIMAL(18,0) DEFAULT 0,
+
+    TrangThai INT DEFAULT 1,
+    -- 0: hủy
+    -- 1: tạm
+    -- 2: đã thanh toán
+    -- 3: hoàn tiền
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_HOADON_TIEN
+    CHECK (
+        TongTien >= 0
+        AND TienGiam >= 0
+        AND TongTienSauGiam >= 0
+    ),
+
+    CONSTRAINT CK_HOADON_TRANGTHAI
+    CHECK (TrangThai IN (0, 1, 2, 3))
+);
+
+CREATE TABLE CTHD (
+    ID VARCHAR(50) PRIMARY KEY,
+
+    MaHD VARCHAR(50) REFERENCES HOADON(MaHD),
+    MaSP VARCHAR(50) REFERENCES SANPHAM(MaSP),
+
+    IDMonChinh VARCHAR(50) NULL REFERENCES CTHD(ID),
+    -- Dùng cho topping. Nếu là topping thì trỏ về món chính.
+
+    SoLuong INT NOT NULL,
+    GiaBanTaiThoiDiem DECIMAL(18,0) NOT NULL,
+
+    GhiChu VARCHAR(255) NULL,
+
+    DaTruKho BOOLEAN DEFAULT FALSE,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_CTHD_SOLUONG
+    CHECK (SoLuong > 0),
+
+    CONSTRAINT CK_CTHD_GIA
+    CHECK (GiaBanTaiThoiDiem >= 0)
+);
+
+CREATE TABLE THANHTOAN (
+    MaTT VARCHAR(50) PRIMARY KEY,
+
+    MaHD VARCHAR(50) REFERENCES HOADON(MaHD),
+
+    PhuongThuc VARCHAR(20) NOT NULL,
+    -- CASH
+    -- CARD
+    -- MOMO
+    -- BANKING
+    -- OTHER
+
+    SoTien DECIMAL(18,0) NOT NULL,
+
+    TrangThai INT DEFAULT 1,
+    -- 0: thất bại
+    -- 1: chờ thanh toán
+    -- 2: thành công
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_THANHTOAN_PHUONGTHUC
+    CHECK (PhuongThuc IN ('CASH', 'CARD', 'MOMO', 'BANKING', 'OTHER')),
+
+    CONSTRAINT CK_THANHTOAN_SOTIEN
+    CHECK (SoTien >= 0),
+
+    CONSTRAINT CK_THANHTOAN_TRANGTHAI
+    CHECK (TrangThai IN (0, 1, 2))
+);
+
+
+/* =========================================================
+   6. TỒN KHO - LÔ HÀNG
+   ========================================================= */
+
+CREATE TABLE TONKHO (
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    MaNL VARCHAR(50) REFERENCES NGUYENLIEU(MaNL),
+
+    SoLuongTon DECIMAL(18,2) DEFAULT 0,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MaCN, MaNL),
+
+    CONSTRAINT CK_TONKHO_SOLUONG
+    CHECK (SoLuongTon >= 0)
+);
+
+CREATE TABLE LOHANG (
+    MaLo VARCHAR(50) PRIMARY KEY,
+
+    MaNL VARCHAR(50) REFERENCES NGUYENLIEU(MaNL),
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+
+    NgayNhap TIMESTAMP NOT NULL,
+    HSD DATE,
+
+    SoLuongCon DECIMAL(18,2) DEFAULT 0,
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_LOHANG_SOLUONG
+    CHECK (SoLuongCon >= 0)
+);
+
+
+/* =========================================================
+   7. KIỂM KHO
+   ========================================================= */
+
+CREATE TABLE KIEMKHO (
+    MaKK VARCHAR(50) PRIMARY KEY,
+
+    MaNV VARCHAR(50) REFERENCES NHANVIEN(MaNV),
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+
+    NgayKiem TIMESTAMP NOT NULL,
+
+    TrangThai INT DEFAULT 1,
+    -- 0: hủy
+    -- 1: đang kiểm
+    -- 2: đã xác nhận
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_KIEMKHO_TRANGTHAI
+    CHECK (TrangThai IN (0, 1, 2))
+);
+
+CREATE TABLE CTKK (
+    MaKK VARCHAR(50) REFERENCES KIEMKHO(MaKK),
+    MaNL VARCHAR(50) REFERENCES NGUYENLIEU(MaNL),
+
+    SoLuongHeThong DECIMAL(18,2) DEFAULT 0,
+    SoLuongThucTe DECIMAL(18,2) DEFAULT 0,
+    ChenhLech DECIMAL(18,2) DEFAULT 0,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MaKK, MaNL),
+
+    CONSTRAINT CK_CTKK_SOLUONG
+    CHECK (
+        SoLuongHeThong >= 0
+        AND SoLuongThucTe >= 0
+    )
+);
+
+
+/* =========================================================
+   8. NHẬP KHO
+   ========================================================= */
+
+CREATE TABLE PHIEUNHAP (
+    MaPN VARCHAR(50) PRIMARY KEY,
+
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    MaNV VARCHAR(50) REFERENCES NHANVIEN(MaNV),
+    MaNCC VARCHAR(50) REFERENCES NHACUNGCAP(MaNCC),
+
+    TongTien DECIMAL(18,0) DEFAULT 0,
+    NgayNhap TIMESTAMP NOT NULL,
+
+    TrangThai INT DEFAULT 1,
+    -- 0: hủy
+    -- 1: nháp
+    -- 2: đã nhập kho
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_PHIEUNHAP_TONGTIEN
+    CHECK (TongTien >= 0),
+
+    CONSTRAINT CK_PHIEUNHAP_TRANGTHAI
+    CHECK (TrangThai IN (0, 1, 2))
+);
+
+CREATE TABLE CTPN (
+    MaPN VARCHAR(50) REFERENCES PHIEUNHAP(MaPN),
+    MaLo VARCHAR(50) REFERENCES LOHANG(MaLo),
+
+    SoLuong DECIMAL(18,2) NOT NULL,
+    DonGiaNhap DECIMAL(18,0) NOT NULL,
+    ThanhTien DECIMAL(18,0) NOT NULL,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MaPN, MaLo),
+
+    CONSTRAINT CK_CTPN_TIEN
+    CHECK (
+        SoLuong > 0
+        AND DonGiaNhap >= 0
+        AND ThanhTien >= 0
+    )
+);
+
+
+/* =========================================================
+   9. XUẤT KHO
+   ========================================================= */
+
+CREATE TABLE PHIEUXUAT (
+    MaPX VARCHAR(50) PRIMARY KEY,
+
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    MaNV VARCHAR(50) REFERENCES NHANVIEN(MaNV),
+
+    LyDo VARCHAR(255),
+
+    TrangThai INT DEFAULT 1,
+    -- 0: hủy
+    -- 1: nháp
+    -- 2: đã xuất kho
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_PHIEUXUAT_TRANGTHAI
+    CHECK (TrangThai IN (0, 1, 2))
+);
+
+CREATE TABLE CTPX (
+    MaPX VARCHAR(50) REFERENCES PHIEUXUAT(MaPX),
+    MaLo VARCHAR(50) REFERENCES LOHANG(MaLo),
+
+    SoLuong DECIMAL(18,2) NOT NULL,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MaPX, MaLo),
+
+    CONSTRAINT CK_CTPX_SOLUONG
+    CHECK (SoLuong > 0)
+);
+
+
+/* =========================================================
+   10. ĐIỀU CHUYỂN KHO
+   ========================================================= */
+
+CREATE TABLE PHIEUCHUYEN (
+    MaPC VARCHAR(50) PRIMARY KEY,
+
+    MaCN_Xuat VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    MaCN_Nhap VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    MaNV VARCHAR(50) REFERENCES NHANVIEN(MaNV),
+
+    TrangThai INT DEFAULT 1,
+    -- 0: hủy
+    -- 1: tạo phiếu
+    -- 2: đang chuyển
+    -- 3: đã nhận
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_PHIEUCHUYEN_CHINHANH
+    CHECK (MaCN_Xuat <> MaCN_Nhap),
+
+    CONSTRAINT CK_PHIEUCHUYEN_TRANGTHAI
+    CHECK (TrangThai IN (0, 1, 2, 3))
+);
+
+CREATE TABLE CTPC (
+    MaPC VARCHAR(50) REFERENCES PHIEUCHUYEN(MaPC),
+    MaLo VARCHAR(50) REFERENCES LOHANG(MaLo),
+
+    SoLuong DECIMAL(18,2) NOT NULL,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MaPC, MaLo),
+
+    CONSTRAINT CK_CTPC_SOLUONG
+    CHECK (SoLuong > 0)
+);
+
+
+/* =========================================================
+   11. NHẬT KÝ GIAO DỊCH KHO
+   ========================================================= */
+
+CREATE TABLE INVENTORYTRANSACTION (
+    MaTrans VARCHAR(50) PRIMARY KEY,
+
+    MaCN VARCHAR(20) REFERENCES CHINHANH(MaCN),
+    MaNL VARCHAR(50) REFERENCES NGUYENLIEU(MaNL),
+    MaLo VARCHAR(50) NULL REFERENCES LOHANG(MaLo),
+
+    LoaiChungTu VARCHAR(20),
+    -- HOADON
+    -- PHIEUNHAP
+    -- PHIEUXUAT
+    -- PHIEUCHUYEN
+    -- KIEMKHO
+
+    IDChungTu VARCHAR(50),
+
+    LoaiGiaoDich INT NOT NULL,
+    -- 1: nhập
+    -- 2: xuất
+    -- 3: chuyển đi
+    -- 4: chuyển đến
+    -- 5: kiểm kho điều chỉnh
+
+    SoLuong DECIMAL(18,2) NOT NULL,
+
+    TrangThai INT DEFAULT 1,
+    -- 0: hủy
+    -- 1: hợp lệ
+
+    IsSynced BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_INVENTORY_LOAIGD
+    CHECK (LoaiGiaoDich IN (1, 2, 3, 4, 5)),
+
+    CONSTRAINT CK_INVENTORY_SOLUONG
+    CHECK (SoLuong > 0),
+
+    CONSTRAINT CK_INVENTORY_TRANGTHAI
+    CHECK (TrangThai IN (0, 1))
+);
+
+
+/* =========================================================
+   12. SYNC OFFLINE
+   ========================================================= */
+
+CREATE TABLE SYNCLOG (
+    SyncID VARCHAR(50) PRIMARY KEY,
+
+    ThucThe VARCHAR(50),
+    RecordID VARCHAR(50),
+
+    TrangThai VARCHAR(20) DEFAULT 'PENDING',
+    -- PENDING
+    -- SUCCESS
+    -- FAILED
+    -- CONFLICT
+
+    GhiChu TEXT,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_SYNCLOG_TRANGTHAI
+    CHECK (TrangThai IN ('PENDING', 'SUCCESS', 'FAILED', 'CONFLICT'))
+);
+
+CREATE TABLE CONFLICTLOG (
+    ConflictID VARCHAR(50) PRIMARY KEY,
+
+    ThucThe VARCHAR(50),
+    RecordID VARCHAR(50),
+
+    DataLocal JSONB,
+    DataServer JSONB,
+
+    TrangThai VARCHAR(20) DEFAULT 'UNRESOLVED',
+    -- UNRESOLVED
+    -- RESOLVED_LOCAL
+    -- RESOLVED_SERVER
+    -- RESOLVED_MANUAL
+
+    GhiChu TEXT,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_CONFLICTLOG_TRANGTHAI
+    CHECK (
+        TrangThai IN (
+            'UNRESOLVED',
+            'RESOLVED_LOCAL',
+            'RESOLVED_SERVER',
+            'RESOLVED_MANUAL'
+        )
+    )
+);
+
+
+/* =========================================================
+   13. AUDIT LOG
+   ========================================================= */
+
+CREATE TABLE AUDITLOG (
+    LogID VARCHAR(50) PRIMARY KEY,
+
+    MaNV VARCHAR(50),
+
+    ThucThe VARCHAR(50),
+    RecordID VARCHAR(50),
+
+    HanhDong VARCHAR(20),
+    -- INSERT
+    -- UPDATE
+    -- DELETE
+
+    DuLieuCu JSONB NULL,
+    DuLieuMoi JSONB NULL,
+
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT CK_AUDITLOG_HANHDONG
+    CHECK (HanhDong IN ('INSERT', 'UPDATE', 'DELETE'))
+);
+
+
+/* =========================================================
+   14. INDEX
+   ========================================================= */
+
+CREATE INDEX IDX_NHANVIEN_MACN
+ON NHANVIEN(MaCN);
+
+CREATE INDEX IDX_TAIKHOAN_USERNAME
+ON TAIKHOAN(Username);
+
+CREATE INDEX IDX_TAIKHOAN_MANV
+ON TAIKHOAN(MaNV);
+
+CREATE INDEX IDX_TAIKHOAN_VAITRO
+ON TAIKHOAN(VaiTro);
+
+CREATE INDEX IDX_KHUYENMAI_THOIGIAN
+ON KHUYENMAI(NgayBatDau, NgayKetThuc);
+
+CREATE INDEX IDX_HOADON_MACN_CREATEDAT
+ON HOADON(MaCN, CreatedAt);
+
+CREATE INDEX IDX_HOADON_MACA
+ON HOADON(MaCa);
+
+CREATE INDEX IDX_HOADON_MAKM
+ON HOADON(MaKM);
+
+CREATE INDEX IDX_CTHD_MAHD
+ON CTHD(MaHD);
+
+CREATE INDEX IDX_CTHD_MASP
+ON CTHD(MaSP);
+
+CREATE INDEX IDX_THANHTOAN_MAHD
+ON THANHTOAN(MaHD);
+
+CREATE INDEX IDX_THANHTOAN_CREATEDAT
+ON THANHTOAN(CreatedAt);
+
+CREATE INDEX IDX_LOHANG_MACN_MANL
+ON LOHANG(MaCN, MaNL);
+
+CREATE INDEX IDX_TONKHO_MACN_MANL
+ON TONKHO(MaCN, MaNL);
+
+CREATE INDEX IDX_PHIEUNHAP_MACN_NGAYNHAP
+ON PHIEUNHAP(MaCN, NgayNhap);
+
+CREATE INDEX IDX_PHIEUXUAT_MACN_CREATEDAT
+ON PHIEUXUAT(MaCN, CreatedAt);
+
+CREATE INDEX IDX_PHIEUCHUYEN_XUAT_NHAP
+ON PHIEUCHUYEN(MaCN_Xuat, MaCN_Nhap);
+
+CREATE INDEX IDX_KIEMKHO_MACN_NGAYKIEM
+ON KIEMKHO(MaCN, NgayKiem);
+
+CREATE INDEX IDX_INVENTORY_MACN_MANL_CREATEDAT
+ON INVENTORYTRANSACTION(MaCN, MaNL, CreatedAt);
+
+CREATE INDEX IDX_SYNCLOG_THUCTHE_RECORD
+ON SYNCLOG(ThucThe, RecordID);
+
+CREATE INDEX IDX_CONFLICTLOG_THUCTHE_RECORD
+ON CONFLICTLOG(ThucThe, RecordID);
+
+
+/* =========================================================
+   15. TRIGGER TỰ ĐỘNG CẬP NHẬT UpdatedAt
+   ========================================================= */
+
+CREATE OR REPLACE FUNCTION fn_update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.UpdatedAt = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+/* MASTER DATA */
+
+CREATE TRIGGER trg_chinhanh_updatedat
+BEFORE UPDATE ON CHINHANH
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_donvi_updatedat
+BEFORE UPDATE ON DONVI
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_nhacungcap_updatedat
+BEFORE UPDATE ON NHACUNGCAP
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_sanpham_updatedat
+BEFORE UPDATE ON SANPHAM
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_khuyenmai_updatedat
+BEFORE UPDATE ON KHUYENMAI
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+
+/* NHÂN VIÊN - TÀI KHOẢN */
+
+CREATE TRIGGER trg_nhanvien_updatedat
+BEFORE UPDATE ON NHANVIEN
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_taikhoan_updatedat
+BEFORE UPDATE ON TAIKHOAN
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+
+/* NGUYÊN LIỆU */
+
+CREATE TRIGGER trg_nguyenlieu_updatedat
+BEFORE UPDATE ON NGUYENLIEU
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_quydoidonvi_updatedat
+BEFORE UPDATE ON QUYDOIDONVI
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_phienbancongthuc_updatedat
+BEFORE UPDATE ON PHIENBANCONGTHUC
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+
+/* POS */
+
+CREATE TRIGGER trg_calamviec_updatedat
+BEFORE UPDATE ON CALAMVIEC
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_hoadon_updatedat
+BEFORE UPDATE ON HOADON
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_cthd_updatedat
+BEFORE UPDATE ON CTHD
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_thanhtoan_updatedat
+BEFORE UPDATE ON THANHTOAN
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+
+/* KHO */
+
+CREATE TRIGGER trg_tonkho_updatedat
+BEFORE UPDATE ON TONKHO
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_lohang_updatedat
+BEFORE UPDATE ON LOHANG
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_kiemkho_updatedat
+BEFORE UPDATE ON KIEMKHO
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_ctkk_updatedat
+BEFORE UPDATE ON CTKK
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_phieunhap_updatedat
+BEFORE UPDATE ON PHIEUNHAP
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_ctpn_updatedat
+BEFORE UPDATE ON CTPN
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_phieuxuat_updatedat
+BEFORE UPDATE ON PHIEUXUAT
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_ctpx_updatedat
+BEFORE UPDATE ON CTPX
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_phieuchuyen_updatedat
+BEFORE UPDATE ON PHIEUCHUYEN
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_ctpc_updatedat
+BEFORE UPDATE ON CTPC
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_inventory_updatedat
+BEFORE UPDATE ON INVENTORYTRANSACTION
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+
+/* SYNC */
+
+CREATE TRIGGER trg_synclog_updatedat
+BEFORE UPDATE ON SYNCLOG
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
+
+CREATE TRIGGER trg_conflictlog_updatedat
+BEFORE UPDATE ON CONFLICTLOG
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_updated_at();
