@@ -34,18 +34,18 @@ public class InventoryTransaction {
     @Column(name = "idchungtu", length = 50)
     private String idChungTu;
 
-    @Column(name = "loaigiaodich")
-    private Integer loaiGiaoDich;
+    @Column(name = "loaigiaodich", length = 30)
+    private String loaiGiaoDich;
 
     @Column(name = "soluong")
     private Double soLuong;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
 
     @Column(name = "issynced")
     private Boolean isSynced;
 
-    @Column(name = "created_at")
+    @Column(name = "createdat")
     private LocalDateTime createdAt;
 }

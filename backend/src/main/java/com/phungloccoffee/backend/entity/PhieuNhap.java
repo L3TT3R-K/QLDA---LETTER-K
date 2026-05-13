@@ -45,8 +45,11 @@ public class PhieuNhap {
     @Column(name = "tongtien", columnDefinition = "numeric")
     private BigDecimal tongTien;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
+
+    @Column(name = "daxulykho")
+    private Boolean daXuLyKho;
 
     @Column(name = "issynced")
     private Boolean isSynced;

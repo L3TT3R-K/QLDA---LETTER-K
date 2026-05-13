@@ -45,8 +45,8 @@ public class NhanVien {
     @JoinColumn(name = "macn")
     private ChiNhanh chiNhanh; 
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
     
     @CreationTimestamp
     @Column(name = "createdat", updatable = false) //updatable = Không được update sau khi tạo

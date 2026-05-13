@@ -6,6 +6,7 @@ import com.phungloccoffee.backend.dto.HaoHutXuatKhoResponse;
 import com.phungloccoffee.backend.dto.PhieuXuatKhoRequest;
 import com.phungloccoffee.backend.dto.PhieuXuatKhoResponse;
 import com.phungloccoffee.backend.entity.CTPhieuXuatKho;
+import com.phungloccoffee.backend.entity.CTPhieuXuatKhoId;
 import com.phungloccoffee.backend.entity.ChiNhanh;
 import com.phungloccoffee.backend.entity.InventoryTransaction;
 import com.phungloccoffee.backend.entity.LoHang;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,8 @@ public class PhieuXuatKhoService {
     private static final String HONG = "HONG";
     private static final String THAT_THOAT = "THAT_THOAT";
     private static final String HET_HAN = "HET_HAN";
+    private static final String TRANG_THAI_DA_XUAT_KHO = "Đã xuất kho";
+    private static final String TRANG_THAI_HOP_LE = "Hợp lệ";
 
     @Autowired private PhieuXuatKhoRepository phieuXuatKhoRepository;
     @Autowired private CTPhieuXuatKhoRepository ctPhieuXuatKhoRepository;
@@ -55,7 +59,26 @@ public class PhieuXuatKhoService {
 
     @Transactional
     public PhieuXuatKhoResponse taoPhieuXuatKho(PhieuXuatKhoRequest request) {
+        return taoPhieuXuatKhoInternal(request, null, false);
+    }
+
+    @Transactional
+    public PhieuXuatKhoResponse xuatNguyenLieu(PhieuXuatKhoRequest request) {
+        return taoPhieuXuatKhoInternal(request, XUAT_SU_DUNG, false);
+    }
+
+    @Transactional
+    public PhieuXuatKhoResponse ghiNhanHaoHut(PhieuXuatKhoRequest request) {
+        return taoPhieuXuatKhoInternal(request, null, true);
+    }
+
+    private PhieuXuatKhoResponse taoPhieuXuatKhoInternal(PhieuXuatKhoRequest request, String forcedLyDo, boolean batBuocHaoHut) {
         validateRequest(request);
+
+        String lyDo = forcedLyDo != null ? forcedLyDo : normalizeLyDo(request.getLyDo());
+        if (batBuocHaoHut && !isHaoHut(lyDo)) {
+            throw new IllegalArgumentException("Ly do hao hut phai la HONG, THAT_THOAT hoac HET_HAN");
+        }
 
         String maPX = normalizeMaPX(request.getMaPX());
         if (phieuXuatKhoRepository.existsById(maPX)) {
@@ -71,36 +94,15 @@ public class PhieuXuatKhoService {
         phieuXuatKho.setMaPX(maPX);
         phieuXuatKho.setChiNhanh(chiNhanh);
         phieuXuatKho.setNhanVien(nhanVien);
-        phieuXuatKho.setLyDo(normalizeLyDo(request.getLyDo()));
-        phieuXuatKho.setTrangThai(1);
+        phieuXuatKho.setLyDo(lyDo);
+        phieuXuatKho.setTrangThai(TRANG_THAI_DA_XUAT_KHO);
+        phieuXuatKho.setDaXuLyKho(true);
         phieuXuatKho.setIsSynced(false);
 
         PhieuXuatKho savedPhieuXuatKho = phieuXuatKhoRepository.save(phieuXuatKho);
 
         for (CTPhieuXuatKhoRequest chiTietRequest : request.getChiTiet()) {
-            LoHang loHang = loHangRepository.findById(chiTietRequest.getMaLo())
-                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTietRequest.getMaLo()));
-            NguyenLieu nguyenLieu = loHang.getNguyenLieu();
-            if (nguyenLieu == null) {
-                throw new IllegalArgumentException("Lo hang chua gan nguyen lieu: " + chiTietRequest.getMaLo());
-            }
-            if (loHang.getChiNhanh() == null || !chiNhanh.getMaCN().equals(loHang.getChiNhanh().getMaCN())) {
-                throw new IllegalArgumentException("Lo hang khong thuoc chi nhanh xuat: " + chiTietRequest.getMaLo());
-            }
-
-            double soLuong = chiTietRequest.getSoLuong();
-            String lyDo = savedPhieuXuatKho.getLyDo();
-
-            truLoHang(loHang, soLuong);
-            truTonKho(chiNhanh.getMaCN(), nguyenLieu.getMaNL(), soLuong);
-
-            CTPhieuXuatKho chiTiet = new CTPhieuXuatKho();
-            chiTiet.setMaPX(savedPhieuXuatKho.getMaPX());
-            chiTiet.setMaLo(loHang.getMaLo());
-            chiTiet.setSoLuong(toBigDecimal(soLuong));
-            ctPhieuXuatKhoRepository.save(chiTiet);
-
-            ghiGiaoDichXuatKho(savedPhieuXuatKho.getMaPX(), chiNhanh.getMaCN(), nguyenLieu.getMaNL(), loHang.getMaLo(), soLuong, lyDo);
+            xuatChiTiet(savedPhieuXuatKho, chiNhanh, chiTietRequest);
         }
 
         return toResponse(savedPhieuXuatKho);
@@ -136,7 +138,7 @@ public class PhieuXuatKhoService {
                 LoHang loHang = loHangRepository.findById(chiTiet.getMaLo()).orElse(null);
                 NguyenLieu nguyenLieu = loHang != null ? loHang.getNguyenLieu() : null;
                 String maNL = nguyenLieu != null ? nguyenLieu.getMaNL() : null;
-                String key = chiTiet.getMaLo() + "|" + phieuXuatKho.getLyDo();
+                String key = maNL + "|" + phieuXuatKho.getLyDo();
                 HaoHutXuatKhoResponse item = resultMap.get(key);
                 if (item == null) {
                     item = new HaoHutXuatKhoResponse(
@@ -171,13 +173,72 @@ public class PhieuXuatKhoService {
             throw new IllegalArgumentException("Phieu xuat phai co it nhat mot dong chi tiet");
         }
         for (CTPhieuXuatKhoRequest chiTiet : request.getChiTiet()) {
-            if (chiTiet == null || isBlank(chiTiet.getMaLo())) {
-                throw new IllegalArgumentException("Ma lo khong duoc de trong");
+            if (chiTiet == null || (isBlank(chiTiet.getMaLo()) && isBlank(chiTiet.getMaNL()))) {
+                throw new IllegalArgumentException("Chi tiet xuat phai co ma lo hoac ma nguyen lieu");
             }
             if (chiTiet.getSoLuong() == null || chiTiet.getSoLuong() <= 0) {
                 throw new IllegalArgumentException("So luong xuat phai lon hon 0");
             }
         }
+    }
+
+    private void xuatChiTiet(PhieuXuatKho phieuXuatKho, ChiNhanh chiNhanh, CTPhieuXuatKhoRequest chiTietRequest) {
+        if (!isBlank(chiTietRequest.getMaLo())) {
+            LoHang loHang = loHangRepository.findById(chiTietRequest.getMaLo().trim())
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTietRequest.getMaLo()));
+            xuatTheoLo(phieuXuatKho, chiNhanh, loHang, chiTietRequest.getSoLuong());
+            return;
+        }
+
+        NguyenLieu nguyenLieu = nguyenLieuRepository.findById(chiTietRequest.getMaNL().trim())
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nguyen lieu: " + chiTietRequest.getMaNL()));
+        double soLuongCanXuat = chiTietRequest.getSoLuong();
+        List<LoHang> loHangList = new ArrayList<>(loHangRepository.findByNguyenLieuMaNLAndChiNhanhMaCN(nguyenLieu.getMaNL(), chiNhanh.getMaCN()));
+        loHangList.sort(Comparator
+                .comparing(LoHang::getHanSuDung, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(LoHang::getNgayNhap, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(LoHang::getMaLo));
+
+        for (LoHang loHang : loHangList) {
+            if (soLuongCanXuat <= 0) {
+                break;
+            }
+            double soLuongLo = valueOrZero(loHang.getSoLuongCon());
+            double soLuongXuat = Math.min(soLuongLo, soLuongCanXuat);
+            if (soLuongXuat <= 0) {
+                continue;
+            }
+            xuatTheoLo(phieuXuatKho, chiNhanh, loHang, soLuongXuat);
+            soLuongCanXuat -= soLuongXuat;
+        }
+
+        if (soLuongCanXuat > 0) {
+            throw new IllegalArgumentException("Khong du ton kho cho nguyen lieu " + nguyenLieu.getMaNL());
+        }
+    }
+
+    private void xuatTheoLo(PhieuXuatKho phieuXuatKho, ChiNhanh chiNhanh, LoHang loHang, double soLuong) {
+        NguyenLieu nguyenLieu = loHang.getNguyenLieu();
+        if (nguyenLieu == null) {
+            throw new IllegalArgumentException("Lo hang chua gan nguyen lieu: " + loHang.getMaLo());
+        }
+        if (loHang.getChiNhanh() == null || !chiNhanh.getMaCN().equals(loHang.getChiNhanh().getMaCN())) {
+            throw new IllegalArgumentException("Lo hang khong thuoc chi nhanh xuat: " + loHang.getMaLo());
+        }
+
+        truLoHang(loHang, soLuong);
+        truTonKho(chiNhanh.getMaCN(), nguyenLieu.getMaNL(), soLuong);
+        luuChiTiet(phieuXuatKho.getMaPX(), loHang.getMaLo(), soLuong);
+        ghiGiaoDichXuatKho(phieuXuatKho.getMaPX(), chiNhanh.getMaCN(), nguyenLieu.getMaNL(), loHang.getMaLo(), soLuong);
+    }
+
+    private void luuChiTiet(String maPX, String maLo, double soLuong) {
+        CTPhieuXuatKhoId id = new CTPhieuXuatKhoId(maPX, maLo);
+        CTPhieuXuatKho chiTiet = ctPhieuXuatKhoRepository.findById(id).orElseGet(CTPhieuXuatKho::new);
+        chiTiet.setMaPX(maPX);
+        chiTiet.setMaLo(maLo);
+        chiTiet.setSoLuong(toBigDecimal(valueOrZero(chiTiet.getSoLuong()) + soLuong));
+        ctPhieuXuatKhoRepository.save(chiTiet);
     }
 
     private void truLoHang(LoHang loHang, double soLuong) {
@@ -201,17 +262,17 @@ public class PhieuXuatKhoService {
         tonKhoRepository.save(tonKho);
     }
 
-    private void ghiGiaoDichXuatKho(String maPX, String maCN, String maNL, String maLo, double soLuong, String lyDo) {
+    private void ghiGiaoDichXuatKho(String maPX, String maCN, String maNL, String maLo, double soLuong) {
         InventoryTransaction trans = new InventoryTransaction();
         trans.setMaTrans("TR_" + UUID.randomUUID().toString().substring(0, 8));
         trans.setMaCN(maCN);
         trans.setMaNL(maNL);
         trans.setMaLo(maLo);
-        trans.setLoaiChungTu("XUATKHO_" + lyDo);
+        trans.setLoaiChungTu("PHIEUXUAT");
         trans.setIdChungTu(maPX);
-        trans.setLoaiGiaoDich(-1);
-        trans.setSoLuong(-soLuong);
-        trans.setTrangThai(1);
+        trans.setLoaiGiaoDich("XUAT");
+        trans.setSoLuong(soLuong);
+        trans.setTrangThai(TRANG_THAI_HOP_LE);
         trans.setIsSynced(false);
         trans.setCreatedAt(LocalDateTime.now());
         inventoryTransactionRepository.save(trans);

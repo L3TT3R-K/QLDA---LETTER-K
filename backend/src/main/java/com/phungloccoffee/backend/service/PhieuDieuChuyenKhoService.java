@@ -6,6 +6,7 @@ import com.phungloccoffee.backend.dto.CapNhatTrangThaiDieuChuyenRequest;
 import com.phungloccoffee.backend.dto.PhieuDieuChuyenKhoRequest;
 import com.phungloccoffee.backend.dto.PhieuDieuChuyenKhoResponse;
 import com.phungloccoffee.backend.entity.CTPhieuDieuChuyenKho;
+import com.phungloccoffee.backend.entity.CTPhieuDieuChuyenKhoId;
 import com.phungloccoffee.backend.entity.ChiNhanh;
 import com.phungloccoffee.backend.entity.InventoryTransaction;
 import com.phungloccoffee.backend.entity.LoHang;
@@ -27,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,10 +39,11 @@ import java.util.stream.Collectors;
 @Service
 public class PhieuDieuChuyenKhoService {
 
-    private static final int CHO_GUI = 0;
-    private static final int DA_GUI = 1;
-    private static final int DA_NHAN = 2;
-    private static final int DA_HUY = -1;
+    private static final String TAO_PHIEU = "Tạo phiếu";
+    private static final String DANG_CHUYEN = "Đang chuyển";
+    private static final String DA_NHAN = "Đã nhận";
+    private static final String DA_HUY = "Hủy";
+    private static final String TRANG_THAI_HOP_LE = "Hợp lệ";
 
     @Autowired private PhieuDieuChuyenKhoRepository phieuDieuChuyenKhoRepository;
     @Autowired private CTPhieuDieuChuyenKhoRepository ctPhieuDieuChuyenKhoRepository;
@@ -58,7 +62,7 @@ public class PhieuDieuChuyenKhoService {
             throw new IllegalArgumentException("Ma phieu chuyen da ton tai: " + maPC);
         }
 
-        chiNhanhRepository.findById(request.getMaCNXuat())
+        ChiNhanh chiNhanhXuat = chiNhanhRepository.findById(request.getMaCNXuat())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh xuat: " + request.getMaCNXuat()));
         chiNhanhRepository.findById(request.getMaCNNhap())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh nhap: " + request.getMaCNNhap()));
@@ -70,23 +74,15 @@ public class PhieuDieuChuyenKhoService {
         phieu.setMaCNXuat(request.getMaCNXuat().trim());
         phieu.setMaCNNhap(request.getMaCNNhap().trim());
         phieu.setNhanVien(nhanVien);
-        phieu.setTrangThai(CHO_GUI);
+        phieu.setTrangThai(TAO_PHIEU);
+        phieu.setDaXuLyKho(false);
+        phieu.setDaNhanKho(false);
         phieu.setIsSynced(false);
 
         PhieuDieuChuyenKho savedPhieu = phieuDieuChuyenKhoRepository.save(phieu);
 
         for (CTPhieuDieuChuyenKhoRequest chiTietRequest : request.getChiTiet()) {
-            LoHang loHang = loHangRepository.findById(chiTietRequest.getMaLo())
-                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTietRequest.getMaLo()));
-            if (loHang.getChiNhanh() == null || !savedPhieu.getMaCNXuat().equals(loHang.getChiNhanh().getMaCN())) {
-                throw new IllegalArgumentException("Lo hang khong thuoc chi nhanh xuat: " + chiTietRequest.getMaLo());
-            }
-
-            CTPhieuDieuChuyenKho chiTiet = new CTPhieuDieuChuyenKho();
-            chiTiet.setMaPC(savedPhieu.getMaPC());
-            chiTiet.setMaLo(loHang.getMaLo());
-            chiTiet.setSoLuong(toBigDecimal(chiTietRequest.getSoLuong()));
-            ctPhieuDieuChuyenKhoRepository.save(chiTiet);
+            taoChiTietChuyen(savedPhieu, chiNhanhXuat, chiTietRequest);
         }
 
         return toResponse(savedPhieu);
@@ -95,8 +91,11 @@ public class PhieuDieuChuyenKhoService {
     @Transactional
     public PhieuDieuChuyenKhoResponse guiPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
         PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
-        if (phieu.getTrangThai() == null || phieu.getTrangThai() != CHO_GUI) {
-            throw new IllegalArgumentException("Chi co phieu CHO_GUI moi duoc gui");
+        if (!TAO_PHIEU.equals(phieu.getTrangThai())) {
+            throw new IllegalArgumentException("Chi co phieu Tao phieu moi duoc gui");
+        }
+        if (Boolean.TRUE.equals(phieu.getDaXuLyKho())) {
+            throw new IllegalArgumentException("Phieu chuyen da xu ly kho xuat");
         }
 
         for (CTPhieuDieuChuyenKho chiTiet : ctPhieuDieuChuyenKhoRepository.findByMaPC(phieu.getMaPC())) {
@@ -106,18 +105,25 @@ public class PhieuDieuChuyenKhoService {
             double soLuong = valueOrZero(chiTiet.getSoLuong());
             truLoHang(loHang, soLuong);
             truTonKho(phieu.getMaCNXuat(), nguyenLieu.getMaNL(), soLuong);
-            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNXuat(), nguyenLieu.getMaNL(), loHang.getMaLo(), -soLuong, "DIEUCHUYEN_GUI");
+            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNXuat(), nguyenLieu.getMaNL(), loHang.getMaLo(), soLuong, "CHUYEN_DI");
         }
 
-        phieu.setTrangThai(DA_GUI);
+        phieu.setTrangThai(DANG_CHUYEN);
+        phieu.setDaXuLyKho(true);
         return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
     }
 
     @Transactional
     public PhieuDieuChuyenKhoResponse nhanPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
         PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
-        if (phieu.getTrangThai() == null || phieu.getTrangThai() != DA_GUI) {
-            throw new IllegalArgumentException("Chi co phieu DA_GUI moi duoc nhan");
+        if (!DANG_CHUYEN.equals(phieu.getTrangThai())) {
+            throw new IllegalArgumentException("Chi co phieu Dang chuyen moi duoc nhan");
+        }
+        if (!Boolean.TRUE.equals(phieu.getDaXuLyKho())) {
+            throw new IllegalArgumentException("Phieu chuyen chua xu ly kho xuat");
+        }
+        if (Boolean.TRUE.equals(phieu.getDaNhanKho())) {
+            throw new IllegalArgumentException("Phieu chuyen da nhan kho");
         }
 
         ChiNhanh chiNhanhNhan = chiNhanhRepository.findById(phieu.getMaCNNhap())
@@ -129,18 +135,19 @@ public class PhieuDieuChuyenKhoService {
             double soLuong = valueOrZero(chiTiet.getSoLuong());
             LoHang loNhan = taoLoNhan(phieu, loXuat, chiNhanhNhan, soLuong);
             congTonKho(phieu.getMaCNNhap(), nguyenLieu.getMaNL(), soLuong);
-            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNNhap(), nguyenLieu.getMaNL(), loNhan.getMaLo(), soLuong, "DIEUCHUYEN_NHAN");
+            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNNhap(), nguyenLieu.getMaNL(), loNhan.getMaLo(), soLuong, "CHUYEN_DEN");
         }
 
         phieu.setTrangThai(DA_NHAN);
+        phieu.setDaNhanKho(true);
         return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
     }
 
     @Transactional
     public PhieuDieuChuyenKhoResponse huyPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
         PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
-        if (phieu.getTrangThai() == null || phieu.getTrangThai() != CHO_GUI) {
-            throw new IllegalArgumentException("Chi co phieu CHO_GUI moi duoc huy");
+        if (!TAO_PHIEU.equals(phieu.getTrangThai())) {
+            throw new IllegalArgumentException("Chi co phieu Tao phieu moi duoc huy");
         }
         phieu.setTrangThai(DA_HUY);
         return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
@@ -188,13 +195,69 @@ public class PhieuDieuChuyenKhoService {
             throw new IllegalArgumentException("Phieu chuyen phai co it nhat mot dong chi tiet");
         }
         for (CTPhieuDieuChuyenKhoRequest chiTiet : request.getChiTiet()) {
-            if (chiTiet == null || isBlank(chiTiet.getMaLo())) {
-                throw new IllegalArgumentException("Ma lo khong duoc de trong");
+            if (chiTiet == null || (isBlank(chiTiet.getMaLo()) && isBlank(chiTiet.getMaNL()))) {
+                throw new IllegalArgumentException("Chi tiet chuyen phai co ma lo hoac ma nguyen lieu");
             }
             if (chiTiet.getSoLuong() == null || chiTiet.getSoLuong() <= 0) {
                 throw new IllegalArgumentException("So luong chuyen phai lon hon 0");
             }
         }
+    }
+
+    private void taoChiTietChuyen(PhieuDieuChuyenKho phieu, ChiNhanh chiNhanhXuat, CTPhieuDieuChuyenKhoRequest chiTietRequest) {
+        if (!isBlank(chiTietRequest.getMaLo())) {
+            LoHang loHang = loHangRepository.findById(chiTietRequest.getMaLo().trim())
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTietRequest.getMaLo()));
+            validateLoXuat(loHang, chiNhanhXuat.getMaCN());
+            if (!isBlank(chiTietRequest.getMaNL()) && !chiTietRequest.getMaNL().trim().equals(getNguyenLieuFromLo(loHang).getMaNL())) {
+                throw new IllegalArgumentException("Lo hang khong dung nguyen lieu can chuyen: " + loHang.getMaLo());
+            }
+            if (valueOrZero(loHang.getSoLuongCon()) < chiTietRequest.getSoLuong()) {
+                throw new IllegalArgumentException("Khong du so luong trong lo " + loHang.getMaLo());
+            }
+            luuChiTiet(phieu.getMaPC(), loHang.getMaLo(), chiTietRequest.getSoLuong());
+            return;
+        }
+
+        double soLuongCanChuyen = chiTietRequest.getSoLuong();
+        List<LoHang> loHangList = new ArrayList<>(loHangRepository.findByNguyenLieuMaNLAndChiNhanhMaCN(
+                chiTietRequest.getMaNL().trim(), chiNhanhXuat.getMaCN()));
+        loHangList.sort(Comparator
+                .comparing(LoHang::getHanSuDung, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(LoHang::getNgayNhap, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(LoHang::getMaLo));
+
+        for (LoHang loHang : loHangList) {
+            if (soLuongCanChuyen <= 0) {
+                break;
+            }
+            double soLuongLo = valueOrZero(loHang.getSoLuongCon());
+            double soLuongChuyen = Math.min(soLuongLo, soLuongCanChuyen);
+            if (soLuongChuyen <= 0) {
+                continue;
+            }
+            luuChiTiet(phieu.getMaPC(), loHang.getMaLo(), soLuongChuyen);
+            soLuongCanChuyen -= soLuongChuyen;
+        }
+
+        if (soLuongCanChuyen > 0) {
+            throw new IllegalArgumentException("Khong du ton kho de chuyen nguyen lieu " + chiTietRequest.getMaNL());
+        }
+    }
+
+    private void validateLoXuat(LoHang loHang, String maCNXuat) {
+        if (loHang.getChiNhanh() == null || !maCNXuat.equals(loHang.getChiNhanh().getMaCN())) {
+            throw new IllegalArgumentException("Lo hang khong thuoc kho xuat: " + loHang.getMaLo());
+        }
+    }
+
+    private void luuChiTiet(String maPC, String maLo, double soLuong) {
+        CTPhieuDieuChuyenKhoId id = new CTPhieuDieuChuyenKhoId(maPC, maLo);
+        CTPhieuDieuChuyenKho chiTiet = ctPhieuDieuChuyenKhoRepository.findById(id).orElseGet(CTPhieuDieuChuyenKho::new);
+        chiTiet.setMaPC(maPC);
+        chiTiet.setMaLo(maLo);
+        chiTiet.setSoLuong(toBigDecimal(valueOrZero(chiTiet.getSoLuong()) + soLuong));
+        ctPhieuDieuChuyenKhoRepository.save(chiTiet);
     }
 
     private void truLoHang(LoHang loHang, double soLuong) {
@@ -208,7 +271,7 @@ public class PhieuDieuChuyenKhoService {
 
     private LoHang taoLoNhan(PhieuDieuChuyenKho phieu, LoHang loXuat, ChiNhanh chiNhanhNhan, double soLuong) {
         LoHang loNhan = new LoHang();
-        loNhan.setMaLo("LO" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        loNhan.setMaLo(generateMaLo());
         loNhan.setNguyenLieu(getNguyenLieuFromLo(loXuat));
         loNhan.setChiNhanh(chiNhanhNhan);
         loNhan.setNgayNhap(LocalDateTime.now());
@@ -238,17 +301,17 @@ public class PhieuDieuChuyenKhoService {
         tonKhoRepository.save(tonKho);
     }
 
-    private void ghiGiaoDich(String maPC, String maCN, String maNL, String maLo, double soLuong, String loaiChungTu) {
+    private void ghiGiaoDich(String maPC, String maCN, String maNL, String maLo, double soLuong, String loaiGiaoDich) {
         InventoryTransaction trans = new InventoryTransaction();
         trans.setMaTrans("TR_" + UUID.randomUUID().toString().substring(0, 8));
         trans.setMaCN(maCN);
         trans.setMaNL(maNL);
         trans.setMaLo(maLo);
-        trans.setLoaiChungTu(loaiChungTu);
+        trans.setLoaiChungTu("PHIEUCHUYEN");
         trans.setIdChungTu(maPC);
-        trans.setLoaiGiaoDich(2);
+        trans.setLoaiGiaoDich(loaiGiaoDich);
         trans.setSoLuong(soLuong);
-        trans.setTrangThai(1);
+        trans.setTrangThai(TRANG_THAI_HOP_LE);
         trans.setIsSynced(false);
         trans.setCreatedAt(LocalDateTime.now());
         inventoryTransactionRepository.save(trans);
@@ -282,7 +345,7 @@ public class PhieuDieuChuyenKhoService {
                 nhanVien != null ? nhanVien.getMaNV() : null,
                 nhanVien != null ? nhanVien.getTenNV() : null,
                 phieu.getCreatedAt(),
-                toTrangThaiText(phieu.getTrangThai()),
+                phieu.getTrangThai(),
                 chiTietResponses
         );
     }
@@ -306,22 +369,22 @@ public class PhieuDieuChuyenKhoService {
         return "PC" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
-    private int parseTrangThai(String trangThai) {
-        String value = trangThai.trim().toUpperCase();
-        if ("CHO_GUI".equals(value)) return CHO_GUI;
-        if ("DA_GUI".equals(value)) return DA_GUI;
-        if ("DA_NHAN".equals(value)) return DA_NHAN;
-        if ("DA_HUY".equals(value)) return DA_HUY;
-        return Integer.parseInt(value);
+    private String generateMaLo() {
+        String maLo;
+        do {
+            maLo = "LO" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (loHangRepository.existsById(maLo));
+        return maLo;
     }
 
-    private String toTrangThaiText(Integer trangThai) {
-        if (trangThai == null) return null;
-        if (trangThai == CHO_GUI) return "CHO_GUI";
-        if (trangThai == DA_GUI) return "DA_GUI";
-        if (trangThai == DA_NHAN) return "DA_NHAN";
-        if (trangThai == DA_HUY) return "DA_HUY";
-        return String.valueOf(trangThai);
+    private String parseTrangThai(String trangThai) {
+        String value = trangThai.trim();
+        String upper = value.toUpperCase();
+        if ("CHO_GUI".equals(upper) || "TAO_PHIEU".equals(upper) || "TẠO PHIẾU".equals(upper)) return TAO_PHIEU;
+        if ("DA_GUI".equals(upper) || "DANG_CHUYEN".equals(upper) || "ĐANG CHUYỂN".equals(upper)) return DANG_CHUYEN;
+        if ("DA_NHAN".equals(upper) || "ĐÃ NHẬN".equals(upper)) return DA_NHAN;
+        if ("DA_HUY".equals(upper) || "HUY".equals(upper) || "HỦY".equals(upper)) return DA_HUY;
+        return value;
     }
 
     private boolean isBlank(String value) {

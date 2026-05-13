@@ -17,8 +17,8 @@ public class DonVi {
     @Column(name = "tendonvi", length = 50)
     private String tenDonVi;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
 
     @CreationTimestamp
     @Column(name = "createdat", updatable = false)

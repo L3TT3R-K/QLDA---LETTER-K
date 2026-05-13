@@ -47,8 +47,8 @@ public class HoaDon {
     @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
 
     @Column(name = "issynced")
     private Boolean isSynced;

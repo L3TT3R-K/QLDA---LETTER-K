@@ -62,7 +62,7 @@ public class NhanVienService {
         Optional<NhanVien> optional = repository.findById(maNV);
         if (optional.isPresent()) {
             NhanVien existing = optional.get();
-            existing.setTrangThai(-1);
+        existing.setTrangThai("Ngừng hoạt động");
             repository.save(existing);
         }
     }

@@ -32,8 +32,8 @@ public class ChiNhanh {
     @Column(name = "diachi", length = 255)
     private String diaChi;
 
-    @Column(name = "trangthai")
-    private Integer trangThai; //1: Hoạt động, 0: Tạm đóng, -1: Giải thể
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
 
     @CreationTimestamp //Tự động lấy giờ hệ thống khi tạo mới
     @Column(name = "createdat", updatable = false)

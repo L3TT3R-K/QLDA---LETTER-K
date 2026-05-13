@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class CTPhieuNhapRequest {
     private String maLo;
+    private String maLoNguon;
     private String maNL;
     private Double soLuong;
     private Double donGiaNhap;

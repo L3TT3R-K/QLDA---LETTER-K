@@ -47,12 +47,12 @@ public class ThanhToanService {
         thanhToan.setHoaDon(hoaDon);
         thanhToan.setPhuongThuc(request.getPhuongThuc());
         thanhToan.setSoTien(request.getSoTien());
-        thanhToan.setTrangThai(1);
+        thanhToan.setTrangThai("Thành công");
         thanhToan.setIsSynced(false);
         thanhToan.setCreatedAt(LocalDateTime.now());
         thanhToanRepository.save(thanhToan);
         //2. Cập nhật trạng thái Hóa đơn thành "Đã thanh toán"
-        hoaDon.setTrangThai(1);
+        hoaDon.setTrangThai("Đã thanh toán");
         hoaDonRepository.save(hoaDon);
         //3. GỌI HÀM TỰ ĐỘNG TRỪ KHO DƯỚI ĐÂY
         truKhoTheoHoaDon(hoaDon);
@@ -69,7 +69,7 @@ public class ThanhToanService {
             int soLuongMua = monMua.getSoLuong();
             //2. Tìm "Phiên bản công thức" đang áp dụng (TrangThai = 1) của món này
             PhienBanCongThuc congThuc = phienBanCongThucRepository
-                .findByMaSPAndTrangThai(maSP, 1)
+                .findByMaSPAndTrangThai(maSP, "Hoạt động")
                 .orElse(null);
 
             // Nếu món này không có công thức (VD: Nước suối đóng chai), bỏ qua để xét món tiếp theo
@@ -105,11 +105,11 @@ public class ThanhToanService {
                 giaoDich.setMaTrans(taoMaGiaoDich(maCN));
                 giaoDich.setMaCN(maCN);
                 giaoDich.setMaNL(maNL);
-                giaoDich.setSoLuong(-luongCanTru); //Lưu số âm thể hiện việc bị trừ đi
+                giaoDich.setSoLuong(luongCanTru);
                 giaoDich.setLoaiChungTu("HOADON");
-                giaoDich.setLoaiGiaoDich(-1); //-1 là Enum xuất bán theo hóa đơn
+                giaoDich.setLoaiGiaoDich("XUAT");
                 giaoDich.setIdChungTu(hoaDon.getMaHD());
-                giaoDich.setTrangThai(1);
+                giaoDich.setTrangThai("Hợp lệ");
                 giaoDich.setIsSynced(false);
                 giaoDich.setCreatedAt(LocalDateTime.now());
                 inventoryTransactionRepository.save(giaoDich);

@@ -50,7 +50,7 @@ public class ChiNhanhService {
         Optional<ChiNhanh> optional = repository.findById(maCN);
         if (optional.isPresent()) {
             ChiNhanh existing = optional.get();
-            existing.setTrangThai(-1); // Đánh dấu là đã giải thể thay vì xóa hẳn
+        existing.setTrangThai("Ngừng hoạt động");
             repository.save(existing);
         }
     }

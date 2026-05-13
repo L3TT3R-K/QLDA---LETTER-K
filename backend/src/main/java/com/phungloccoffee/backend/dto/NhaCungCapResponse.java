@@ -1,10 +1,22 @@
 package com.phungloccoffee.backend.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class NhaCungCapResponse {
     private String maNCC;
     private String tenNCC;
-    private Integer trangThai;
+    private String sdt;
+    private String diaChi;
+    private String trangThai;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

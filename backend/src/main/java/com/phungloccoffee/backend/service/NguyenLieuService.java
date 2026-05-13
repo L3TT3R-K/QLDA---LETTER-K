@@ -10,11 +10,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class NguyenLieuService {
+    private static final String HOAT_DONG = "Hoạt động";
+    private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
+
     @Autowired private NguyenLieuRepository repository;
 
     public List<NguyenLieuResponse> getAllNguyenLieu() {
         return repository.findAll().stream()
-            .filter(nl -> nl.getTrangThai() != -1)
+            .filter(nl -> !NGUNG_HOAT_DONG.equals(nl.getTrangThai()))
             .map(nl -> {
                 NguyenLieuResponse dto = new NguyenLieuResponse();
                 dto.setMaNL(nl.getMaNL());
@@ -30,7 +33,7 @@ public class NguyenLieuService {
 
     public NguyenLieu createNguyenLieu(NguyenLieu nl) {
         nl.setMaNL("NL" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
-        nl.setTrangThai(1);
+        nl.setTrangThai(HOAT_DONG);
         return repository.save(nl);
     }
 
@@ -49,7 +52,7 @@ public class NguyenLieuService {
 
     public void deleteNguyenLieu(String maNL) {
         repository.findById(maNL).ifPresent(nl -> {
-            nl.setTrangThai(-1);
+            nl.setTrangThai(NGUNG_HOAT_DONG);
             repository.save(nl);
         });
     }

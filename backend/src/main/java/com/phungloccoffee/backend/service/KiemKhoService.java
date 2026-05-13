@@ -71,9 +71,9 @@ public class KiemKhoService {
                 trans.setMaNL(chiTiet.getMaNL());
                 trans.setLoaiChungTu("KIEMKHO");
                 trans.setIdChungTu(savedKiemKho.getMaKK());
-                trans.setLoaiGiaoDich(0); // 0 = Giao dịch Điều chỉnh kiểm kho
-                trans.setSoLuong(chenhLech); // Lưu đúng số lượng bị biến động
-                trans.setTrangThai(1); // 1 = Hoàn thành
+                trans.setLoaiGiaoDich(chenhLech > 0 ? "DIEU_CHINH_TANG" : "DIEU_CHINH_GIAM");
+                trans.setSoLuong(Math.abs(chenhLech));
+                trans.setTrangThai("Hợp lệ");
                 trans.setIsSynced(false);
                 trans.setCreatedAt(LocalDateTime.now());
                 

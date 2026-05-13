@@ -37,8 +37,11 @@ public class PhieuXuatKho {
     @Column(name = "lydo", length = 255)
     private String lyDo;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
+
+    @Column(name = "daxulykho")
+    private Boolean daXuLyKho;
 
     @Column(name = "issynced")
     private Boolean isSynced;

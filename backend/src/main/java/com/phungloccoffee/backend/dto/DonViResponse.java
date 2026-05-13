@@ -6,5 +6,5 @@ import lombok.*;
 public class DonViResponse {
     private String maDV;
     private String tenDonVi;
-    private Integer trangThai;
+    private String trangThai;
 }

@@ -12,7 +12,7 @@ spring:
   # JPA: Tự động cập nhật bảng và in câu lệnh SQL
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:

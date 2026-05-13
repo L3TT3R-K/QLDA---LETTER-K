@@ -58,12 +58,12 @@ public class SanPhamService {
     SanPham sanPham = getById(maSP);
 
     // Nên xóa mềm vì sản phẩm có thể đã nằm trong hóa đơn/công thức
-    sanPham.setTrangThai(0);
+    sanPham.setTrangThai("Ngừng hoạt động");
 
     sanPhamRepository.save(sanPham);
   }
 
-  public List<SanPham> getByTrangThai(Integer trangThai) {
+  public List<SanPham> getByTrangThai(String trangThai) {
     return sanPhamRepository.findByTrangThai(trangThai);
   }
 

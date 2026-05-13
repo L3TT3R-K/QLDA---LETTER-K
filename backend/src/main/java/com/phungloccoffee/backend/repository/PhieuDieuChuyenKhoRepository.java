@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface PhieuDieuChuyenKhoRepository extends JpaRepository<PhieuDieuChuyenKho, String> {
     List<PhieuDieuChuyenKho> findByMaCNXuatOrMaCNNhap(String maCNXuat, String maCNNhap);
-    List<PhieuDieuChuyenKho> findByTrangThai(Integer trangThai);
+    List<PhieuDieuChuyenKho> findByTrangThai(String trangThai);
 }

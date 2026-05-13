@@ -13,6 +13,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PhienBanCongThucService {
+  private static final String HOAT_DONG = "Hoạt động";
+  private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
 
   private final PhienBanCongThucRepository phienBanCongThucRepository;
   private final SanPhamRepository sanPhamRepository;
@@ -31,7 +33,7 @@ public class PhienBanCongThucService {
   }
 
   public PhienBanCongThuc getActiveByMaSP(String maSP) {
-    return phienBanCongThucRepository.findByMaSPAndTrangThai(maSP, 1)
+    return phienBanCongThucRepository.findByMaSPAndTrangThai(maSP, HOAT_DONG)
             .orElseThrow(() -> new RuntimeException("Sản phẩm chưa có công thức đang áp dụng: " + maSP));
   }
 
@@ -49,10 +51,10 @@ public class PhienBanCongThucService {
       throw new RuntimeException("Sản phẩm không tồn tại: " + request.getMaSP());
     }
 
-    Integer trangThai = request.getTrangThai() == null ? 1 : request.getTrangThai();
+    String trangThai = request.getTrangThai() == null ? HOAT_DONG : request.getTrangThai();
 
     // Quy tắc: mỗi sản phẩm chỉ có 1 phiên bản công thức active
-    if (trangThai == 1) {
+    if (HOAT_DONG.equals(trangThai)) {
       deactivateOldActiveVersions(request.getMaSP());
     }
 
@@ -74,9 +76,9 @@ public class PhienBanCongThucService {
       throw new RuntimeException("Sản phẩm không tồn tại: " + request.getMaSP());
     }
 
-    Integer trangThai = request.getTrangThai() == null ? phienBan.getTrangThai() : request.getTrangThai();
+    String trangThai = request.getTrangThai() == null ? phienBan.getTrangThai() : request.getTrangThai();
 
-    if (trangThai == 1) {
+    if (HOAT_DONG.equals(trangThai)) {
       deactivateOldActiveVersions(request.getMaSP());
     }
 
@@ -91,17 +93,17 @@ public class PhienBanCongThucService {
     PhienBanCongThuc phienBan = getById(maPB);
 
     // Xóa mềm phiên bản công thức
-    phienBan.setTrangThai(0);
+    phienBan.setTrangThai(NGUNG_HOAT_DONG);
 
     phienBanCongThucRepository.save(phienBan);
   }
 
   private void deactivateOldActiveVersions(String maSP) {
     List<PhienBanCongThuc> activeVersions =
-            phienBanCongThucRepository.findAllByMaSPAndTrangThai(maSP, 1);
+            phienBanCongThucRepository.findAllByMaSPAndTrangThai(maSP, HOAT_DONG);
 
     for (PhienBanCongThuc item : activeVersions) {
-      item.setTrangThai(0);
+      item.setTrangThai(NGUNG_HOAT_DONG);
     }
 
     phienBanCongThucRepository.saveAll(activeVersions);

@@ -34,8 +34,8 @@ public class NguyenLieu {
     @JoinColumn(name = "donvicoban")
     private DonVi donViCoBan;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
 
     @CreationTimestamp
     @Column(name = "createdat", updatable = false)

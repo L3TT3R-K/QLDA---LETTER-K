@@ -24,8 +24,8 @@ public class PhienBanCongThuc {
   @Column(name = "NgayHieuLuc", nullable = false)
   private LocalDateTime ngayHieuLuc;
 
-  @Column(name = "TrangThai", nullable = false)
-  private Integer trangThai;
+  @Column(name = "TrangThai", nullable = false, length = 30)
+  private String trangThai;
 
   @Column(name = "CreatedAt")
   private LocalDateTime createdAt;
@@ -40,7 +40,7 @@ public class PhienBanCongThuc {
     this.updatedAt = now;
 
     if (this.trangThai == null) {
-      this.trangThai = 1;
+      this.trangThai = "Hoạt động";
     }
   }
 

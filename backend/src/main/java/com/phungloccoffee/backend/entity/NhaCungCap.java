@@ -22,17 +22,23 @@ public class NhaCungCap {
     @Column(name = "mancc", length = 50)
     private String maNCC;
 
-    @Column(name = "tenncc", length = 150)
+    @Column(name = "tenncc", length = 150, nullable = false)
     private String tenNCC;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "sdt", length = 20)
+    private String sdt;
+
+    @Column(name = "diachi", length = 255)
+    private String diaChi;
+
+    @Column(name = "trangthai", length = 30, nullable = false)
+    private String trangThai;
 
     @CreationTimestamp
-    @Column(name = "createdat", updatable = false)
+    @Column(name = "createdat", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updatedat")
+    @Column(name = "updatedat", nullable = false)
     private LocalDateTime updatedAt;
 }

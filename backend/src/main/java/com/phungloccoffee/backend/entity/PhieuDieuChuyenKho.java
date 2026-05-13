@@ -36,8 +36,14 @@ public class PhieuDieuChuyenKho {
     @JoinColumn(name = "manv")
     private NhanVien nhanVien;
 
-    @Column(name = "trangthai")
-    private Integer trangThai;
+    @Column(name = "trangthai", length = 30)
+    private String trangThai;
+
+    @Column(name = "daxulykho")
+    private Boolean daXuLyKho;
+
+    @Column(name = "danhankho")
+    private Boolean daNhanKho;
 
     @Column(name = "issynced")
     private Boolean isSynced;

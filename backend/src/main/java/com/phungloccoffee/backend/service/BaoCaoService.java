@@ -2,48 +2,40 @@ package com.phungloccoffee.backend.service;
 
 import com.phungloccoffee.backend.dto.BaoCaoHaoHutResponse;
 import com.phungloccoffee.backend.dto.BaoCaoTonKhoResponse;
+import com.phungloccoffee.backend.dto.CanhBaoTonKhoTongHopResponse;
 import com.phungloccoffee.backend.dto.DoanhThuChiNhanhResponse;
 import com.phungloccoffee.backend.dto.DoanhThuSanPhamResponse;
 import com.phungloccoffee.backend.entity.CTKK;
+import com.phungloccoffee.backend.entity.ChiNhanh;
 import com.phungloccoffee.backend.entity.InventoryTransaction;
 import com.phungloccoffee.backend.entity.KiemKho;
 import com.phungloccoffee.backend.entity.NguyenLieu;
 import com.phungloccoffee.backend.entity.TonKho;
 import com.phungloccoffee.backend.repository.CTHDRepository;
 import com.phungloccoffee.backend.repository.CTKKRepository;
+import com.phungloccoffee.backend.repository.ChiNhanhRepository;
 import com.phungloccoffee.backend.repository.HoaDonRepository;
 import com.phungloccoffee.backend.repository.InventoryTransactionRepository;
 import com.phungloccoffee.backend.repository.KiemKhoRepository;
 import com.phungloccoffee.backend.repository.NguyenLieuRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class BaoCaoService {
-    @Autowired
-    private HoaDonRepository hoaDonRepository;
-
-    @Autowired
-    private CTHDRepository cthdRepository;
-
-    @Autowired 
-    private TonKhoRepository tonKhoRepository;
-    @Autowired 
-    private NguyenLieuRepository nguyenLieuRepository;
-    @Autowired 
-    private KiemKhoRepository kiemKhoRepository;
-    @Autowired 
-    private CTKKRepository ctkkRepository;
-    @Autowired
-    private InventoryTransactionRepository inventoryTransactionRepository;
+    @Autowired private HoaDonRepository hoaDonRepository;
+    @Autowired private CTHDRepository cthdRepository;
+    @Autowired private TonKhoRepository tonKhoRepository;
+    @Autowired private NguyenLieuRepository nguyenLieuRepository;
+    @Autowired private ChiNhanhRepository chiNhanhRepository;
+    @Autowired private KiemKhoRepository kiemKhoRepository;
+    @Autowired private CTKKRepository ctkkRepository;
+    @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
 
     public List<DoanhThuChiNhanhResponse> layDoanhThuChiNhanh(LocalDateTime tuNgay, LocalDateTime denNgay) {
         return hoaDonRepository.thongKeDoanhThuTheoChiNhanh(tuNgay, denNgay);
@@ -53,36 +45,43 @@ public class BaoCaoService {
         return cthdRepository.thongKeDoanhThuTheoSanPham(maCN, tuNgay, denNgay);
     }
 
-    //Báo cáo tồn kho và cảnh báo
     public List<BaoCaoTonKhoResponse> layBaoCaoTonKho(String maCN) {
-        //1. Lấy tất cả tồn kho của chi nhánh
         List<TonKho> danhSachTonKho = tonKhoRepository.findByMaCN(maCN);
         List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
 
-        //2. Duyệt từng dòng tồn kho để lấy tên nguyên liệu và so sánh mức tối thiểu
         for (TonKho tk : danhSachTonKho) {
             NguyenLieu nl = nguyenLieuRepository.findById(tk.getMaNL()).orElse(null);
             if (nl == null) continue;
 
-            //Kiểm tra xem đã sắp hết hàng chưa
+            double soLuongTon = valueOrZero(tk.getSoLuongTon());
+            double tonToiThieu = valueOrZero(nl.getTonToiThieu());
             String trangThai = "Bình thường";
-            if (tk.getSoLuongTon() < nl.getTonToiThieu()) {
+            if (soLuongTon < 0) {
+                trangThai = "Tồn âm";
+            } else if (soLuongTon < tonToiThieu) {
                 trangThai = "Cần nhập hàng";
             }
 
             ketQua.add(BaoCaoTonKhoResponse.builder()
-                .maCN(tk.getMaCN())
-                .maNL(tk.getMaNL())
-                .tenNL(nl.getTenNL())
-                .soLuongTon(tk.getSoLuongTon())
-                .tonToiThieu(nl.getTonToiThieu())
-                .trangThai(trangThai)
-                .build());
+                    .maCN(tk.getMaCN())
+                    .maNL(tk.getMaNL())
+                    .tenNL(nl.getTenNL())
+                    .soLuongTon(soLuongTon)
+                    .tonToiThieu(tonToiThieu)
+                    .trangThai(trangThai)
+                    .build());
         }
         return ketQua;
     }
 
     public List<BaoCaoTonKhoResponse> layCanhBaoTonKho(String maCN) {
+        List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
+        ketQua.addAll(layTonAm(maCN));
+        ketQua.addAll(layDuoiTonToiThieu(maCN));
+        return ketQua;
+    }
+
+    public List<BaoCaoTonKhoResponse> layTonAm(String maCN) {
         List<TonKho> danhSachTonKho = isBlank(maCN) ? tonKhoRepository.findAll() : tonKhoRepository.findByMaCN(maCN);
         List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
 
@@ -90,36 +89,49 @@ public class BaoCaoService {
             NguyenLieu nl = nguyenLieuRepository.findById(tk.getMaNL()).orElse(null);
             if (nl == null) continue;
 
-            double soLuongTon = tk.getSoLuongTon() != null ? tk.getSoLuongTon() : 0.0;
-            double tonToiThieu = nl.getTonToiThieu() != null ? nl.getTonToiThieu() : 0.0;
-
+            double soLuongTon = valueOrZero(tk.getSoLuongTon());
             if (soLuongTon < 0) {
-                ketQua.add(BaoCaoTonKhoResponse.builder()
-                    .maCN(tk.getMaCN())
-                    .maNL(tk.getMaNL())
-                    .tenNL(nl.getTenNL())
-                    .soLuongTon(soLuongTon)
-                    .tonToiThieu(tonToiThieu)
-                    .trangThai("Tồn âm")
-                    .loaiCanhBao("TON_AM")
-                    .mucDo("NGHIEM_TRONG")
-                    .thongDiep("Nguyên liệu đang bị tồn âm, cần kiểm tra giao dịch kho")
-                    .build());
-            } else if (soLuongTon < tonToiThieu) {
-                ketQua.add(BaoCaoTonKhoResponse.builder()
-                    .maCN(tk.getMaCN())
-                    .maNL(tk.getMaNL())
-                    .tenNL(nl.getTenNL())
-                    .soLuongTon(soLuongTon)
-                    .tonToiThieu(tonToiThieu)
-                    .trangThai("Cần nhập hàng")
-                    .loaiCanhBao("DUOI_TON_TOI_THIEU")
-                    .mucDo("CANH_BAO")
-                    .thongDiep("Nguyên liệu dưới mức tồn tối thiểu")
-                    .build());
+                ketQua.add(taoCanhBaoTonKho(
+                        tk.getMaCN(),
+                        nl,
+                        soLuongTon,
+                        "Tồn âm",
+                        "TON_AM",
+                        "NGHIEM_TRONG",
+                        "Nguyên liệu đang bị tồn âm, cần kiểm tra giao dịch kho"
+                ));
             }
         }
+        return ketQua;
+    }
 
+    public List<BaoCaoTonKhoResponse> layDuoiTonToiThieu(String maCN) {
+        List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
+        List<ChiNhanh> danhSachChiNhanh = layChiNhanhCanKiemTra(maCN);
+        List<NguyenLieu> danhSachNguyenLieu = nguyenLieuRepository.findAll();
+
+        for (ChiNhanh chiNhanh : danhSachChiNhanh) {
+            for (NguyenLieu nl : danhSachNguyenLieu) {
+                TonKho tonKho = tonKhoRepository.findByMaCNAndMaNL(chiNhanh.getMaCN(), nl.getMaNL());
+                double soLuongTon = tonKho != null ? valueOrZero(tonKho.getSoLuongTon()) : 0.0;
+                double tonToiThieu = valueOrZero(nl.getTonToiThieu());
+
+                if (soLuongTon >= 0 && soLuongTon < tonToiThieu) {
+                    String thongDiep = tonKho == null
+                            ? "Nguyên liệu chưa có bản ghi tồn kho tại chi nhánh"
+                            : "Nguyên liệu dưới mức tồn tối thiểu";
+                    ketQua.add(taoCanhBaoTonKho(
+                            chiNhanh.getMaCN(),
+                            nl,
+                            soLuongTon,
+                            "Cần nhập hàng",
+                            "DUOI_TON_TOI_THIEU",
+                            "CANH_BAO",
+                            thongDiep
+                    ));
+                }
+            }
+        }
         return ketQua;
     }
 
@@ -127,54 +139,77 @@ public class BaoCaoService {
         return inventoryTransactionRepository.findCanhBaoDongBo(isBlank(maCN) ? null : maCN);
     }
 
-    public Map<String, Object> layCanhBaoTongHop(String maCN) {
-        List<BaoCaoTonKhoResponse> canhBaoTonKho = layCanhBaoTonKho(maCN);
+    public CanhBaoTonKhoTongHopResponse layCanhBaoTongHop(String maCN) {
+        List<BaoCaoTonKhoResponse> duoiTonToiThieu = layDuoiTonToiThieu(maCN);
+        List<BaoCaoTonKhoResponse> tonAm = layTonAm(maCN);
         List<InventoryTransaction> giaoDichDongBoLoi = layGiaoDichDongBoLoi(maCN);
 
-        Map<String, Object> ketQua = new HashMap<>();
-        ketQua.put("canhBaoTonKho", canhBaoTonKho);
-        ketQua.put("giaoDichDongBoLoi", giaoDichDongBoLoi);
-        ketQua.put("soCanhBaoTonKho", canhBaoTonKho.size());
-        ketQua.put("soGiaoDichDongBoLoi", giaoDichDongBoLoi.size());
-        ketQua.put("tongCanhBao", canhBaoTonKho.size() + giaoDichDongBoLoi.size());
-        return ketQua;
+        return CanhBaoTonKhoTongHopResponse.builder()
+                .duoiTonToiThieu(duoiTonToiThieu)
+                .tonAm(tonAm)
+                .giaoDichDongBoLoi(giaoDichDongBoLoi)
+                .soDuoiTonToiThieu(duoiTonToiThieu.size())
+                .soTonAm(tonAm.size())
+                .soGiaoDichDongBoLoi(giaoDichDongBoLoi.size())
+                .tongCanhBao(duoiTonToiThieu.size() + tonAm.size() + giaoDichDongBoLoi.size())
+                .build();
     }
 
-    //Báo cáo hao hụt kiểm kho
     public List<BaoCaoHaoHutResponse> layBaoCaoHaoHut(String maCN, LocalDateTime tuNgay, LocalDateTime denNgay) {
-        //1. Tìm các phiếu kiểm kho trong thời gian đó
         List<KiemKho> danhSachPhieuKiem = kiemKhoRepository.findByChiNhanh_MaCNAndNgayKiemBetween(maCN, tuNgay, denNgay);
         List<BaoCaoHaoHutResponse> ketQua = new ArrayList<>();
 
-        //2. Duyệt từng phiếu kiểm
         for (KiemKho phieu : danhSachPhieuKiem) {
             List<CTKK> chiTietKiem = ctkkRepository.findByMaKK(phieu.getMaKK());
-            
-            //3. Tính tỷ lệ hao hụt cho từng nguyên liệu trong phiếu đó
+
             for (CTKK ct : chiTietKiem) {
                 NguyenLieu nl = nguyenLieuRepository.findById(ct.getMaNL()).orElse(null);
-                String tenNL = (nl != null) ? nl.getTenNL() : "Không xác định";
+                String tenNL = nl != null ? nl.getTenNL() : "Không xác định";
 
                 double tyLeHaoHut = 0.0;
-                //Nếu chênh lệch âm (Thực tế < Hệ thống) => bị hao hụt
                 if (ct.getChenhLech() < 0 && ct.getSoLuongHeThong() > 0) {
-                    //Dùng Math.abs để chuyển số âm thành dương cho dễ nhìn %
                     tyLeHaoHut = (Math.abs(ct.getChenhLech()) / ct.getSoLuongHeThong()) * 100;
                 }
 
                 ketQua.add(BaoCaoHaoHutResponse.builder()
-                    .maKK(phieu.getMaKK())
-                    .ngayKiem(phieu.getNgayKiem())
-                    .maNL(ct.getMaNL())
-                    .tenNL(tenNL)
-                    .soLuongHeThong(ct.getSoLuongHeThong())
-                    .soLuongThucTe(ct.getSoLuongThucTe())
-                    .chenhLech(ct.getChenhLech())
-                    .tyLeHaoHut(Math.round(tyLeHaoHut * 100.0) / 100.0) //Làm tròn 2 chữ số
-                    .build());
+                        .maKK(phieu.getMaKK())
+                        .ngayKiem(phieu.getNgayKiem())
+                        .maNL(ct.getMaNL())
+                        .tenNL(tenNL)
+                        .soLuongHeThong(ct.getSoLuongHeThong())
+                        .soLuongThucTe(ct.getSoLuongThucTe())
+                        .chenhLech(ct.getChenhLech())
+                        .tyLeHaoHut(Math.round(tyLeHaoHut * 100.0) / 100.0)
+                        .build());
             }
         }
         return ketQua;
+    }
+
+    private BaoCaoTonKhoResponse taoCanhBaoTonKho(String maCN, NguyenLieu nl, double soLuongTon,
+                                                  String trangThai, String loaiCanhBao, String mucDo, String thongDiep) {
+        return BaoCaoTonKhoResponse.builder()
+                .maCN(maCN)
+                .maNL(nl.getMaNL())
+                .tenNL(nl.getTenNL())
+                .soLuongTon(soLuongTon)
+                .tonToiThieu(valueOrZero(nl.getTonToiThieu()))
+                .trangThai(trangThai)
+                .loaiCanhBao(loaiCanhBao)
+                .mucDo(mucDo)
+                .thongDiep(thongDiep)
+                .build();
+    }
+
+    private List<ChiNhanh> layChiNhanhCanKiemTra(String maCN) {
+        if (isBlank(maCN)) {
+            return chiNhanhRepository.findAll();
+        }
+        return chiNhanhRepository.findById(maCN).map(List::of).orElse(List.of());
+    }
+
+    private double valueOrZero(Double value) {
+        return value != null ? value : 0.0;
     }
 
     private boolean isBlank(String value) {

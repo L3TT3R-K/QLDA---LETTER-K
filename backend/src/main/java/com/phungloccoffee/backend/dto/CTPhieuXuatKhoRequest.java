@@ -7,5 +7,6 @@ import lombok.Setter;
 @Setter
 public class CTPhieuXuatKhoRequest {
     private String maLo;
+    private String maNL;
     private Double soLuong;
 }

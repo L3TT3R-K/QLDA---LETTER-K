@@ -33,6 +33,16 @@ public class PhieuXuatKhoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(phieuXuatKhoService.taoPhieuXuatKho(request));
     }
 
+    @PostMapping("/xuat-nguyen-lieu")
+    public ResponseEntity<PhieuXuatKhoResponse> xuatNguyenLieu(@RequestBody PhieuXuatKhoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(phieuXuatKhoService.xuatNguyenLieu(request));
+    }
+
+    @PostMapping("/hao-hut")
+    public ResponseEntity<PhieuXuatKhoResponse> ghiNhanHaoHut(@RequestBody PhieuXuatKhoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(phieuXuatKhoService.ghiNhanHaoHut(request));
+    }
+
     @GetMapping
     public List<PhieuXuatKhoResponse> getAll(@RequestParam(required = false) String maCN) {
         if (maCN != null && !maCN.trim().isEmpty()) {

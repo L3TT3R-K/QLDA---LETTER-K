@@ -20,6 +20,6 @@ public class PhieuXuatKhoResponse {
     private String tenNV;
     private LocalDateTime ngayXuat;
     private String lyDo;
-    private Integer trangThai;
+    private String trangThai;
     private List<CTPhieuXuatKhoResponse> chiTiet;
 }

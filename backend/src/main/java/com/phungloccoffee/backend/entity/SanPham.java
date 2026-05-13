@@ -28,8 +28,8 @@ public class SanPham {
   @Column(name = "IsTopping", nullable = false)
   private Boolean isTopping;
 
-  @Column(name = "TrangThai", nullable = false)
-  private Integer trangThai;
+  @Column(name = "TrangThai", nullable = false, length = 30)
+  private String trangThai;
 
   @Column(name = "CreatedAt")
   private LocalDateTime createdAt;
@@ -44,7 +44,7 @@ public class SanPham {
     this.updatedAt = now;
 
     if (this.trangThai == null) {
-      this.trangThai = 1;
+      this.trangThai = "Hoạt động";
     }
 
     if (this.isTopping == null) {

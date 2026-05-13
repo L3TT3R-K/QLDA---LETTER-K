@@ -40,7 +40,7 @@ public class HoaDonService {
         hoaDon.setMaHD(maHD);
         hoaDon.setMaCa(request.getMaCa());
         hoaDon.setChiNhanh(chiNhanh);
-        hoaDon.setTrangThai(0);
+        hoaDon.setTrangThai("Tạm");
         hoaDon.setIsSynced(false);
         hoaDon.setCreatedAt(LocalDateTime.now());
         

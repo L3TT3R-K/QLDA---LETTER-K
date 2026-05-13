@@ -27,7 +27,7 @@ public class SanPhamController {
   }
 
   @GetMapping("/trang-thai/{trangThai}")
-  public List<SanPham> getByTrangThai(@PathVariable Integer trangThai) {
+  public List<SanPham> getByTrangThai(@PathVariable String trangThai) {
     return sanPhamService.getByTrangThai(trangThai);
   }
 

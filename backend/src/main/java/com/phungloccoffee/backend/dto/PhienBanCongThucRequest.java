@@ -17,5 +17,5 @@ public class PhienBanCongThucRequest {
 
   private LocalDateTime ngayHieuLuc;
 
-  private Integer trangThai;
+  private String trangThai;
 }

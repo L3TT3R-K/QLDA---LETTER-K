@@ -14,6 +14,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PhieuNhapResponse {
     private String maPN;
+    private String loaiNguon;
+    private String maKhoNguon;
     private String maNCC;
     private String tenNCC;
     private String maCN;
@@ -22,6 +24,6 @@ public class PhieuNhapResponse {
     private String tenNV;
     private LocalDateTime ngayNhap;
     private Double tongTien;
-    private Integer trangThai;
+    private String trangThai;
     private List<CTPhieuNhapResponse> chiTiet;
 }

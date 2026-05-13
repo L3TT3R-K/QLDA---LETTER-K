@@ -10,11 +10,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class DonViService {
+    private static final String HOAT_DONG = "Hoạt động";
+    private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
+
     @Autowired private DonViRepository repository;
 
     public List<DonViResponse> getAllDonVi() {
         return repository.findAll().stream()
-            .filter(dv -> dv.getTrangThai() != -1)
+            .filter(dv -> !NGUNG_HOAT_DONG.equals(dv.getTrangThai()))
             .map(dv -> new DonViResponse(dv.getMaDV(), dv.getTenDonVi(), dv.getTrangThai()))
             .collect(Collectors.toList());
     }
@@ -23,7 +26,7 @@ public class DonViService {
         if (donVi.getMaDV() == null) {
             donVi.setMaDV("DV" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
         }
-        donVi.setTrangThai(1);
+        donVi.setTrangThai(HOAT_DONG);
         return repository.save(donVi);
     }
 
@@ -40,7 +43,7 @@ public class DonViService {
 
     public void deleteDonVi(String maDV) {
         repository.findById(maDV).ifPresent(dv -> {
-            dv.setTrangThai(-1);
+            dv.setTrangThai(NGUNG_HOAT_DONG);
             repository.save(dv);
         });
     }

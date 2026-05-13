@@ -10,6 +10,8 @@ import java.util.List;
 @Setter
 public class PhieuNhapRequest {
     private String maPN;
+    private String loaiNguon;
+    private String maKhoNguon;
     private String maNCC;
     private String maCN;
     private String maNV;
