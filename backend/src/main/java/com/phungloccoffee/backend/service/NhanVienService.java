@@ -1,70 +1,92 @@
 package com.phungloccoffee.backend.service;
 
+import com.phungloccoffee.backend.dto.NhanVienRequest;
 import com.phungloccoffee.backend.entity.NhanVien;
 import com.phungloccoffee.backend.repository.NhanVienRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.phungloccoffee.backend.dto.NhanVienResponse;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class NhanVienService {
-    @Autowired 
-    private NhanVienRepository repository;
-    
-    public List<NhanVienResponse> getAllNhanVien(){
-        List<NhanVien> listNhanVien = repository.findAll();
+
+    private final NhanVienRepository nhanVienRepository;
+    private final PasswordEncoder passwordEncoder; // Dùng để băm mật khẩu
+    private final AuditLogService auditLogService;
+
+    public List<NhanVien> getAll() {
+        return nhanVienRepository.findAll();
+    }
+
+    public NhanVien getById(String maNV) {
+        return nhanVienRepository.findById(maNV)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + maNV));
+    }
+
+    public NhanVien create(NhanVienRequest request) {
+        if (nhanVienRepository.existsById(request.getMaNV())) {
+            throw new RuntimeException("Mã nhân viên đã tồn tại!");
+        }
+        if (nhanVienRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username đã có người sử dụng!");
+        }
+
+        NhanVien nv = NhanVien.builder()
+                .maNV(request.getMaNV())
+                .username(request.getUsername())
+                // Mã hóa password ngay lập tức!
+                .passwordHash(passwordEncoder.encode(request.getPassword())) 
+                .tenNV(request.getTenNV())
+                .chucVu(request.getChucVu())
+                .maCN(request.getMaCN())
+                .trangThai(request.getTrangThai() != null ? request.getTrangThai() : 1)
+                .build();
+
+        NhanVien saved = nhanVienRepository.save(nv);
         
-        // Biến đổi từng Entity thành DTO
-        return listNhanVien.stream().map(nv -> {
-            NhanVienResponse dto = new NhanVienResponse();
-            dto.setMaNV(nv.getMaNV());
-            dto.setTenNV(nv.getTenNV());
-            dto.setChucVu(nv.getChucVu());
-            
-            // Lấy tên chi nhánh (nếu có)
-            if (nv.getChiNhanh() != null) {
-                dto.setTenChiNhanh(nv.getChiNhanh().getTenCN());
-            }
-            
-            return dto;
-        }).collect(Collectors.toList());
-    }
-    
-    public Optional<NhanVien> getNhanVienById(String maNV){
-        return repository.findById(maNV); 
+        // Ẩn Password khi ghi log để bảo mật
+        NhanVien logData = saved;
+        logData.setPasswordHash("HIDDEN"); 
+        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", saved.getMaNV(), "INSERT", null, logData);
+        
+        return saved;
     }
 
-    public NhanVien createNhanVien(NhanVien nhanVien){
-        return repository.save(nhanVien);
-    }
+    public NhanVien update(String maNV, NhanVienRequest request) {
+        NhanVien nv = getById(maNV);
 
-    public NhanVien updateNhanVien(String maNV, NhanVien nhanVienDetails){
-        Optional<NhanVien> optional = repository.findById(maNV); 
-        if(optional.isPresent()){
-            NhanVien existing = optional.get(); 
+        NhanVien oldData = NhanVien.builder()
+                .maNV(nv.getMaNV()).username(nv.getUsername())
+                .tenNV(nv.getTenNV()).chucVu(nv.getChucVu())
+                .maCN(nv.getMaCN()).trangThai(nv.getTrangThai()).build();
 
-            existing.setTenNV(nhanVienDetails.getTenNV()); 
-            existing.setPasswordHash(nhanVienDetails.getPasswordHash());
-            existing.setChucVu(nhanVienDetails.getChucVu());
-            existing.setTrangThai(nhanVienDetails.getTrangThai());
-            existing.setChiNhanh(nhanVienDetails.getChiNhanh());
+        nv.setTenNV(request.getTenNV());
+        nv.setChucVu(request.getChucVu());
+        nv.setMaCN(request.getMaCN());
+        nv.setTrangThai(request.getTrangThai());
 
-            return repository.save(existing);
+        // Nếu FE có gửi password mới lên thì mới mã hóa lại, không thì giữ nguyên pass cũ
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            nv.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
-        return null;
+
+        NhanVien saved = nhanVienRepository.save(nv);
+        
+        oldData.setPasswordHash("HIDDEN");
+        NhanVien logData = saved;
+        logData.setPasswordHash("HIDDEN");
+        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", maNV, "UPDATE", oldData, logData);
+        
+        return saved;
     }
 
-    public void deleteNhanVien(String maNV) {
-        Optional<NhanVien> optional = repository.findById(maNV);
-        if (optional.isPresent()) {
-            NhanVien existing = optional.get();
-        existing.setTrangThai("Ngừng hoạt động");
-            repository.save(existing);
-        }
+    public void delete(String maNV) {
+        NhanVien nv = getById(maNV);
+        nv.setTrangThai(0); // Xóa mềm nghỉ việc
+        nhanVienRepository.save(nv);
+        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", maNV, "DELETE (SOFT)", null, nv);
     }
-
 }

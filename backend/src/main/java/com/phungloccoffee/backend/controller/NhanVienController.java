@@ -1,43 +1,38 @@
 package com.phungloccoffee.backend.controller;
 
+import com.phungloccoffee.backend.dto.NhanVienRequest;
 import com.phungloccoffee.backend.entity.NhanVien;
 import com.phungloccoffee.backend.service.NhanVienService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import com.phungloccoffee.backend.dto.NhanVienResponse;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/nhanvien")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class NhanVienController {
-    @Autowired 
-    private NhanVienService service; 
 
-    @GetMapping 
-    public List<NhanVienResponse> getAll(){
-        return service.getAllNhanVien();
-    }
+    private final NhanVienService nhanVienService;
 
-    @PostMapping 
-    public NhanVien create(@RequestBody NhanVien nhanVien){
-        return service.createNhanVien(nhanVien);
-    }
+    @GetMapping
+    public List<NhanVien> getAll() { return nhanVienService.getAll(); }
+
+    @GetMapping("/{maNV}")
+    public NhanVien getById(@PathVariable String maNV) { return nhanVienService.getById(maNV); }
+
+    @PostMapping
+    public NhanVien create(@RequestBody NhanVienRequest request) { return nhanVienService.create(request); }
 
     @PutMapping("/{maNV}")
-    public ResponseEntity<NhanVien> update(@PathVariable String maNV, @RequestBody NhanVien nhanVienDetails) {
-        NhanVien updated = service.updateNhanVien(maNV, nhanVienDetails);
-        if (updated != null) {
-            return ResponseEntity.ok(updated);
-        }
-        return ResponseEntity.notFound().build();
+    public NhanVien update(@PathVariable String maNV, @RequestBody NhanVienRequest request) {
+        return nhanVienService.update(maNV, request);
     }
 
     @DeleteMapping("/{maNV}")
-    public ResponseEntity<Void> delete(@PathVariable String maNV) {
-        service.deleteNhanVien(maNV);
-        return ResponseEntity.ok().build();
+    public String delete(@PathVariable String maNV) {
+        nhanVienService.delete(maNV);
+        return "Đã cập nhật trạng thái nghỉ việc cho nhân viên: " + maNV;
     }
-
 }
