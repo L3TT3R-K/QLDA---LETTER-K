@@ -22,6 +22,10 @@ public class AuthService {
             throw new RuntimeException("Tài khoản đã bị khóa hoặc nhân viên đã nghỉ việc!");
         }
 
+        System.out.println("Pass tu Postman: " + request.getPassword());
+        System.out.println("Pass trong DB: " + nv.getPasswordHash());
+        System.out.println("MA HASH CHUAN CUA MAY CAU: " + passwordEncoder.encode("123456"));
+        
         if (!passwordEncoder.matches(request.getPassword(), nv.getPasswordHash())) {
             throw new RuntimeException("Sai mật khẩu!");
         }

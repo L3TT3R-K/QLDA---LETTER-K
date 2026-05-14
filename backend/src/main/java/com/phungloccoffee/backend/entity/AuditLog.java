@@ -43,6 +43,6 @@ public class AuditLog {
     @Column(name = "dulieumoi", columnDefinition = "jsonb")
     private String duLieuMoi;
 
-    @Column(name = "created_at")
+    @Column(name = "createdat")
     private LocalDateTime createdAt;
 }

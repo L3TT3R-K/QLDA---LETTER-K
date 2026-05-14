@@ -3,6 +3,7 @@ package com.phungloccoffee.backend.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 // import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -40,7 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 
-                .requestMatchers("/api/nhanvien/**").hasRole("QUANLY")
+                .requestMatchers(HttpMethod.POST, "/api/nhanvien/**").hasAnyRole("ADMIN", "QUANLY")                
                 .requestMatchers("/api/kiemkho", "/api/kiemkho/**").hasAnyRole("QUANLY", "KHO")
                 .requestMatchers("/api/baocao/**").hasRole("QUANLY")
                 

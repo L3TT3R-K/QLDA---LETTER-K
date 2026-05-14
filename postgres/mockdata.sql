@@ -21,7 +21,7 @@ INSERT INTO nhacungcap (mancc, tenncc, trangthai) VALUES
 
 -- Đã tích hợp Username và PasswordHash vào bảng NhanVien
 INSERT INTO nhanvien (manv, tennv, chucvu, macn, username, passwordhash, trangthai) VALUES
-('NV001','Nguyễn Văn An','ADMIN',NULL,'admin','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 1),
+('NV001','Nguyễn Văn An','ADMIN',NULL,'admin','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de', 1),
 ('NV002','Trần Thị Bình','QUANLY_CHINHANH','CN01','manager_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 1),
 ('NV003','Lê Văn Cường','NHANVIEN_BANHANG','CN01','cashier_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 1),
 ('NV004','Phạm Thị Dung','PHA_CHE','CN01',NULL,NULL, 1),
