@@ -13,8 +13,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PhienBanCongThucService {
-  private static final String HOAT_DONG = "Hoạt động";
-  private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
+  
+  // CHUẨN HÓA: Đổi hằng số thành Integer
+  private static final Integer HOAT_DONG = 1;
+  private static final Integer NGUNG_HOAT_DONG = 0;
 
   private final PhienBanCongThucRepository phienBanCongThucRepository;
   private final SanPhamRepository sanPhamRepository;
@@ -51,7 +53,7 @@ public class PhienBanCongThucService {
       throw new RuntimeException("Sản phẩm không tồn tại: " + request.getMaSP());
     }
 
-    String trangThai = request.getTrangThai() == null ? HOAT_DONG : request.getTrangThai();
+    Integer trangThai = request.getTrangThai() == null ? HOAT_DONG : request.getTrangThai();
 
     // Quy tắc: mỗi sản phẩm chỉ có 1 phiên bản công thức active
     if (HOAT_DONG.equals(trangThai)) {
@@ -76,7 +78,7 @@ public class PhienBanCongThucService {
       throw new RuntimeException("Sản phẩm không tồn tại: " + request.getMaSP());
     }
 
-    String trangThai = request.getTrangThai() == null ? phienBan.getTrangThai() : request.getTrangThai();
+    Integer trangThai = request.getTrangThai() == null ? phienBan.getTrangThai() : request.getTrangThai();
 
     if (HOAT_DONG.equals(trangThai)) {
       deactivateOldActiveVersions(request.getMaSP());

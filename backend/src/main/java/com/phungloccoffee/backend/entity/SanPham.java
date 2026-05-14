@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sanpham") // Đưa về chữ thường
+@Table(name = "sanpham") 
 @Getter
 @Setter
 @NoArgsConstructor

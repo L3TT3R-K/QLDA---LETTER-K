@@ -4,10 +4,7 @@ import com.phungloccoffee.backend.dto.SanPhamRequest;
 import com.phungloccoffee.backend.entity.SanPham;
 import com.phungloccoffee.backend.repository.SanPhamRepository;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.phungloccoffee.backend.service.AuditLogService;
 
 import java.util.List;
 
@@ -16,7 +13,6 @@ import java.util.List;
 public class SanPhamService {
 
   private final SanPhamRepository sanPhamRepository;
-
   private final AuditLogService auditLogService;
 
   public List<SanPham> getAll() {
@@ -42,7 +38,7 @@ public class SanPhamService {
             .tenSP(request.getTenSP())
             .giaHienTai(request.getGiaHienTai())
             .isTopping(request.getIsTopping())
-            .trangThai(request.getTrangThai())
+            .trangThai(request.getTrangThai() != null ? request.getTrangThai() : 1) // Default 1 nếu null
             .build();
     
     SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
@@ -84,14 +80,13 @@ public class SanPhamService {
                 .trangThai(sanPham.getTrangThai())
                 .build();
 
-    // Nên xóa mềm vì sản phẩm có thể đã nằm trong hóa đơn/công thức
-    sanPham.setTrangThai("Ngừng hoạt động");
+    sanPham.setTrangThai(0);
 
     SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
     auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "DELETE (SOFT)", banSaoCu, sanPhamMoi);
   }
 
-  public List<SanPham> getByTrangThai(String trangThai) {
+  public List<SanPham> getByTrangThai(Integer trangThai) {
     return sanPhamRepository.findByTrangThai(trangThai);
   }
 

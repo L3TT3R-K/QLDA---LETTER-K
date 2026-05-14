@@ -8,7 +8,7 @@ public interface SanPhamRepository extends JpaRepository<SanPham, String> {
 
   boolean existsByTenSPIgnoreCase(String tenSP);
 
-  List<SanPham> findByTrangThai(String trangThai);
+  List<SanPham> findByTrangThai(Integer trangThai);
 
   List<SanPham> findByIsTopping(Boolean isTopping);
 }

@@ -10,7 +10,7 @@ public interface PhienBanCongThucRepository extends JpaRepository<PhienBanCongTh
 
   List<PhienBanCongThuc> findByMaSP(String maSP);
 
-  Optional<PhienBanCongThuc> findByMaSPAndTrangThai(String maSP, String trangThai);
+  Optional<PhienBanCongThuc> findByMaSPAndTrangThai(String maSP, Integer trangThai);
 
-  List<PhienBanCongThuc> findAllByMaSPAndTrangThai(String maSP, String trangThai);
+  List<PhienBanCongThuc> findAllByMaSPAndTrangThai(String maSP, Integer trangThai);
 }
