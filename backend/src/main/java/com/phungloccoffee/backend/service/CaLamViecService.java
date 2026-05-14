@@ -1,72 +1,72 @@
 package com.phungloccoffee.backend.service;
 
+import com.phungloccoffee.backend.dto.DongCaRequest;
+import com.phungloccoffee.backend.dto.MoCaRequest;
 import com.phungloccoffee.backend.entity.CaLamViec;
 import com.phungloccoffee.backend.repository.CaLamViecRepository;
-import com.phungloccoffee.backend.dto.CaLamViecResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CaLamViecService {
-    private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
 
-    @Autowired
-    private CaLamViecRepository repository;
+    private final CaLamViecRepository caLamViecRepository;
+    private final AuditLogService auditLogService;
 
-    public List<CaLamViecResponse> getAllCaLamViec() {
-        List<CaLamViec> danhSachCa = repository.findAll();
-        
-        return danhSachCa.stream().map(ca -> {
-            CaLamViecResponse dto = new CaLamViecResponse();
-            dto.setMaCa(ca.getMaCa());
-            dto.setNgayLamViec(ca.getNgayLamViec());
-            dto.setGioBatDau(ca.getGioBatDau());
-            dto.setGioKetThuc(ca.getGioKetThuc());
-            dto.setTrangThai(ca.getTrangThai());
-            
-            if (ca.getNhanVien() != null) {
-                dto.setMaNV(ca.getNhanVien().getMaNV());
-                dto.setTenNV(ca.getNhanVien().getTenNV());
-            }
-            return dto;
-        }).collect(Collectors.toList());
+    public List<CaLamViec> getAll() {
+        return caLamViecRepository.findAll();
     }
 
-    public Optional<CaLamViec> getCaLamViecById(String maCa) {
-        return repository.findById(maCa);
+    public CaLamViec getById(String maCa) {
+        return caLamViecRepository.findById(maCa)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ca làm việc: " + maCa));
     }
 
-    public CaLamViec createCaLamViec(CaLamViec caLamViec) {
-        return repository.save(caLamViec);
-    }
-
-    public CaLamViec updateCaLamViec(String maCa, CaLamViec caLamViecDetails) {
-        Optional<CaLamViec> optional = repository.findById(maCa);
-        if (optional.isPresent()) {
-            CaLamViec existing = optional.get();
-            
-            existing.setNgayLamViec(caLamViecDetails.getNgayLamViec());
-            existing.setGioBatDau(caLamViecDetails.getGioBatDau());
-            existing.setGioKetThuc(caLamViecDetails.getGioKetThuc());
-            existing.setTrangThai(caLamViecDetails.getTrangThai());
-            
-            existing.setNhanVien(caLamViecDetails.getNhanVien());
-
-            return repository.save(existing);
+    // Nghiệp vụ: MỞ CA
+    public CaLamViec moCa(MoCaRequest request) {
+        if (caLamViecRepository.existsById(request.getMaCa())) {
+            throw new RuntimeException("Mã ca đã tồn tại!");
         }
-        return null;
+
+        // Cậu có thể thêm logic kiểm tra xem Chi Nhánh này có ca nào đang mở chưa nếu muốn strict
+
+        CaLamViec caLamViec = CaLamViec.builder()
+                .maCa(request.getMaCa())
+                .maNV(request.getMaNV())
+                .maCN(request.getMaCN())
+                .tienDauCa(request.getTienDauCa())
+                .thoiGianMo(LocalDateTime.now()) // Tự động lấy giờ hiện tại
+                .build();
+
+        CaLamViec saved = caLamViecRepository.save(caLamViec);
+        auditLogService.ghiLog(request.getMaNV(), "CALAMVIEC", saved.getMaCa(), "MỞ CA", null, saved);
+        return saved;
     }
 
-    public void deleteCaLamViec(String maCa) {
-        Optional<CaLamViec> optional = repository.findById(maCa);
-        if (optional.isPresent()) {
-            CaLamViec existing = optional.get();
-            existing.setTrangThai(NGUNG_HOAT_DONG);
-            repository.save(existing);
+    // Nghiệp vụ: ĐÓNG CA
+    public CaLamViec dongCa(String maCa, DongCaRequest request) {
+        CaLamViec caLamViec = getById(maCa);
+
+        if (caLamViec.getThoiGianDong() != null) {
+            throw new RuntimeException("Ca làm việc này đã được đóng trước đó!");
         }
+
+        CaLamViec oldData = CaLamViec.builder()
+                .maCa(caLamViec.getMaCa()).maNV(caLamViec.getMaNV())
+                .maCN(caLamViec.getMaCN()).thoiGianMo(caLamViec.getThoiGianMo()) // <--- Đã sửa thành .maCN
+                .tienDauCa(caLamViec.getTienDauCa()).build();
+
+        caLamViec.setThoiGianDong(LocalDateTime.now());
+        caLamViec.setTienCuoiCa(request.getTienCuoiCa());
+        caLamViec.setSoTienThatThoat(request.getSoTienThatThoat());
+        caLamViec.setLyDoGiaiTrinh(request.getLyDoGiaiTrinh());
+
+        CaLamViec saved = caLamViecRepository.save(caLamViec);
+        auditLogService.ghiLog(caLamViec.getMaNV(), "CALAMVIEC", maCa, "ĐÓNG CA", oldData, saved);
+        return saved;
     }
 }

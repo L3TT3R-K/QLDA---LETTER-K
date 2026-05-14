@@ -1,43 +1,39 @@
 package com.phungloccoffee.backend.controller;
 
+import com.phungloccoffee.backend.dto.DongCaRequest;
+import com.phungloccoffee.backend.dto.MoCaRequest;
 import com.phungloccoffee.backend.entity.CaLamViec;
-import com.phungloccoffee.backend.dto.CaLamViecResponse;
 import com.phungloccoffee.backend.service.CaLamViecService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/calamviec")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class CaLamViecController {
 
-    @Autowired
-    private CaLamViecService service;
+    private final CaLamViecService caLamViecService;
 
     @GetMapping
-    public List<CaLamViecResponse> getAll() {
-        return service.getAllCaLamViec(); 
+    public List<CaLamViec> getAll() {
+        return caLamViecService.getAll();
     }
 
-    @PostMapping
-    public CaLamViec create(@RequestBody CaLamViec caLamViec) {
-        return service.createCaLamViec(caLamViec);
+    @GetMapping("/{maCa}")
+    public CaLamViec getById(@PathVariable String maCa) {
+        return caLamViecService.getById(maCa);
     }
 
-    @PutMapping("/{maCa}")
-    public ResponseEntity<CaLamViec> update(@PathVariable String maCa, @RequestBody CaLamViec caLamViecDetails) {
-        CaLamViec updated = service.updateCaLamViec(maCa, caLamViecDetails);
-        if (updated != null) {
-            return ResponseEntity.ok(updated);
-        }
-        return ResponseEntity.notFound().build();
+    @PostMapping("/moca")
+    public CaLamViec moCa(@RequestBody MoCaRequest request) {
+        return caLamViecService.moCa(request);
     }
 
-    @DeleteMapping("/{maCa}")
-    public ResponseEntity<Void> delete(@PathVariable String maCa) {
-        service.deleteCaLamViec(maCa);
-        return ResponseEntity.ok().build();
+    @PutMapping("/dongca/{maCa}")
+    public CaLamViec dongCa(@PathVariable String maCa, @RequestBody DongCaRequest request) {
+        return caLamViecService.dongCa(maCa, request);
     }
 }

@@ -1,15 +1,9 @@
 package com.phungloccoffee.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.*;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,33 +12,48 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class CaLamViec {
 
     @Id
-    @Column(name = "maca", length = 50)
+    @Column(name = "maca")
     private String maCa;
 
-    @ManyToOne 
-    @JoinColumn(name = "manv") 
-    private NhanVien nhanVien; 
+    @Column(name = "manv")
+    private String maNV;
 
-    @Column(name = "ngaylamviec")
-    private LocalDate ngayLamViec;
+    @Column(name = "macn")
+    private String maCN;
 
-    @Column(name = "giobatdau")
-    private LocalTime gioBatDau; 
+    @Column(name = "thoigianmo")
+    private LocalDateTime thoiGianMo;
 
-    @Column(name = "gioketthuc")
-    private LocalTime gioKetThuc;
+    @Column(name = "thoigiandong")
+    private LocalDateTime thoiGianDong;
 
-    @Column(name = "trangthai", length = 30)
-    private String trangThai;
+    @Column(name = "tiendauca")
+    private BigDecimal tienDauCa;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "tiencuoica")
+    private BigDecimal tienCuoiCa;
+
+    @Column(name = "sotienthatthoat")
+    private BigDecimal soTienThatThoat;
+
+    @Column(name = "lydogiaitrinh")
+    private String lyDoGiaiTrinh;
+
+    @Column(name = "issynced")
+    private Boolean isSynced;
+
+    @Column(name = "createdat")
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        if (this.isSynced == null) {
+            this.isSynced = false;
+        }
+    }
 }

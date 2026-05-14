@@ -4,7 +4,9 @@ import com.phungloccoffee.backend.entity.CaLamViec;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
+import java.util.List;
 
-public interface CaLamViecRepository extends JpaRepository<CaLamViec, String>{
+@Repository
+public interface CaLamViecRepository extends JpaRepository<CaLamViec, String> {
+    List<CaLamViec> findByMaCNAndThoiGianDongIsNull(String maCN);
 }
