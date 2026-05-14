@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/san-pham")
+@RequestMapping("/api/sanpham")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class SanPhamController {
@@ -26,8 +26,11 @@ public class SanPhamController {
     return sanPhamService.getById(maSP);
   }
 
-  @GetMapping("/trang-thai/{trangThai}")
-  public List<SanPham> getByTrangThai(@PathVariable String trangThai) {
+
+
+
+  @GetMapping("/trangthai/{trangThai}")
+  public List<SanPham> getByTrangThai(@PathVariable Integer trangThai) {
     return sanPhamService.getByTrangThai(trangThai);
   }
 

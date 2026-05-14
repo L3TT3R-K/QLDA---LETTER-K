@@ -14,9 +14,9 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class DinhMucCongThucId implements Serializable {
 
-  @Column(name = "MaPB", length = 50)
+  @Column(name = "mapb", length = 50)
   private String maPB;
 
-  @Column(name = "MaNL", length = 50)
+  @Column(name = "manl", length = 50)
   private String maNL;
 }

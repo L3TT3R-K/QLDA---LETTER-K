@@ -4,7 +4,10 @@ import com.phungloccoffee.backend.dto.SanPhamRequest;
 import com.phungloccoffee.backend.entity.SanPham;
 import com.phungloccoffee.backend.repository.SanPhamRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.phungloccoffee.backend.service.AuditLogService;
 
 import java.util.List;
 
@@ -13,6 +16,8 @@ import java.util.List;
 public class SanPhamService {
 
   private final SanPhamRepository sanPhamRepository;
+
+  private final AuditLogService auditLogService;
 
   public List<SanPham> getAll() {
     return sanPhamRepository.findAll();
@@ -39,28 +44,51 @@ public class SanPhamService {
             .isTopping(request.getIsTopping())
             .trangThai(request.getTrangThai())
             .build();
+    
+    SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
+    auditLogService.ghiLog("NV_ADMIN", "SANPHAM", sanPhamMoi.getMaSP(), "INSERT", null, sanPhamMoi);
 
-    return sanPhamRepository.save(sanPham);
+    return sanPhamMoi;
   }
 
   public SanPham update(String maSP, SanPhamRequest request) {
     SanPham sanPham = getById(maSP);
+
+    SanPham banSaoCu = SanPham.builder()
+                .maSP(sanPham.getMaSP())
+                .tenSP(sanPham.getTenSP())
+                .giaHienTai(sanPham.getGiaHienTai())
+                .isTopping(sanPham.getIsTopping())
+                .trangThai(sanPham.getTrangThai())
+                .build();
 
     sanPham.setTenSP(request.getTenSP());
     sanPham.setGiaHienTai(request.getGiaHienTai());
     sanPham.setIsTopping(request.getIsTopping());
     sanPham.setTrangThai(request.getTrangThai());
 
-    return sanPhamRepository.save(sanPham);
+    SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
+    auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "UPDATE", banSaoCu, sanPhamMoi);
+
+    return sanPhamMoi;
   }
 
   public void delete(String maSP) {
     SanPham sanPham = getById(maSP);
 
+    SanPham banSaoCu = SanPham.builder()
+                .maSP(sanPham.getMaSP())
+                .tenSP(sanPham.getTenSP())
+                .giaHienTai(sanPham.getGiaHienTai())
+                .isTopping(sanPham.getIsTopping())
+                .trangThai(sanPham.getTrangThai())
+                .build();
+
     // Nên xóa mềm vì sản phẩm có thể đã nằm trong hóa đơn/công thức
     sanPham.setTrangThai("Ngừng hoạt động");
 
-    sanPhamRepository.save(sanPham);
+    SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
+    auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "DELETE (SOFT)", banSaoCu, sanPhamMoi);
   }
 
   public List<SanPham> getByTrangThai(String trangThai) {

@@ -6,7 +6,7 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "DINHMUCCONGTHUC")
+@Table(name = "dinhmuccongthuc")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,6 +17,6 @@ public class DinhMucCongThuc {
   @EmbeddedId
   private DinhMucCongThucId id;
 
-  @Column(name = "SoLuong", nullable = false, precision = 18, scale = 4)
+  @Column(name = "soluong", nullable = false, precision = 18, scale = 4)
   private BigDecimal soLuong;
 }

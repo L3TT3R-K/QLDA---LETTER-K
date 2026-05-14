@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "PHIENBANCONGTHUC")
+@Table(name = "phienbancongthuc")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,22 +15,22 @@ import java.time.LocalDateTime;
 public class PhienBanCongThuc {
 
   @Id
-  @Column(name = "MaPB", length = 50)
+  @Column(name = "mapb", length = 50)
   private String maPB;
 
-  @Column(name = "MaSP", nullable = false, length = 50)
+  @Column(name = "masp", nullable = false, length = 50)
   private String maSP;
 
-  @Column(name = "NgayHieuLuc", nullable = false)
+  @Column(name = "ngayhieuluc", nullable = false)
   private LocalDateTime ngayHieuLuc;
 
-  @Column(name = "TrangThai", nullable = false, length = 30)
-  private String trangThai;
+  @Column(name = "trangthai", nullable = false)
+  private Integer trangThai;
 
-  @Column(name = "CreatedAt")
+  @Column(name = "createdat")
   private LocalDateTime createdAt;
 
-  @Column(name = "UpdatedAt")
+  @Column(name = "updatedat")
   private LocalDateTime updatedAt;
 
   @PrePersist
@@ -40,7 +40,7 @@ public class PhienBanCongThuc {
     this.updatedAt = now;
 
     if (this.trangThai == null) {
-      this.trangThai = "Hoạt động";
+      this.trangThai = 1;
     }
   }
 
