@@ -1,57 +1,71 @@
 package com.phungloccoffee.backend.service;
 
+import com.phungloccoffee.backend.dto.ChiNhanhRequest;
 import com.phungloccoffee.backend.entity.ChiNhanh;
 import com.phungloccoffee.backend.repository.ChiNhanhRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ChiNhanhService {
 
-    @Autowired // Spring tự động nhét object dependency vào cho mình
-    private ChiNhanhRepository repository;
+    private final ChiNhanhRepository chiNhanhRepository;
+    private final AuditLogService auditLogService; // Gắn Camera giám sát luôn
 
-    // [R] Lấy danh sách tất cả
-    public List<ChiNhanh> getAllChiNhanh() {
-        return repository.findAll();
+    public List<ChiNhanh> getAll() {
+        return chiNhanhRepository.findAll();
     }
 
-    // [R] Tìm 1 chi nhánh theo Mã (Phục vụ cho việc Update)
-    public Optional<ChiNhanh> getChiNhanhById(String maCN) {
-        return repository.findById(maCN);
+    public ChiNhanh getById(String maCN) {
+        return chiNhanhRepository.findById(maCN)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi nhánh: " + maCN));
     }
 
-    // [C] Thêm mới
-    public ChiNhanh createChiNhanh(ChiNhanh chiNhanh) {
-        return repository.save(chiNhanh);
-    }
-
-    // [U] Cập nhật thông tin chi nhánh
-    public ChiNhanh updateChiNhanh(String maCN, ChiNhanh chiNhanhDetails) {
-        // Tìm xem chi nhánh có tồn tại không
-        Optional<ChiNhanh> optional = repository.findById(maCN);
-        if (optional.isPresent()) {
-            ChiNhanh existing = optional.get();
-            // Cập nhật các trường mới
-            existing.setTenCN(chiNhanhDetails.getTenCN());
-            existing.setDiaChi(chiNhanhDetails.getDiaChi());
-            existing.setTrangThai(chiNhanhDetails.getTrangThai());
-            // Lưu lại xuống Database
-            return repository.save(existing);
+    public ChiNhanh create(ChiNhanhRequest request) {
+        if (chiNhanhRepository.existsById(request.getMaCN())) {
+            throw new RuntimeException("Mã chi nhánh đã tồn tại!");
         }
-        return null; // Trả về null nếu không tìm thấy mã CN
+
+        ChiNhanh cn = ChiNhanh.builder()
+                .maCN(request.getMaCN())
+                .tenCN(request.getTenCN())
+                .diaChi(request.getDiaChi())
+                .trangThai(request.getTrangThai() != null ? request.getTrangThai() : 1)
+                .build();
+
+        ChiNhanh saved = chiNhanhRepository.save(cn);
+        auditLogService.ghiLog("NV_ADMIN", "CHINHANH", saved.getMaCN(), "INSERT", null, saved);
+        return saved;
     }
 
-    // [D] Xóa mềm (Đổi trạng thái về -1: Giải thể)
-    public void deleteChiNhanh(String maCN) {
-        Optional<ChiNhanh> optional = repository.findById(maCN);
-        if (optional.isPresent()) {
-            ChiNhanh existing = optional.get();
-        existing.setTrangThai("Ngừng hoạt động");
-            repository.save(existing);
-        }
+    public ChiNhanh update(String maCN, ChiNhanhRequest request) {
+        ChiNhanh cn = getById(maCN);
+        
+        // Tạo bản sao lưu AuditLog
+        ChiNhanh oldData = ChiNhanh.builder()
+                .maCN(cn.getMaCN()).tenCN(cn.getTenCN())
+                .diaChi(cn.getDiaChi()).trangThai(cn.getTrangThai()).build();
+
+        cn.setTenCN(request.getTenCN());
+        cn.setDiaChi(request.getDiaChi());
+        cn.setTrangThai(request.getTrangThai());
+
+        ChiNhanh saved = chiNhanhRepository.save(cn);
+        auditLogService.ghiLog("NV_ADMIN", "CHINHANH", maCN, "UPDATE", oldData, saved);
+        return saved;
+    }
+
+    public void delete(String maCN) {
+        ChiNhanh cn = getById(maCN);
+        ChiNhanh oldData = ChiNhanh.builder()
+                .maCN(cn.getMaCN()).tenCN(cn.getTenCN())
+                .diaChi(cn.getDiaChi()).trangThai(cn.getTrangThai()).build();
+
+        cn.setTrangThai(0); // Xóa mềm
+        ChiNhanh saved = chiNhanhRepository.save(cn);
+        auditLogService.ghiLog("NV_ADMIN", "CHINHANH", maCN, "DELETE (SOFT)", oldData, saved);
     }
 }

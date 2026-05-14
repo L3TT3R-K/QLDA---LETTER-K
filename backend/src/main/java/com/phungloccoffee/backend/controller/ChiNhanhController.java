@@ -1,46 +1,38 @@
 package com.phungloccoffee.backend.controller;
 
+import com.phungloccoffee.backend.dto.ChiNhanhRequest;
 import com.phungloccoffee.backend.entity.ChiNhanh;
 import com.phungloccoffee.backend.service.ChiNhanhService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/chinhanh")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class ChiNhanhController {
 
-    @Autowired
-    private ChiNhanhService service;
+    private final ChiNhanhService chiNhanhService;
 
-    // [R] API Lấy tất cả
     @GetMapping
-    public List<ChiNhanh> getAll() {
-        return service.getAllChiNhanh();
-    }
+    public List<ChiNhanh> getAll() { return chiNhanhService.getAll(); }
 
-    // [C] API Thêm mới
+    @GetMapping("/{maCN}")
+    public ChiNhanh getById(@PathVariable String maCN) { return chiNhanhService.getById(maCN); }
+
     @PostMapping
-    public ChiNhanh create(@RequestBody ChiNhanh chiNhanh) {
-        return service.createChiNhanh(chiNhanh);
-    }
+    public ChiNhanh create(@RequestBody ChiNhanhRequest request) { return chiNhanhService.create(request); }
 
-    // [U] API Sửa thông tin (Dùng phương thức PUT)
     @PutMapping("/{maCN}")
-    public ResponseEntity<ChiNhanh> update(@PathVariable String maCN, @RequestBody ChiNhanh chiNhanhDetails) {
-        ChiNhanh updated = service.updateChiNhanh(maCN, chiNhanhDetails);
-        if (updated != null) {
-            return ResponseEntity.ok(updated); // Trả về mã 200 OK
-        }
-        return ResponseEntity.notFound().build(); // Trả về lỗi 404 nếu mã CN không tồn tại
+    public ChiNhanh update(@PathVariable String maCN, @RequestBody ChiNhanhRequest request) { 
+        return chiNhanhService.update(maCN, request); 
     }
 
-    // [D] API Xóa mềm (Dùng phương thức DELETE)
     @DeleteMapping("/{maCN}")
-    public ResponseEntity<Void> delete(@PathVariable String maCN) {
-        service.deleteChiNhanh(maCN);
-        return ResponseEntity.ok().build();
+    public String delete(@PathVariable String maCN) {
+        chiNhanhService.delete(maCN);
+        return "Đã ngưng hoạt động chi nhánh: " + maCN;
     }
 }

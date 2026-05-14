@@ -1,45 +1,35 @@
 package com.phungloccoffee.backend.entity;
 
+import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "chinhanh")
 @Getter
 @Setter
-@NoArgsConstructor 
-@AllArgsConstructor
+@NoArgsConstructor    
+@AllArgsConstructor   
+@Builder              
 public class ChiNhanh {
 
-    @Id // Khóa chính không tự tăng vì là VARCHAR
-    @Column(name = "macn", length = 20)
+    @Id
+    @Column(name = "macn")
     private String maCN;
 
-    @Column(name = "tencn", length = 100)
+    @Column(name = "tencn")
     private String tenCN;
 
-    @Column(name = "diachi", length = 255)
+    @Column(name = "diachi")
     private String diaChi;
 
-    @Column(name = "trangthai", length = 30)
-    private String trangThai;
+    @Column(name = "trangthai")
+    private Integer trangThai;
 
-    @CreationTimestamp //Tự động lấy giờ hệ thống khi tạo mới
-    @Column(name = "createdat", updatable = false)
+    @Column(name = "createdat")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp //Tự động cập nhật giờ khi có chỉnh sửa
     @Column(name = "updatedat")
     private LocalDateTime updatedAt;
 }
