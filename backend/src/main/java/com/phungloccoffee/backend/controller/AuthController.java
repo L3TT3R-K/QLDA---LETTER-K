@@ -1,58 +1,49 @@
-/*
-Đây là nơi ghép nối mọi thứ lại với nhau: 
-Nhận request -> Kiểm tra Database -> Đúng mật khẩu thì gọi máy in thẻ Token.
-*/
-
 package com.phungloccoffee.backend.controller;
 
-import com.phungloccoffee.backend.dto.LoginRequest;
+import com.phungloccoffee.backend.dto.AuthRequest;
 import com.phungloccoffee.backend.entity.NhanVien;
-import com.phungloccoffee.backend.repository.NhanVienRepository;
-import com.phungloccoffee.backend.security.JwtUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import com.phungloccoffee.backend.service.AuthService;
+import com.phungloccoffee.backend.security.JwtUtils; // <-- Import class JwtUtils của cậu
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class AuthController {
 
-    @Autowired
-    private NhanVienRepository nhanVienRepository;
-
-    @Autowired
-    private JwtUtils jwtUtils;
+    private final AuthService authService;
+    private final JwtUtils jwtUtils; // <-- Bơm JwtUtils vào đây bằng Lombok
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        // 1. Tìm nhân viên theo Username
-        Optional<NhanVien> optionalNhanVien = nhanVienRepository.findByUserName(loginRequest.getUsername());
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+        try {
+            // 1. Kiểm tra username & password (đã qua mã hóa BCrypt)
+            NhanVien nv = authService.authenticate(request);
 
-        if (optionalNhanVien.isPresent()) {
-            NhanVien nhanVien = optionalNhanVien.get();
+            // 2. Sinh Token JWT xịn từ JwtUtils
+            // LƯU Ý: Mở file JwtUtils.java của cậu ra xem hàm tạo token tên là gì nhé.
+            // Thường nó sẽ là generateToken, generateJwtToken, hoặc createToken. 
+            // Ở đây tớ đang giả định tên hàm là generateToken.
+            String token = jwtUtils.generateToken(nv.getUsername(), nv.getChucVu());
 
-            // 2. Kiểm tra mật khẩu (Hiện tại test thô, sau này áp dụng BCrypt sẽ update lại dòng này)
-            if (nhanVien.getPasswordHash().equals(loginRequest.getPassword())) {
-                
-                // 3. Đúng pass -> In thẻ Token
-                String token = jwtUtils.generateToken(nhanVien.getUserName(), nhanVien.getChucVu());
+            // 3. Đóng gói dữ liệu trả về cho Frontend
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("maNV", nv.getMaNV());
+            response.put("tenNV", nv.getTenNV());
+            response.put("chucVu", nv.getChucVu());
+            response.put("maCN", nv.getMaCN());
 
-                // 4. Trả về Token và thông tin cơ bản cho Frontend
-                Map<String, String> response = new HashMap<>();
-                response.put("token", token);
-                response.put("chucVu", nhanVien.getChucVu());
-                response.put("tenNV", nhanVien.getTenNV());
-                
-                return ResponseEntity.ok(response);
-            }
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        
-        // Cố tình báo chung chung để hacker không biết là sai user hay sai pass
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai tên đăng nhập hoặc mật khẩu!");
     }
 }
