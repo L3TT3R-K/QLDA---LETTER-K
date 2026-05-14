@@ -1,50 +1,36 @@
 package com.phungloccoffee.backend.service;
 
+import com.phungloccoffee.backend.dto.DonViRequest;
 import com.phungloccoffee.backend.entity.DonVi;
 import com.phungloccoffee.backend.repository.DonViRepository;
-import com.phungloccoffee.backend.dto.DonViResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class DonViService {
-    private static final String HOAT_DONG = "Hoạt động";
-    private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
+    private final DonViRepository donViRepository;
+    private final AuditLogService auditLogService;
 
-    @Autowired private DonViRepository repository;
+    public List<DonVi> getAll() { return donViRepository.findAll(); }
 
-    public List<DonViResponse> getAllDonVi() {
-        return repository.findAll().stream()
-            .filter(dv -> !NGUNG_HOAT_DONG.equals(dv.getTrangThai()))
-            .map(dv -> new DonViResponse(dv.getMaDV(), dv.getTenDonVi(), dv.getTrangThai()))
-            .collect(Collectors.toList());
+    public DonVi getById(String maDV) {
+        return donViRepository.findById(maDV).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn vị!"));
     }
 
-    public DonVi createDonVi(DonVi donVi) {
-        if (donVi.getMaDV() == null) {
-            donVi.setMaDV("DV" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
-        }
-        donVi.setTrangThai(HOAT_DONG);
-        return repository.save(donVi);
+    public DonVi create(DonViRequest request) {
+        if(donViRepository.existsById(request.getMaDV())) throw new RuntimeException("Mã đơn vị đã tồn tại!");
+        DonVi donVi = DonVi.builder().maDV(request.getMaDV()).tenDonVi(request.getTenDonVi()).trangThai(request.getTrangThai()).build();
+        DonVi saved = donViRepository.save(donVi);
+        auditLogService.ghiLog("NV_ADMIN", "DONVI", saved.getMaDV(), "INSERT", null, saved);
+        return saved;
     }
 
-    public DonVi updateDonVi(String maDV, DonVi details) {
-        Optional<DonVi> optional = repository.findById(maDV);
-        if (optional.isPresent()) {
-            DonVi existing = optional.get();
-            existing.setTenDonVi(details.getTenDonVi());
-            existing.setTrangThai(details.getTrangThai());
-            return repository.save(existing);
-        }
-        return null;
-    }
-
-    public void deleteDonVi(String maDV) {
-        repository.findById(maDV).ifPresent(dv -> {
-            dv.setTrangThai(NGUNG_HOAT_DONG);
-            repository.save(dv);
-        });
+    public void delete(String maDV) {
+        DonVi dv = getById(maDV);
+        dv.setTrangThai(0);
+        donViRepository.save(dv);
+        auditLogService.ghiLog("NV_ADMIN", "DONVI", maDV, "DELETE (SOFT)", null, dv);
     }
 }
