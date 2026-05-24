@@ -36,8 +36,8 @@ public class ThanhToan {
     @Column(name = "sotien")
     private BigDecimal soTien;
 
-    @Column(name = "trangthai", length = 30)
-    private String trangThai;
+    @Column(name = "trangthai")
+    private Integer trangThai;
 
     @Column(name = "issynced")
     private Boolean isSynced;

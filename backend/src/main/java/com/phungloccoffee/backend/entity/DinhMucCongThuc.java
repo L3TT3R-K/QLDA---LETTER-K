@@ -17,6 +17,6 @@ public class DinhMucCongThuc {
   @EmbeddedId
   private DinhMucCongThucId id;
 
-  @Column(name = "soluong", nullable = false, precision = 18, scale = 4)
+  @Column(name = "so_luong", nullable = false, precision = 18, scale = 4)
   private BigDecimal soLuong;
 }

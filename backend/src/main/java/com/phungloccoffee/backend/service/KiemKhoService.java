@@ -32,14 +32,14 @@ public class KiemKhoService {
     @Autowired
     private InventoryTransactionRepository inventoryTransactionRepository;
 
-    @Transactional // Bảo đảm nguyên tắc: Chạy đúng 100% hoặc Rollback hủy bỏ toàn bộ
+    @Transactional // Báº£o Ä‘áº£m nguyÃªn táº¯c: Cháº¡y Ä‘Ãºng 100% hoáº·c Rollback há»§y bá» toÃ n bá»™
     public KiemKho luuPhieuKiemKho(KiemKho kiemKho, List<CTKK> danhSachChiTiet) {
         
-        // 1. LƯU PHIẾU CHÍNH
+        // 1. LÆ¯U PHIáº¾U CHÃNH
         KiemKho savedKiemKho = kiemKhoRepository.save(kiemKho);
-        String maCN = kiemKho.getChiNhanh().getMaCN(); // Lấy mã chi nhánh để lát nữa biết trừ kho ở đâu
+        String maCN = kiemKho.getChiNhanh().getMaCN(); // Láº¥y mÃ£ chi nhÃ¡nh Ä‘á»ƒ lÃ¡t ná»¯a biáº¿t trá»« kho á»Ÿ Ä‘Ã¢u
 
-        // 2. LƯU CHI TIẾT & TÍNH CHÊNH LỆCH
+        // 2. LÆ¯U CHI TIáº¾T & TÃNH CHÃŠNH Lá»†CH
         for (CTKK chiTiet : danhSachChiTiet) {
             chiTiet.setMaKK(savedKiemKho.getMaKK());
             
@@ -50,34 +50,34 @@ public class KiemKhoService {
             
             ctkkRepository.save(chiTiet);
 
-            // 3. XỬ LÝ NGẦM: Nếu chênh lệch khác 0 thì phải trừ kho / cộng kho
+            // 3. Xá»¬ LÃ NGáº¦M: Náº¿u chÃªnh lá»‡ch khÃ¡c 0 thÃ¬ pháº£i trá»« kho / cá»™ng kho
             if (chenhLech != 0) {
                 
-                // --- BƯỚC 3.1: ĐÈ LÊN BẢNG TỒN KHO ---
+                // --- BÆ¯á»šC 3.1: ÄÃˆ LÃŠN Báº¢NG Tá»’N KHO ---
                 TonKho_ID tonKhoId = new TonKho_ID(maCN, chiTiet.getMaNL());
-                // Tìm nguyên liệu trong kho, nếu chưa từng có thì tạo mới với số lượng tồn = 0
+                // TÃ¬m nguyÃªn liá»‡u trong kho, náº¿u chÆ°a tá»«ng cÃ³ thÃ¬ táº¡o má»›i vá»›i sá»‘ lÆ°á»£ng tá»“n = 0
                 TonKho tonKho = tonKhoRepository.findById(tonKhoId)
                         .orElse(new TonKho(maCN, chiTiet.getMaNL(), 0.0));
                 
-                // Lấy Tồn hiện tại + số Chênh lệch (nếu thiếu là số âm thì nó tự trừ)
+                // Láº¥y Tá»“n hiá»‡n táº¡i + sá»‘ ChÃªnh lá»‡ch (náº¿u thiáº¿u lÃ  sá»‘ Ã¢m thÃ¬ nÃ³ tá»± trá»«)
                 tonKho.setSoLuongTon(tonKho.getSoLuongTon() + chenhLech);
-                tonKhoRepository.save(tonKho); // Chốt sổ số lượng mới
+                tonKhoRepository.save(tonKho); // Chá»‘t sá»• sá»‘ lÆ°á»£ng má»›i
 
-                // --- BƯỚC 3.2: GHI VÀO SỔ NHẬT KÝ GIAO DỊCH (TRANSACTION) ---
+                // --- BÆ¯á»šC 3.2: GHI VÃ€O Sá»” NHáº¬T KÃ GIAO Dá»ŠCH (TRANSACTION) ---
                 InventoryTransaction trans = new InventoryTransaction();
-                // Random 1 cái ID duy nhất không đụng hàng
+                // Random 1 cÃ¡i ID duy nháº¥t khÃ´ng Ä‘á»¥ng hÃ ng
                 trans.setMaTrans("TR_" + UUID.randomUUID().toString().substring(0, 8)); 
                 trans.setMaCN(maCN);
                 trans.setMaNL(chiTiet.getMaNL());
                 trans.setLoaiChungTu("KIEMKHO");
                 trans.setIdChungTu(savedKiemKho.getMaKK());
-                trans.setLoaiGiaoDich(chenhLech > 0 ? "DIEU_CHINH_TANG" : "DIEU_CHINH_GIAM");
+                trans.setLoaiGiaoDich(chenhLech > 0 ? 3 : 4);
                 trans.setSoLuong(Math.abs(chenhLech));
-                trans.setTrangThai("Hợp lệ");
+                trans.setTrangThai(1);
                 trans.setIsSynced(false);
                 trans.setCreatedAt(LocalDateTime.now());
                 
-                inventoryTransactionRepository.save(trans); // Lưu vết thành công
+                inventoryTransactionRepository.save(trans); // LÆ°u váº¿t thÃ nh cÃ´ng
             }
         }
 

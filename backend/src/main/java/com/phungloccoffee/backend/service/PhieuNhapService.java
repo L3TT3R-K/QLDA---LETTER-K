@@ -42,8 +42,8 @@ public class PhieuNhapService {
 
     private static final String NGUON_NHA_CUNG_CAP = "NHA_CUNG_CAP";
     private static final String NGUON_KHO_TONG = "KHO_TONG";
-    private static final String TRANG_THAI_DA_NHAP_KHO = "Đã nhập kho";
-    private static final String TRANG_THAI_HOP_LE = "Hợp lệ";
+    private static final String TRANG_THAI_DA_NHAP_KHO = "ÄÃ£ nháº­p kho";
+    private static final Integer TRANG_THAI_HOP_LE = 1;
 
     @Autowired private PhieuNhapRepository phieuNhapRepository;
     @Autowired private CTPhieuNhapRepository ctPhieuNhapRepository;
@@ -316,7 +316,7 @@ public class PhieuNhapService {
         trans.setMaLo(maLo);
         trans.setLoaiChungTu("PHIEUNHAP");
         trans.setIdChungTu(maPN);
-        trans.setLoaiGiaoDich("NHAP");
+        trans.setLoaiGiaoDich(1);
         trans.setSoLuong(soLuong);
         trans.setTrangThai(TRANG_THAI_HOP_LE);
         trans.setIsSynced(false);
@@ -332,7 +332,7 @@ public class PhieuNhapService {
         trans.setMaLo(maLo);
         trans.setLoaiChungTu("PHIEUNHAP");
         trans.setIdChungTu(maPN);
-        trans.setLoaiGiaoDich("CHUYEN_DI");
+        trans.setLoaiGiaoDich(3);
         trans.setSoLuong(soLuong);
         trans.setTrangThai(TRANG_THAI_HOP_LE);
         trans.setIsSynced(false);

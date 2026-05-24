@@ -16,6 +16,6 @@ public class ChiTietBillResponse {
     private String maHD;
     private String tenChiNhanh;
     private BigDecimal tongTien;
-    private String trangThai;
+    private Integer trangThai;
     private List<CTHDResponse> danhSachMon;
 }

@@ -40,11 +40,11 @@ public class HoaDonService {
         hoaDon.setMaHD(maHD);
         hoaDon.setMaCa(request.getMaCa());
         hoaDon.setChiNhanh(chiNhanh);
-        hoaDon.setTrangThai("Tạm");
+        hoaDon.setTrangThai(0);
         hoaDon.setIsSynced(false);
         hoaDon.setCreatedAt(LocalDateTime.now());
         
-        // Lấy giảm giá từ request, nếu không có thì mặc định là 0
+        // Láº¥y giáº£m giÃ¡ tá»« request, náº¿u khÃ´ng cÃ³ thÃ¬ máº·c Ä‘á»‹nh lÃ  0
         BigDecimal giamGia = request.getGiamGia() != null ? request.getGiamGia() : BigDecimal.ZERO;
         hoaDon.setGiamGia(giamGia);
 
@@ -60,7 +60,7 @@ public class HoaDonService {
             BigDecimal thanhTien = sp.getGiaHienTai().multiply(BigDecimal.valueOf(item.getSoLuong()));
             tongTienChuaGiam = tongTienChuaGiam.add(thanhTien);
 
-            // Tạo thực thể để lưu DB
+            // Táº¡o thá»±c thá»ƒ Ä‘á»ƒ lÆ°u DB
             CTHD cthd = new CTHD();
             cthd.setId(maHD + "_" + stt++);
             cthd.setHoaDon(hoaDon);
@@ -70,11 +70,11 @@ public class HoaDonService {
             cthd.setGhiChu(item.getGhiChu());
             listCTHD.add(cthd);
 
-            // Tạo dữ liệu trả về cho Bill
+            // Táº¡o dá»¯ liá»‡u tráº£ vá» cho Bill
             listResponse.add(new CTHDResponse(sp.getTenSP(), item.getSoLuong(), sp.getGiaHienTai(), thanhTien, item.getGhiChu()));
         }
 
-        // Tính tổng tiền cuối cùng = Tổng món - Giảm giá
+        // TÃ­nh tá»•ng tiá»n cuá»‘i cÃ¹ng = Tá»•ng mÃ³n - Giáº£m giÃ¡
         hoaDon.setTongTien(tongTienChuaGiam.subtract(giamGia));
 
         hoaDonRepository.save(hoaDon);

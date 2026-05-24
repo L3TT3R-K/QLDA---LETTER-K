@@ -19,5 +19,5 @@ public class SanPhamRequest {
 
   private Boolean isTopping;
 
-  private String trangThai;
+  private Integer trangThai;
 }

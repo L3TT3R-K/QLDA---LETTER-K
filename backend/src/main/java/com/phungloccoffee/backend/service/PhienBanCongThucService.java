@@ -1,113 +1,111 @@
-// package com.phungloccoffee.backend.service;
+package com.phungloccoffee.backend.service;
 
-// import com.phungloccoffee.backend.dto.PhienBanCongThucRequest;
-// import com.phungloccoffee.backend.entity.PhienBanCongThuc;
-// import com.phungloccoffee.backend.repository.PhienBanCongThucRepository;
-// import com.phungloccoffee.backend.repository.SanPhamRepository;
-// import lombok.RequiredArgsConstructor;
-// import org.springframework.stereotype.Service;
-// import org.springframework.transaction.annotation.Transactional;
+import com.phungloccoffee.backend.dto.PhienBanCongThucRequest;
+import com.phungloccoffee.backend.entity.PhienBanCongThuc;
+import com.phungloccoffee.backend.repository.PhienBanCongThucRepository;
+import com.phungloccoffee.backend.repository.SanPhamRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-// import java.util.List;
+import java.time.LocalDateTime;
+import java.util.List;
 
-// @Service
-// @RequiredArgsConstructor
-// public class PhienBanCongThucService {
-  
-//   // CHUẨN HÓA: Đổi hằng số thành Integer
-//   private static final Integer HOAT_DONG = 1;
-//   private static final Integer NGUNG_HOAT_DONG = 0;
+@Service
+@RequiredArgsConstructor
+public class PhienBanCongThucService {
 
-//   private final PhienBanCongThucRepository phienBanCongThucRepository;
-//   private final SanPhamRepository sanPhamRepository;
+  private static final Integer HOAT_DONG = 1;
+  private static final Integer NGUNG_HOAT_DONG = 0;
 
-//   public List<PhienBanCongThuc> getAll() {
-//     return phienBanCongThucRepository.findAll();
-//   }
+  private final PhienBanCongThucRepository phienBanCongThucRepository;
+  private final SanPhamRepository sanPhamRepository;
 
-//   public PhienBanCongThuc getById(String maPB) {
-//     return phienBanCongThucRepository.findById(maPB)
-//             .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên bản công thức: " + maPB));
-//   }
+  public List<PhienBanCongThuc> getAll() {
+    return phienBanCongThucRepository.findAll();
+  }
 
-//   public List<PhienBanCongThuc> getByMaSP(String maSP) {
-//     return phienBanCongThucRepository.findByMaSP(maSP);
-//   }
+  public PhienBanCongThuc getById(String maPB) {
+    return phienBanCongThucRepository.findById(maPB)
+        .orElseThrow(() -> new RuntimeException("Khong tim thay phien ban cong thuc: " + maPB));
+  }
 
-//   public PhienBanCongThuc getActiveByMaSP(String maSP) {
-//     return phienBanCongThucRepository.findByMaSPAndTrangThai(maSP, HOAT_DONG)
-//             .orElseThrow(() -> new RuntimeException("Sản phẩm chưa có công thức đang áp dụng: " + maSP));
-//   }
+  public List<PhienBanCongThuc> getByMaSP(String maSP) {
+    return phienBanCongThucRepository.findByMaSP(maSP);
+  }
 
-//   @Transactional
-//   public PhienBanCongThuc create(PhienBanCongThucRequest request) {
-//     if (request.getMaPB() == null || request.getMaPB().isBlank()) {
-//       throw new RuntimeException("Mã phiên bản không được để trống");
-//     }
+  public PhienBanCongThuc getActiveByMaSP(String maSP) {
+    return phienBanCongThucRepository.findByMaSPAndTrangThai(maSP, HOAT_DONG)
+        .orElseThrow(() -> new RuntimeException("San pham chua co cong thuc dang ap dung: " + maSP));
+  }
 
-//     if (phienBanCongThucRepository.existsById(request.getMaPB())) {
-//       throw new RuntimeException("Mã phiên bản đã tồn tại: " + request.getMaPB());
-//     }
+  @Transactional
+  public PhienBanCongThuc create(PhienBanCongThucRequest request) {
+    if (request.getMaPB() == null || request.getMaPB().isBlank()) {
+      throw new RuntimeException("Ma phien ban khong duoc de trong");
+    }
 
-//     if (!sanPhamRepository.existsById(request.getMaSP())) {
-//       throw new RuntimeException("Sản phẩm không tồn tại: " + request.getMaSP());
-//     }
+    if (phienBanCongThucRepository.existsById(request.getMaPB())) {
+      throw new RuntimeException("Ma phien ban da ton tai: " + request.getMaPB());
+    }
 
-//     Integer trangThai = request.getTrangThai() == null ? HOAT_DONG : request.getTrangThai();
+    validateSanPham(request.getMaSP());
 
-//     // Quy tắc: mỗi sản phẩm chỉ có 1 phiên bản công thức active
-//     if (HOAT_DONG.equals(trangThai)) {
-//       deactivateOldActiveVersions(request.getMaSP());
-//     }
+    Integer trangThai = request.getTrangThai() == null ? HOAT_DONG : request.getTrangThai();
+    if (HOAT_DONG.equals(trangThai)) {
+      deactivateOldActiveVersions(request.getMaSP());
+    }
 
-//     PhienBanCongThuc phienBan = PhienBanCongThuc.builder()
-//             .maPB(request.getMaPB())
-//             .maSP(request.getMaSP())
-//             .ngayHieuLuc(request.getNgayHieuLuc())
-//             .trangThai(trangThai)
-//             .build();
+    PhienBanCongThuc phienBan = PhienBanCongThuc.builder()
+        .maPB(request.getMaPB())
+        .maSP(request.getMaSP())
+        .ngayHieuLuc(request.getNgayHieuLuc() == null ? LocalDateTime.now() : request.getNgayHieuLuc())
+        .trangThai(trangThai)
+        .build();
 
-//     return phienBanCongThucRepository.save(phienBan);
-//   }
+    return phienBanCongThucRepository.save(phienBan);
+  }
 
-//   @Transactional
-//   public PhienBanCongThuc update(String maPB, PhienBanCongThucRequest request) {
-//     PhienBanCongThuc phienBan = getById(maPB);
+  @Transactional
+  public PhienBanCongThuc update(String maPB, PhienBanCongThucRequest request) {
+    PhienBanCongThuc phienBan = getById(maPB);
+    validateSanPham(request.getMaSP());
 
-//     if (!sanPhamRepository.existsById(request.getMaSP())) {
-//       throw new RuntimeException("Sản phẩm không tồn tại: " + request.getMaSP());
-//     }
+    Integer trangThai = request.getTrangThai() == null ? phienBan.getTrangThai() : request.getTrangThai();
+    if (HOAT_DONG.equals(trangThai)) {
+      deactivateOldActiveVersions(request.getMaSP());
+    }
 
-//     Integer trangThai = request.getTrangThai() == null ? phienBan.getTrangThai() : request.getTrangThai();
+    phienBan.setMaSP(request.getMaSP());
+    phienBan.setNgayHieuLuc(request.getNgayHieuLuc() == null ? phienBan.getNgayHieuLuc() : request.getNgayHieuLuc());
+    phienBan.setTrangThai(trangThai);
 
-//     if (HOAT_DONG.equals(trangThai)) {
-//       deactivateOldActiveVersions(request.getMaSP());
-//     }
+    return phienBanCongThucRepository.save(phienBan);
+  }
 
-//     phienBan.setMaSP(request.getMaSP());
-//     phienBan.setNgayHieuLuc(request.getNgayHieuLuc());
-//     phienBan.setTrangThai(trangThai);
+  public void delete(String maPB) {
+    PhienBanCongThuc phienBan = getById(maPB);
+    phienBan.setTrangThai(NGUNG_HOAT_DONG);
+    phienBanCongThucRepository.save(phienBan);
+  }
 
-//     return phienBanCongThucRepository.save(phienBan);
-//   }
+  private void validateSanPham(String maSP) {
+    if (maSP == null || maSP.isBlank()) {
+      throw new RuntimeException("Ma san pham khong duoc de trong");
+    }
+    if (!sanPhamRepository.existsById(maSP)) {
+      throw new RuntimeException("San pham khong ton tai: " + maSP);
+    }
+  }
 
-//   public void delete(String maPB) {
-//     PhienBanCongThuc phienBan = getById(maPB);
+  private void deactivateOldActiveVersions(String maSP) {
+    List<PhienBanCongThuc> activeVersions =
+        phienBanCongThucRepository.findAllByMaSPAndTrangThai(maSP, HOAT_DONG);
 
-//     // Xóa mềm phiên bản công thức
-//     phienBan.setTrangThai(NGUNG_HOAT_DONG);
+    for (PhienBanCongThuc item : activeVersions) {
+      item.setTrangThai(NGUNG_HOAT_DONG);
+    }
 
-//     phienBanCongThucRepository.save(phienBan);
-//   }
-
-//   private void deactivateOldActiveVersions(String maSP) {
-//     List<PhienBanCongThuc> activeVersions =
-//             phienBanCongThucRepository.findAllByMaSPAndTrangThai(maSP, HOAT_DONG);
-
-//     for (PhienBanCongThuc item : activeVersions) {
-//       item.setTrangThai(NGUNG_HOAT_DONG);
-//     }
-
-//     phienBanCongThucRepository.saveAll(activeVersions);
-//   }
-// }
+    phienBanCongThucRepository.saveAll(activeVersions);
+  }
+}

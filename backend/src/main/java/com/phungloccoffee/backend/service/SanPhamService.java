@@ -1,96 +1,94 @@
-// package com.phungloccoffee.backend.service;
+package com.phungloccoffee.backend.service;
 
-// import com.phungloccoffee.backend.dto.SanPhamRequest;
-// import com.phungloccoffee.backend.entity.SanPham;
-// import com.phungloccoffee.backend.repository.SanPhamRepository;
-// import lombok.RequiredArgsConstructor;
-// import org.springframework.stereotype.Service;
+import com.phungloccoffee.backend.dto.SanPhamRequest;
+import com.phungloccoffee.backend.entity.SanPham;
+import com.phungloccoffee.backend.repository.SanPhamRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-// import java.util.List;
+import java.util.List;
 
-// @Service
-// @RequiredArgsConstructor
-// public class SanPhamService {
+@Service
+@RequiredArgsConstructor
+public class SanPhamService {
 
-//   private final SanPhamRepository sanPhamRepository;
-//   private final AuditLogService auditLogService;
+  private final SanPhamRepository sanPhamRepository;
+  private final AuditLogService auditLogService;
 
-//   public List<SanPham> getAll() {
-//     return sanPhamRepository.findAll();
-//   }
+  public List<SanPham> getAll() {
+    return sanPhamRepository.findAll();
+  }
 
-//   public SanPham getById(String maSP) {
-//     return sanPhamRepository.findById(maSP)
-//             .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm: " + maSP));
-//   }
+  public SanPham getById(String maSP) {
+    return sanPhamRepository.findById(maSP)
+        .orElseThrow(() -> new RuntimeException("Khong tim thay san pham: " + maSP));
+  }
 
-//   public SanPham create(SanPhamRequest request) {
-//     if (request.getMaSP() == null || request.getMaSP().isBlank()) {
-//       throw new RuntimeException("Mã sản phẩm không được để trống");
-//     }
+  public SanPham create(SanPhamRequest request) {
+    if (request.getMaSP() == null || request.getMaSP().isBlank()) {
+      throw new RuntimeException("Ma san pham khong duoc de trong");
+    }
 
-//     if (sanPhamRepository.existsById(request.getMaSP())) {
-//       throw new RuntimeException("Mã sản phẩm đã tồn tại: " + request.getMaSP());
-//     }
+    if (sanPhamRepository.existsById(request.getMaSP())) {
+      throw new RuntimeException("Ma san pham da ton tai: " + request.getMaSP());
+    }
 
-//     SanPham sanPham = SanPham.builder()
-//             .maSP(request.getMaSP())
-//             .tenSP(request.getTenSP())
-//             .giaHienTai(request.getGiaHienTai())
-//             .isTopping(request.getIsTopping())
-//             .trangThai(request.getTrangThai() != null ? request.getTrangThai() : 1) // Default 1 nếu null
-//             .build();
-    
-//     SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
-//     auditLogService.ghiLog("NV_ADMIN", "SANPHAM", sanPhamMoi.getMaSP(), "INSERT", null, sanPhamMoi);
+    SanPham sanPham = SanPham.builder()
+        .maSP(request.getMaSP())
+        .tenSP(request.getTenSP())
+        .giaHienTai(request.getGiaHienTai())
+        .isTopping(request.getIsTopping())
+        .trangThai(request.getTrangThai() == null ? 1 : request.getTrangThai())
+        .build();
 
-//     return sanPhamMoi;
-//   }
+    SanPham saved = sanPhamRepository.save(sanPham);
+    auditLogService.ghiLog("NV_ADMIN", "SANPHAM", saved.getMaSP(), "INSERT", null, saved);
+    return saved;
+  }
 
-//   public SanPham update(String maSP, SanPhamRequest request) {
-//     SanPham sanPham = getById(maSP);
+  public SanPham update(String maSP, SanPhamRequest request) {
+    SanPham sanPham = getById(maSP);
 
-//     SanPham banSaoCu = SanPham.builder()
-//                 .maSP(sanPham.getMaSP())
-//                 .tenSP(sanPham.getTenSP())
-//                 .giaHienTai(sanPham.getGiaHienTai())
-//                 .isTopping(sanPham.getIsTopping())
-//                 .trangThai(sanPham.getTrangThai())
-//                 .build();
+    SanPham oldValue = SanPham.builder()
+        .maSP(sanPham.getMaSP())
+        .tenSP(sanPham.getTenSP())
+        .giaHienTai(sanPham.getGiaHienTai())
+        .isTopping(sanPham.getIsTopping())
+        .trangThai(sanPham.getTrangThai())
+        .build();
 
-//     sanPham.setTenSP(request.getTenSP());
-//     sanPham.setGiaHienTai(request.getGiaHienTai());
-//     sanPham.setIsTopping(request.getIsTopping());
-//     sanPham.setTrangThai(request.getTrangThai());
+    sanPham.setTenSP(request.getTenSP());
+    sanPham.setGiaHienTai(request.getGiaHienTai());
+    sanPham.setIsTopping(request.getIsTopping());
+    sanPham.setTrangThai(request.getTrangThai());
 
-//     SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
-//     auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "UPDATE", banSaoCu, sanPhamMoi);
+    SanPham saved = sanPhamRepository.save(sanPham);
+    auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "UPDATE", oldValue, saved);
+    return saved;
+  }
 
-//     return sanPhamMoi;
-//   }
+  public void delete(String maSP) {
+    SanPham sanPham = getById(maSP);
 
-//   public void delete(String maSP) {
-//     SanPham sanPham = getById(maSP);
+    SanPham oldValue = SanPham.builder()
+        .maSP(sanPham.getMaSP())
+        .tenSP(sanPham.getTenSP())
+        .giaHienTai(sanPham.getGiaHienTai())
+        .isTopping(sanPham.getIsTopping())
+        .trangThai(sanPham.getTrangThai())
+        .build();
 
-//     SanPham banSaoCu = SanPham.builder()
-//                 .maSP(sanPham.getMaSP())
-//                 .tenSP(sanPham.getTenSP())
-//                 .giaHienTai(sanPham.getGiaHienTai())
-//                 .isTopping(sanPham.getIsTopping())
-//                 .trangThai(sanPham.getTrangThai())
-//                 .build();
+    sanPham.setTrangThai(0);
 
-//     sanPham.setTrangThai(0);
+    SanPham saved = sanPhamRepository.save(sanPham);
+    auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "DELETE_SOFT", oldValue, saved);
+  }
 
-//     SanPham sanPhamMoi = sanPhamRepository.save(sanPham);
-//     auditLogService.ghiLog("NV_ADMIN", "SANPHAM", maSP, "DELETE (SOFT)", banSaoCu, sanPhamMoi);
-//   }
+  public List<SanPham> getByTrangThai(Integer trangThai) {
+    return sanPhamRepository.findByTrangThai(trangThai);
+  }
 
-//   public List<SanPham> getByTrangThai(Integer trangThai) {
-//     return sanPhamRepository.findByTrangThai(trangThai);
-//   }
-
-//   public List<SanPham> getByIsTopping(Boolean isTopping) {
-//     return sanPhamRepository.findByIsTopping(isTopping);
-//   }
-// }
+  public List<SanPham> getByIsTopping(Boolean isTopping) {
+    return sanPhamRepository.findByIsTopping(isTopping);
+  }
+}

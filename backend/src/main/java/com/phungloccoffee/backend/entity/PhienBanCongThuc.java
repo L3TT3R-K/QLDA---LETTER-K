@@ -21,16 +21,16 @@ public class PhienBanCongThuc {
   @Column(name = "masp", nullable = false, length = 50)
   private String maSP;
 
-  @Column(name = "ngayhieuluc", nullable = false)
+  @Column(name = "ngay_hieu_luc", nullable = false)
   private LocalDateTime ngayHieuLuc;
 
-  @Column(name = "trangthai", nullable = false)
+  @Column(name = "trang_thai", nullable = false)
   private Integer trangThai;
 
-  @Column(name = "createdat")
+  @Column(name = "created_at")
   private LocalDateTime createdAt;
 
-  @Column(name = "updatedat")
+  @Column(name = "updated_at")
   private LocalDateTime updatedAt;
 
   @PrePersist

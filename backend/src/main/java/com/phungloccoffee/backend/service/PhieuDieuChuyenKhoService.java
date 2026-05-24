@@ -39,11 +39,11 @@ import java.util.stream.Collectors;
 @Service
 public class PhieuDieuChuyenKhoService {
 
-    private static final String TAO_PHIEU = "Tạo phiếu";
-    private static final String DANG_CHUYEN = "Đang chuyển";
-    private static final String DA_NHAN = "Đã nhận";
-    private static final String DA_HUY = "Hủy";
-    private static final String TRANG_THAI_HOP_LE = "Hợp lệ";
+    private static final String TAO_PHIEU = "Táº¡o phiáº¿u";
+    private static final String DANG_CHUYEN = "Äang chuyá»ƒn";
+    private static final String DA_NHAN = "ÄÃ£ nháº­n";
+    private static final String DA_HUY = "Há»§y";
+    private static final Integer TRANG_THAI_HOP_LE = 1;
 
     @Autowired private PhieuDieuChuyenKhoRepository phieuDieuChuyenKhoRepository;
     @Autowired private CTPhieuDieuChuyenKhoRepository ctPhieuDieuChuyenKhoRepository;
@@ -105,7 +105,7 @@ public class PhieuDieuChuyenKhoService {
             double soLuong = valueOrZero(chiTiet.getSoLuong());
             truLoHang(loHang, soLuong);
             truTonKho(phieu.getMaCNXuat(), nguyenLieu.getMaNL(), soLuong);
-            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNXuat(), nguyenLieu.getMaNL(), loHang.getMaLo(), soLuong, "CHUYEN_DI");
+            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNXuat(), nguyenLieu.getMaNL(), loHang.getMaLo(), soLuong, 3);
         }
 
         phieu.setTrangThai(DANG_CHUYEN);
@@ -135,7 +135,7 @@ public class PhieuDieuChuyenKhoService {
             double soLuong = valueOrZero(chiTiet.getSoLuong());
             LoHang loNhan = taoLoNhan(phieu, loXuat, chiNhanhNhan, soLuong);
             congTonKho(phieu.getMaCNNhap(), nguyenLieu.getMaNL(), soLuong);
-            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNNhap(), nguyenLieu.getMaNL(), loNhan.getMaLo(), soLuong, "CHUYEN_DEN");
+            ghiGiaoDich(phieu.getMaPC(), phieu.getMaCNNhap(), nguyenLieu.getMaNL(), loNhan.getMaLo(), soLuong, 4);
         }
 
         phieu.setTrangThai(DA_NHAN);
@@ -301,7 +301,7 @@ public class PhieuDieuChuyenKhoService {
         tonKhoRepository.save(tonKho);
     }
 
-    private void ghiGiaoDich(String maPC, String maCN, String maNL, String maLo, double soLuong, String loaiGiaoDich) {
+    private void ghiGiaoDich(String maPC, String maCN, String maNL, String maLo, double soLuong, Integer loaiGiaoDich) {
         InventoryTransaction trans = new InventoryTransaction();
         trans.setMaTrans("TR_" + UUID.randomUUID().toString().substring(0, 8));
         trans.setMaCN(maCN);
@@ -380,10 +380,10 @@ public class PhieuDieuChuyenKhoService {
     private String parseTrangThai(String trangThai) {
         String value = trangThai.trim();
         String upper = value.toUpperCase();
-        if ("CHO_GUI".equals(upper) || "TAO_PHIEU".equals(upper) || "TẠO PHIẾU".equals(upper)) return TAO_PHIEU;
-        if ("DA_GUI".equals(upper) || "DANG_CHUYEN".equals(upper) || "ĐANG CHUYỂN".equals(upper)) return DANG_CHUYEN;
-        if ("DA_NHAN".equals(upper) || "ĐÃ NHẬN".equals(upper)) return DA_NHAN;
-        if ("DA_HUY".equals(upper) || "HUY".equals(upper) || "HỦY".equals(upper)) return DA_HUY;
+        if ("CHO_GUI".equals(upper) || "TAO_PHIEU".equals(upper) || "Táº O PHIáº¾U".equals(upper)) return TAO_PHIEU;
+        if ("DA_GUI".equals(upper) || "DANG_CHUYEN".equals(upper) || "ÄANG CHUYá»‚N".equals(upper)) return DANG_CHUYEN;
+        if ("DA_NHAN".equals(upper) || "ÄÃƒ NHáº¬N".equals(upper)) return DA_NHAN;
+        if ("DA_HUY".equals(upper) || "HUY".equals(upper) || "Há»¦Y".equals(upper)) return DA_HUY;
         return value;
     }
 
