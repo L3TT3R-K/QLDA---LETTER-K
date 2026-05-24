@@ -1,0 +1,148 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Phụng Lộc Coffee Design System */
+  --background: #F8F9FA;
+  --foreground: #212529;
+  --card: #FFFFFF;
+  --card-foreground: #212529;
+  --popover: #FFFFFF;
+  --popover-foreground: #212529;
+  --primary: #2C6E49;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F3F5;
+  --secondary-foreground: #2C6E49;
+  --muted: #F1F3F5;
+  --muted-foreground: #6C757D;
+  --accent: #F4A261;
+  --accent-foreground: #FFFFFF;
+  --destructive: #DC3545;
+  --destructive-foreground: #FFFFFF;
+  --border: #E9ECEF;
+  --input: #CED4DA;
+  --ring: #2C6E49;
+  
+  /* Custom Colors */
+  --sidebar-bg: #1A1A2E;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-active: #2C6E49;
+  --sidebar-muted: rgba(255, 255, 255, 0.6);
+  
+  /* Status Colors */
+  --success: #198754;
+  --success-bg: #D1E7DD;
+  --warning: #FFC107;
+  --warning-bg: #FFF3CD;
+  --danger: #DC3545;
+  --danger-bg: #F8D7DA;
+  --info: #0DCAF0;
+  --info-bg: #CFF4FC;
+  
+  /* Chart Colors */
+  --chart-1: #2C6E49;
+  --chart-2: #F4A261;
+  --chart-3: #0DCAF0;
+  --chart-4: #6C757D;
+  --chart-5: #198754;
+  
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #1A1A2E;
+  --foreground: #F8F9FA;
+  --card: #212529;
+  --card-foreground: #F8F9FA;
+  --popover: #212529;
+  --popover-foreground: #F8F9FA;
+  --primary: #2C6E49;
+  --primary-foreground: #FFFFFF;
+  --secondary: #343A40;
+  --secondary-foreground: #F8F9FA;
+  --muted: #343A40;
+  --muted-foreground: #ADB5BD;
+  --accent: #F4A261;
+  --accent-foreground: #212529;
+  --destructive: #DC3545;
+  --destructive-foreground: #FFFFFF;
+  --border: #343A40;
+  --input: #495057;
+  --ring: #2C6E49;
+  --sidebar-bg: #0D0D1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-active: #2C6E49;
+  --sidebar-muted: rgba(255, 255, 255, 0.6);
+}
+
+@theme inline {
+  --font-sans: 'Be Vietnam Pro', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-active);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--sidebar-active);
+  --color-sidebar-accent-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: rgba(255, 255, 255, 0.1);
+  --color-sidebar-ring: var(--sidebar-active);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+}
