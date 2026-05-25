@@ -558,19 +558,6 @@ export default function InventoryStockPage() {
     downloadCsv("ton-kho-hien-tai.csv", headers, rows);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu tồn kho mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    const mergedInitialInventory = mergeInventoryStocks(initialInventoryData);
-    setInventoryData(mergedInitialInventory);
-    saveToStorage(inventoryStorageKey, mergedInitialInventory);
-    setCurrentPage(1);
-  };
-
   const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
 
   return (
@@ -700,10 +687,6 @@ export default function InventoryStockPage() {
           <Button variant="outline" className="gap-2" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
             Làm mới
-          </Button>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
           </Button>
 
           <Button

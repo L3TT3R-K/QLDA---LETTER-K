@@ -296,17 +296,6 @@ export default function SuppliersPage() {
     persistSuppliers(updatedSuppliers);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu nhà cung cấp mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistSuppliers(initialSuppliers);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Quản lý nhà cung cấp"
@@ -378,10 +367,6 @@ export default function SuppliersPage() {
               <SelectItem value="inactive">Ngừng hợp tác</SelectItem>
             </SelectContent>
           </Select>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={handleOpenAdd} className="gap-2">
             <Plus className="h-4 w-4" />

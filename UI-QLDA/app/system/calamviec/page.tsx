@@ -505,18 +505,6 @@ export default function WorkShiftsPage() {
     setClosingShift(null);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu ca làm việc mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    setShifts(initialShifts);
-    saveToStorage("CALAMVIEC", initialShifts);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Ca làm việc"
@@ -630,10 +618,6 @@ export default function WorkShiftsPage() {
             <option value="DANG_MO">Đang mở</option>
             <option value="DA_DONG">Đã đóng</option>
           </select>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={handleOpenShiftDrawer} className="gap-2">
             <Plus className="h-4 w-4" />

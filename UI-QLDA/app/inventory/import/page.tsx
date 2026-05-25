@@ -957,26 +957,6 @@ export default function ImportPage() {
     downloadCsv("phieu-nhap-kho.csv", headers, rows);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu nhập kho mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    setReceipts(initialReceipts);
-    setDetails(initialDetails);
-    setBatches(initialBatches);
-    setInventory(mergeInventoryStocks(initialInventory));
-
-    saveToStorage(receiptStorageKey, initialReceipts);
-    saveToStorage(detailStorageKey, initialDetails);
-    saveToStorage(batchStorageKey, initialBatches);
-    saveToStorage(inventoryStorageKey, mergeInventoryStocks(initialInventory));
-
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Nhập kho"
@@ -1055,10 +1035,6 @@ export default function ImportPage() {
           <Button variant="outline" className="gap-2" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
             Làm mới
-          </Button>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
           </Button>
 
           <Button

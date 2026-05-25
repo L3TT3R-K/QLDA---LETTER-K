@@ -444,18 +444,6 @@ export default function UnitConversionPage() {
     persistConversions(updatedConversions);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu quy đổi đơn vị mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistConversions(initialConversions);
-    setCurrentPage(1);
-    setTestConversionId(initialConversions[0]?.MaQD || "");
-  };
-
   const selectedTestConversion = conversions.find(
     (conversion) => conversion.MaQD === testConversionId,
   );
@@ -620,10 +608,6 @@ export default function UnitConversionPage() {
           <Button variant="outline" className="gap-2" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
             Làm mới
-          </Button>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
           </Button>
 
           <Button onClick={handleOpenAdd} className="gap-2">

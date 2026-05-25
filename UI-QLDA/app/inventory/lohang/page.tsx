@@ -470,18 +470,6 @@ export default function BatchPage() {
     downloadCsv("lo-hang.csv", headers, rows);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu lô hàng mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    setBatches(initialBatches);
-    saveToStorage(batchStorageKey, initialBatches);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Lô hàng"
@@ -630,10 +618,6 @@ export default function BatchPage() {
           <Button variant="outline" className="gap-2" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
             Làm mới
-          </Button>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
           </Button>
 
           <Button

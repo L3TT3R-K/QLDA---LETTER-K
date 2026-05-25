@@ -821,21 +821,6 @@ export default function ReportsPage() {
     printWindow.print();
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu báo cáo mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    saveToStorage(branchStorageKey, initialBranches);
-    saveToStorage(invoiceStorageKey, initialInvoices);
-
-    setBranches(initialBranches.map(convertToReportBranch));
-    setInvoices(initialInvoices);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Báo cáo doanh thu"
@@ -897,10 +882,6 @@ export default function ReportsPage() {
           <Button variant="outline" className="gap-2" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
             Làm mới
-          </Button>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
           </Button>
 
           <div className="ml-auto flex gap-2">

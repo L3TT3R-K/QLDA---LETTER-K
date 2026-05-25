@@ -403,17 +403,6 @@ export default function ProductsPage() {
     persistProducts(updatedProducts);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu sản phẩm mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistProducts(initialProducts);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Quản lý sản phẩm"
@@ -526,10 +515,6 @@ export default function ProductsPage() {
               <Grid3X3 className="h-4 w-4" />
             </button>
           </div>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={openAddDrawer} className="gap-2">
             <Plus className="h-4 w-4" />

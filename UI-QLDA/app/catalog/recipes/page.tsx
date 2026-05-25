@@ -747,35 +747,6 @@ export default function RecipesPage() {
     alert("Đã tạo phiên bản công thức mới");
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu công thức mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    setRecipeVersions(initialRecipeVersions);
-    setRecipeDetails(initialRecipeDetails);
-
-    saveToStorage(recipeVersionStorageKey, initialRecipeVersions);
-    saveToStorage(recipeDetailStorageKey, initialRecipeDetails);
-
-    if (selectedProduct) {
-      const version = initialRecipeVersions.find(
-        (item) =>
-          item.MaSP === selectedProduct.MaSP && item.TrangThai === "ACTIVE",
-      );
-
-      setEditingDetails(
-        version
-          ? initialRecipeDetails.filter(
-              (detail) => detail.MaPB === version.MaPB,
-            )
-          : [],
-      );
-    }
-  };
-
   const activeVersion = selectedProduct
     ? getActiveRecipeVersion(selectedProduct.MaSP)
     : null;
@@ -866,14 +837,6 @@ export default function RecipesPage() {
                 >
                   <RefreshCw className="h-4 w-4" />
                   Làm mới
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleResetMockData}
-                >
-                  Khôi phục
                 </Button>
               </div>
             </div>

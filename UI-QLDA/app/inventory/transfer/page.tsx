@@ -926,24 +926,6 @@ export default function InventoryTransferPage() {
     downloadCsv("phieu-dieu-chuyen-kho.csv", headers, rows);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu điều chuyển mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    setReceipts(initialReceipts);
-    setDetails(initialDetails);
-    setInventory(mergeInventoryStocks(initialInventory));
-
-    saveToStorage(receiptStorageKey, initialReceipts);
-    saveToStorage(detailStorageKey, initialDetails);
-    saveToStorage(inventoryStorageKey, mergeInventoryStocks(initialInventory));
-
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Điều chuyển kho"
@@ -1047,10 +1029,6 @@ export default function InventoryTransferPage() {
           <Button variant="outline" className="gap-2" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
             Làm mới
-          </Button>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
           </Button>
 
           <Button

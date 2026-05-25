@@ -457,19 +457,6 @@ export default function IngredientsPage() {
     persistIngredients(updatedIngredients);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu nguyên liệu mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistIngredients(initialIngredients);
-    saveToStorage(unitStorageKey, initialUnits);
-    setUnits(initialUnits);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Quản lý nguyên liệu"
@@ -569,10 +556,6 @@ export default function IngredientsPage() {
               <SelectItem value="inactive">Ngừng sử dụng</SelectItem>
             </SelectContent>
           </Select>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={handleOpenAdd} className="gap-2">
             <Plus className="h-4 w-4" />

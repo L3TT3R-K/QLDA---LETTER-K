@@ -326,17 +326,6 @@ export default function UnitsPage() {
     persistUnits(updatedUnits);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu đơn vị mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistUnits(initialUnits);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Quản lý đơn vị"
@@ -406,10 +395,6 @@ export default function UnitsPage() {
               <SelectItem value="inactive">Ngừng sử dụng</SelectItem>
             </SelectContent>
           </Select>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={handleOpenAdd} className="gap-2">
             <Plus className="h-4 w-4" />

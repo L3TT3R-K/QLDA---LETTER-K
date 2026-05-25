@@ -341,17 +341,6 @@ export default function BranchesPage() {
     persistBranches(updatedBranches);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu chi nhánh mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistBranches(initialBranches);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Quản lý chi nhánh"
@@ -421,10 +410,6 @@ export default function BranchesPage() {
               <SelectItem value="inactive">Tạm đóng</SelectItem>
             </SelectContent>
           </Select>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={handleOpenAdd} className="gap-2">
             <Plus className="h-4 w-4" />

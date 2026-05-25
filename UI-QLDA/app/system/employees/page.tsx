@@ -536,17 +536,6 @@ export default function EmployeesPage() {
     persistEmployees(updatedEmployees);
   };
 
-  const handleResetMockData = () => {
-    const isConfirmed = confirm(
-      "Bạn có chắc muốn khôi phục dữ liệu nhân viên mẫu không?",
-    );
-
-    if (!isConfirmed) return;
-
-    persistEmployees(initialEmployees);
-    setCurrentPage(1);
-  };
-
   return (
     <MainLayout
       title="Quản lý nhân viên"
@@ -665,10 +654,6 @@ export default function EmployeesPage() {
               <SelectItem value="inactive">Đã nghỉ</SelectItem>
             </SelectContent>
           </Select>
-
-          <Button variant="outline" onClick={handleResetMockData}>
-            Khôi phục mẫu
-          </Button>
 
           <Button onClick={handleOpenAdd} className="gap-2">
             <Plus className="h-4 w-4" />
