@@ -1,19 +1,19 @@
 package com.phungloccoffee.backend.dto;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
+@Builder
 @AllArgsConstructor
-public class NhanVienResponse{
-    
+@NoArgsConstructor
+public class NhanVienResponse {
     private String maNV;
-    private String tenNV;
+    private String username;
+    private String tenNV; 
     private String chucVu;
-    
     private String tenChiNhanh; 
+    private Integer trangThai;
 }

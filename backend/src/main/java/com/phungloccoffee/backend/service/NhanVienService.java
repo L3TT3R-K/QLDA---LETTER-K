@@ -1,6 +1,7 @@
 package com.phungloccoffee.backend.service;
 
 import com.phungloccoffee.backend.dto.NhanVienRequest;
+import com.phungloccoffee.backend.dto.NhanVienResponse;
 import com.phungloccoffee.backend.entity.NhanVien;
 import com.phungloccoffee.backend.repository.NhanVienRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +15,36 @@ import java.util.List;
 public class NhanVienService {
 
     private final NhanVienRepository nhanVienRepository;
-    private final PasswordEncoder passwordEncoder; // Dùng để băm mật khẩu
+    private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
-    public List<NhanVien> getAll() {
-        return nhanVienRepository.findAll();
+    public List<NhanVienResponse> getAllNhanVien() {
+        return nhanVienRepository.findAllCustom().stream().map(row -> 
+            NhanVienResponse.builder()
+                .maNV((String) row[0])
+                .username((String) row[1])
+                .tenNV((String) row[2])
+                .chucVu((String) row[3])
+                .tenChiNhanh((String) row[4])
+                .trangThai((Integer) row[5])
+                .build()
+        ).toList();
     }
+
+
+    public NhanVienResponse getEmployeeById(String maNV) {
+        NhanVien nv = getById(maNV);
+        return NhanVienResponse.builder()
+                .maNV(nv.getMaNV())
+                .username(nv.getUsername())
+                .tenNV(nv.getTenNV())
+                .chucVu(nv.getChucVu())
+                .tenChiNhanh(nv.getMaCN()) 
+                .trangThai(nv.getTrangThai())
+                .build();
+    }
+    
+    // --- GIỮ NGUYÊN CÁC HÀM XỬ LÝ LOGIC VÀ AUDIT LOG CỦA KHOA ---
 
     public NhanVien getById(String maNV) {
         return nhanVienRepository.findById(maNV)
@@ -30,14 +55,10 @@ public class NhanVienService {
         if (nhanVienRepository.existsById(request.getMaNV())) {
             throw new RuntimeException("Mã nhân viên đã tồn tại!");
         }
-        if (nhanVienRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username đã có người sử dụng!");
-        }
-
+        
         NhanVien nv = NhanVien.builder()
                 .maNV(request.getMaNV())
                 .username(request.getUsername())
-                // Mã hóa password ngay lập tức!
                 .passwordHash(passwordEncoder.encode(request.getPassword())) 
                 .tenNV(request.getTenNV())
                 .chucVu(request.getChucVu())
@@ -47,10 +68,8 @@ public class NhanVienService {
 
         NhanVien saved = nhanVienRepository.save(nv);
         
-        // Ẩn Password khi ghi log để bảo mật
-        NhanVien logData = saved;
-        logData.setPasswordHash("HIDDEN"); 
-        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", saved.getMaNV(), "INSERT", null, logData);
+        // Audit log giữ nguyên Object truyền vào
+        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", saved.getMaNV(), "INSERT", null, saved);
         
         return saved;
     }
@@ -58,6 +77,7 @@ public class NhanVienService {
     public NhanVien update(String maNV, NhanVienRequest request) {
         NhanVien nv = getById(maNV);
 
+        // Lưu thông tin cũ để ghi log
         NhanVien oldData = NhanVien.builder()
                 .maNV(nv.getMaNV()).username(nv.getUsername())
                 .tenNV(nv.getTenNV()).chucVu(nv.getChucVu())
@@ -68,24 +88,19 @@ public class NhanVienService {
         nv.setMaCN(request.getMaCN());
         nv.setTrangThai(request.getTrangThai());
 
-        // Nếu FE có gửi password mới lên thì mới mã hóa lại, không thì giữ nguyên pass cũ
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             nv.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
 
         NhanVien saved = nhanVienRepository.save(nv);
-        
-        oldData.setPasswordHash("HIDDEN");
-        NhanVien logData = saved;
-        logData.setPasswordHash("HIDDEN");
-        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", maNV, "UPDATE", oldData, logData);
+        auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", maNV, "UPDATE", oldData, saved);
         
         return saved;
     }
 
     public void delete(String maNV) {
         NhanVien nv = getById(maNV);
-        nv.setTrangThai(0); // Xóa mềm nghỉ việc
+        nv.setTrangThai(0); // Xóa mềm: cập nhật trạng thái về 0
         nhanVienRepository.save(nv);
         auditLogService.ghiLog("NV_ADMIN", "NHANVIEN", maNV, "DELETE (SOFT)", null, nv);
     }

@@ -9,64 +9,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveCurrentUser } from "@/lib/auth";
 import { getDefaultRouteByRole, type UserRole } from "@/lib/permissions";
+import api from "@/services/api"; // <-- Import api để gọi Backend
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // Thêm loading chống click nhiều lần
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const normalizedUsername = username.trim().toLowerCase();
     const normalizedPassword = password.trim();
 
-    let role: UserRole | null = null;
-    let maNV = "";
-    let tenNV = "";
-    let maCN: string | null = null;
-
-    if (normalizedUsername === "admin" && normalizedPassword === "123") {
-      role = "ADMIN";
-      maNV = "NV001";
-      tenNV = "Nguyễn Văn A";
-      maCN = null;
-    } else if (
-      normalizedUsername === "quanly" &&
-      normalizedPassword === "123"
-    ) {
-      role = "QUANLY";
-      maNV = "NV002";
-      tenNV = "Trần Thị B";
-      maCN = "CN01";
-    } else if (normalizedUsername === "kho" && normalizedPassword === "123") {
-      role = "NHANVIEN_KHO";
-      maNV = "NV005";
-      tenNV = "Hoàng Văn E";
-      maCN = "CN01";
-    } else if (
-      normalizedUsername === "banhang" &&
-      normalizedPassword === "123"
-    ) {
-      role = "NHANVIEN_BANHANG";
-      maNV = "NV003";
-      tenNV = "Lê Văn C";
-      maCN = "CN01";
-    }
-
-    if (!role) {
-      alert("Sai tài khoản hoặc mật khẩu");
+    if (!normalizedUsername || !normalizedPassword) {
+      alert("Vui lòng nhập đầy đủ tài khoản và mật khẩu");
       return;
     }
 
-    saveCurrentUser({
-      token: "mock-token",
-      maNV,
-      tenNV,
-      chucVu: role,
-      maCN,
-    });
+    setIsLoading(true);
+    try {
+      // 1. Gọi thẳng xuống Backend (Khớp với AuthController của Khoa)
+      const response = await api.post("/api/auth/login", {
+        username: normalizedUsername,
+        password: normalizedPassword,
+      });
 
-    router.push(getDefaultRouteByRole(role));
+      // 2. Lấy dữ liệu Backend trả về (Token chuẩn từ JWTUtils)
+      const { token, maNV, tenNV, chucVu, maCN } = response.data;
+
+      // 3. Lưu vào LocalStorage
+      saveCurrentUser({
+        token,
+        maNV,
+        tenNV,
+        chucVu: chucVu as UserRole,
+        maCN,
+      });
+
+      // 4. Chuyển hướng vào trang tương ứng với Role
+      router.push(getDefaultRouteByRole(chucVu as UserRole));
+    } catch (error: any) {
+      // Lỗi do Spring Boot trả về (Sai pass, sai user) sẽ hiện ở đây
+      alert(error.response?.data || "Đăng nhập thất bại. Vui lòng thử lại!");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -147,6 +135,7 @@ export default function LoginPage() {
                     className="h-11 rounded-xl pl-10"
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
               </label>
@@ -165,17 +154,10 @@ export default function LoginPage() {
                     className="h-11 rounded-xl pl-10"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
               </label>
-
-              {/* <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                <p className="font-medium text-foreground">Tài khoản test:</p>
-                <p>admin / 123 — Admin</p>
-                <p>quanly / 123 — Quản lý</p>
-                <p>kho / 123 — Nhân viên kho</p>
-                <p>banhang / 123 — Nhân viên bán hàng</p>
-              </div> */}
 
               <div className="flex items-center justify-between gap-4 text-sm">
                 <label className="flex items-center gap-2 text-muted-foreground">
@@ -196,10 +178,11 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
+                disabled={isLoading}
                 className="h-11 w-full rounded-xl bg-[#1a1e54] text-sm font-semibold text-white shadow-md shadow-primary/20 hover:bg-[#23388d]"
               >
-                Đăng nhập
-                <ArrowRight className="h-4 w-4" />
+                {isLoading ? "Đang xử lý..." : "Đăng nhập"}
+                {!isLoading && <ArrowRight className="h-4 w-4" />}
               </Button>
             </form>
           </div>
