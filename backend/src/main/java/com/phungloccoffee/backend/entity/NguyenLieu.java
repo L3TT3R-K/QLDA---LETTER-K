@@ -35,7 +35,7 @@ public class NguyenLieu {
     private DonVi donViCoBan;
 
     @Column(name = "trangthai", length = 30)
-    private String trangThai;
+    private Integer trangThai;
 
     @CreationTimestamp
     @Column(name = "createdat", updatable = false)

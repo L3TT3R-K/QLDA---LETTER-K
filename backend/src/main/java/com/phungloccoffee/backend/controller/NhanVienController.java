@@ -64,7 +64,7 @@ public class NhanVienController {
 
     // Xóa mềm (Khóa tài khoản) nhân viên
     @DeleteMapping("/{maNV}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY_CHINHANH')")
     public ResponseEntity<String> delete(@PathVariable String maNV) {
         try {
             nhanVienService.delete(maNV);
