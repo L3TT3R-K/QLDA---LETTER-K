@@ -57,6 +57,8 @@ export default function LoginPage() {
     }
   };
 
+  
+
   return (
     <main className="min-h-screen overflow-hidden bg-gradient-to-br from-[#1A1A2E] to-[#0f1419] text-foreground">
       <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-[0.9fr_1.1fr]">
@@ -170,6 +172,7 @@ export default function LoginPage() {
 
                 <button
                   type="button"
+                  onClick={() => alert("Vui lòng liên hệ Quản lý chi nhánh hoặc Ban quản trị (Admin) để được cấp lại mật khẩu nội bộ.")}
                   className="font-medium text-primary hover:underline"
                 >
                   Quên mật khẩu?
