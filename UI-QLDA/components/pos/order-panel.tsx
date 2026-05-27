@@ -16,6 +16,7 @@ interface OrderPanelProps {
   onRemoveItem: (MaSP: string) => void;
   onClearOrder: () => void;
   onCheckout: (paymentMethod: PaymentMethod, giamGia: number) => void;
+  isProcessingCheckout?: boolean;
 }
 
 const formatCurrency = (value: number) => {
@@ -49,6 +50,7 @@ export function OrderPanel({
   onRemoveItem,
   onClearOrder,
   onCheckout,
+  isProcessingCheckout = false,
 }: OrderPanelProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [discount, setDiscount] = useState("");
@@ -188,7 +190,7 @@ export function OrderPanel({
             value={discount}
             onChange={(event) => setDiscount(event.target.value)}
             placeholder="Nhập số tiền hoặc %, ví dụ 10000 hoặc 10%"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || isProcessingCheckout}
           />
         </div>
 
@@ -223,11 +225,13 @@ export function OrderPanel({
         <div className="mb-4 flex gap-2">
           <button
             onClick={() => setPaymentMethod("cash")}
+            disabled={isProcessingCheckout}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-md border py-2 text-sm font-medium transition-colors",
               paymentMethod === "cash"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:border-primary/50",
+              isProcessingCheckout && "cursor-not-allowed opacity-60",
             )}
           >
             <Banknote className="h-4 w-4" />
@@ -236,11 +240,13 @@ export function OrderPanel({
 
           <button
             onClick={() => setPaymentMethod("transfer")}
+            disabled={isProcessingCheckout}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-md border py-2 text-sm font-medium transition-colors",
               paymentMethod === "transfer"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:border-primary/50",
+              isProcessingCheckout && "cursor-not-allowed opacity-60",
             )}
           >
             <CreditCard className="h-4 w-4" />
@@ -253,17 +259,17 @@ export function OrderPanel({
             variant="outline"
             className="flex-1"
             onClick={handleClearOrder}
-            disabled={items.length === 0}
+            disabled={items.length === 0 || isProcessingCheckout}
           >
             Hủy đơn
           </Button>
 
           <Button
             className="flex-[2]"
-            disabled={items.length === 0 || total <= 0}
+            disabled={items.length === 0 || total <= 0 || isProcessingCheckout}
             onClick={handleCheckout}
           >
-            Thanh toán
+            {isProcessingCheckout ? "Đang thanh toán..." : "Thanh toán"}
           </Button>
         </div>
       </div>

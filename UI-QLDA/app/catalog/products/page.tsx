@@ -59,7 +59,8 @@ const formatCurrency = (value: number) => {
 };
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]); // Khởi tạo mảng rỗng chờ API
+  const [products, setProducts] = useState<Product[]>([]); // Danh sách hiển thị theo bộ lọc
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Danh sách tổng để thống kê và sinh mã
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -79,19 +80,59 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // HÀM GỌI DỮ LIỆU TỪ BACKEND
-  const fetchProducts = async () => {
+  // HÀM TẢI TẤT CẢ SẢN PHẨM
+  const fetchAllProducts = async () => {
     try {
-      const response = await api.get("/api/sanpham");
-      setProducts(response.data);
+      const response = await api.get<Product[]>("/api/sanpham");
+      setAllProducts(response.data || []);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách tổng sản phẩm:", error);
+    }
+  };
+
+  // HÀM TẢI DỮ LIỆU THEO BỘ LỌC TỪ BACKEND
+  const fetchProducts = async (
+    targetStatus = statusFilter,
+    targetType = typeFilter,
+  ) => {
+    try {
+      let response;
+
+      if (targetStatus !== "all") {
+        const trangThai = targetStatus === "active" ? 1 : 0;
+        response = await api.get<Product[]>(`/api/sanpham/trangthai/${trangThai}`);
+      } else if (targetType !== "all") {
+        const isTopping = targetType === "topping";
+        response = await api.get<Product[]>(`/api/sanpham/topping/${isTopping}`);
+      } else {
+        response = await api.get<Product[]>("/api/sanpham");
+      }
+
+      let nextProducts = response.data || [];
+
+      // Khi đồng thời lọc trạng thái + topping, áp dụng thêm điều kiện thứ hai ở frontend.
+      if (targetStatus !== "all" && targetType !== "all") {
+        const expectedIsTopping = targetType === "topping";
+        nextProducts = nextProducts.filter(
+          (product) => product.isTopping === expectedIsTopping,
+        );
+      }
+
+      setProducts(nextProducts);
     } catch (error) {
       console.error("Lỗi khi tải danh sách sản phẩm:", error);
     }
   };
 
   useEffect(() => {
+    fetchAllProducts();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    fetchProducts(statusFilter, typeFilter);
+    setCurrentPage(1);
+  }, [statusFilter, typeFilter]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -116,9 +157,9 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const activeCount = products.filter((product) => product.trangThai === 1).length;
-  const inactiveCount = products.filter((product) => product.trangThai === 0).length;
-  const toppingCount = products.filter((product) => product.isTopping).length;
+  const activeCount = allProducts.filter((product) => product.trangThai === 1).length;
+  const inactiveCount = allProducts.filter((product) => product.trangThai === 0).length;
+  const toppingCount = allProducts.filter((product) => product.isTopping).length;
 
   const resetForm = () => {
     setFormData({ tenSP: "", giaHienTai: "", isTopping: false, trangThai: 1 });
@@ -136,15 +177,30 @@ export default function ProductsPage() {
     setIsDrawerOpen(true);
   };
 
-  const openEditDrawer = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      tenSP: product.tenSP,
-      giaHienTai: String(product.giaHienTai),
-      isTopping: product.isTopping,
-      trangThai: product.trangThai,
-    });
-    setIsDrawerOpen(true);
+  const openEditDrawer = async (product: Product) => {
+    try {
+      const response = await api.get<Product>(`/api/sanpham/${product.maSP}`);
+      const detail = response.data;
+
+      setEditingProduct(detail);
+      setFormData({
+        tenSP: detail.tenSP,
+        giaHienTai: String(detail.giaHienTai),
+        isTopping: detail.isTopping,
+        trangThai: detail.trangThai,
+      });
+      setIsDrawerOpen(true);
+    } catch {
+      // Fallback dùng dữ liệu đang hiển thị nếu API chi tiết lỗi.
+      setEditingProduct(product);
+      setFormData({
+        tenSP: product.tenSP,
+        giaHienTai: String(product.giaHienTai),
+        isTopping: product.isTopping,
+        trangThai: product.trangThai,
+      });
+      setIsDrawerOpen(true);
+    }
   };
 
   // NÚT GẠT TRẠNG THÁI (GỌI API PUT)
@@ -155,7 +211,7 @@ export default function ProductsPage() {
         trangThai: product.trangThai === 1 ? 0 : 1,
       };
       await api.put(`/api/sanpham/${product.maSP}`, payload);
-      await fetchProducts(); // Tải lại data sau khi update
+      await Promise.all([fetchProducts(), fetchAllProducts()]);
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái:", error);
       alert("Lỗi khi cập nhật trạng thái sản phẩm");
@@ -178,7 +234,7 @@ export default function ProductsPage() {
     }
 
     const payload = {
-      maSP: editingProduct ? editingProduct.maSP : getNextProductCode(products, formData.isTopping),
+      maSP: editingProduct ? editingProduct.maSP : getNextProductCode(allProducts, formData.isTopping),
       tenSP: tenSP,
       giaHienTai: priceNumber,
       isTopping: formData.isTopping,
@@ -191,7 +247,7 @@ export default function ProductsPage() {
       } else {
         await api.post("/api/sanpham", payload);
       }
-      await fetchProducts();
+      await Promise.all([fetchProducts(), fetchAllProducts()]);
       closeDrawer();
     } catch (error: any) {
       alert(error.response?.data || "Có lỗi xảy ra khi lưu sản phẩm");
@@ -205,7 +261,7 @@ export default function ProductsPage() {
 
     try {
       await api.delete(`/api/sanpham/${maSP}`);
-      await fetchProducts();
+      await Promise.all([fetchProducts(), fetchAllProducts()]);
     } catch (error: any) {
       alert(error.response?.data || "Có lỗi xảy ra khi xóa sản phẩm");
     }
@@ -218,7 +274,7 @@ export default function ProductsPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <p className="text-sm text-muted-foreground">Tổng sản phẩm</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">{products.length}</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">{allProducts.length}</p>
           </div>
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <p className="text-sm text-muted-foreground">Đang bán</p>
@@ -246,7 +302,7 @@ export default function ProductsPage() {
             />
           </div>
 
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả trạng thái</SelectItem>
@@ -255,7 +311,7 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[170px]"><SelectValue placeholder="Loại sản phẩm" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả loại</SelectItem>
