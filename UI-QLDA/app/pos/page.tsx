@@ -5,6 +5,8 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { ProductGrid } from "@/components/pos/product-grid";
 import { OrderPanel } from "@/components/pos/order-panel";
 import { AlertTriangle, WifiOff } from "lucide-react";
+import api from "@/services/api";
+import { getCurrentUser } from "@/lib/auth";
 
 export interface Product {
   MaSP: string;
@@ -40,43 +42,51 @@ interface HoaDonRequest {
   }[];
 }
 
-interface Invoice {
-  MaHD: string;
-  MaCa: string;
-  MaCN: string;
-  TongTien: number;
-  GiamGia: number;
-  TrangThai: number;
-  IsSynced?: boolean;
-  CreatedAt?: string;
+interface ApiResponse<T> {
+  status: number;
+  message: string;
+  data: T;
 }
 
-interface InvoiceDetail {
-  Id: string;
-  MaHD: string;
-  MaSP: string;
-  SoLuong: number;
-  GiaBanTaiThoiDiem: number;
-  GhiChu?: string;
+interface ChiTietHoaDonResponse {
+  maHD: string;
+  tenChiNhanh: string;
+  tongTien: number | string;
+  trangThai: number;
 }
 
-interface Payment {
-  MaTT: string;
-  MaHD: string;
-  PhuongThuc: PaymentMethod;
-  SoTien: number;
-  TrangThai: number;
-  CreatedAt: string;
-  IsSynced?: boolean;
+interface ThanhToanResponse {
+  maTT: string;
+  maHD: string;
+  soTien: number | string;
+  phuongThuc: string;
+  message: string;
 }
 
-interface SyncLog {
-  MaLog: string;
-  ThucThe: string;
-  RecordId: string;
-  HanhDong: string;
-  TrangThai: number;
-  CreatedAt: string;
+interface ProductApiDto {
+  maSP?: string;
+  tenSP?: string;
+  giaHienTai?: number | string;
+  isTopping?: boolean;
+  trangThai?: number;
+  MaSP?: string;
+  TenSP?: string;
+  GiaHienTai?: number | string;
+  IsTopping?: boolean;
+  TrangThai?: number;
+}
+
+interface CaLamViecApiDto {
+  maCa?: string;
+  maNV?: string;
+  maCN?: string;
+  thoiGianMo?: string;
+  thoiGianDong?: string | null;
+  MaCa?: string;
+  MaNV?: string;
+  MaCN?: string;
+  ThoiGianMo?: string;
+  ThoiGianDong?: string | null;
 }
 
 const initialProducts: Product[] = [
@@ -152,106 +162,6 @@ const initialProducts: Product[] = [
   },
 ];
 
-const initialInvoices: Invoice[] = [
-  {
-    MaHD: "HD001",
-    MaCa: "CA001",
-    MaCN: "CN01",
-    TongTien: 74000,
-    GiamGia: 0,
-    TrangThai: 2,
-  },
-  {
-    MaHD: "HD002",
-    MaCa: "CA002",
-    MaCN: "CN02",
-    TongTien: 70000,
-    GiamGia: 0,
-    TrangThai: 2,
-  },
-];
-
-const initialInvoiceDetails: InvoiceDetail[] = [
-  {
-    Id: "CTHD001",
-    MaHD: "HD001",
-    MaSP: "SP002",
-    SoLuong: 2,
-    GiaBanTaiThoiDiem: 30000,
-    GhiChu: "",
-  },
-  {
-    Id: "CTHD002",
-    MaHD: "HD001",
-    MaSP: "SPT01",
-    SoLuong: 2,
-    GiaBanTaiThoiDiem: 7000,
-    GhiChu: "",
-  },
-  {
-    Id: "CTHD003",
-    MaHD: "HD002",
-    MaSP: "SP001",
-    SoLuong: 1,
-    GiaBanTaiThoiDiem: 25000,
-    GhiChu: "",
-  },
-  {
-    Id: "CTHD004",
-    MaHD: "HD002",
-    MaSP: "SP004",
-    SoLuong: 1,
-    GiaBanTaiThoiDiem: 45000,
-    GhiChu: "",
-  },
-];
-
-const getFromStorage = <T,>(key: string, fallback: T[]): T[] => {
-  if (typeof window === "undefined") return fallback;
-
-  const data = localStorage.getItem(key);
-
-  if (!data) return fallback;
-
-  try {
-    const parsed = JSON.parse(data);
-
-    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const saveToStorage = <T,>(key: string, data: T[]) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
-const getMaxCodeNumber = (
-  prefix: string,
-  existingCodes: Array<string | undefined | null>,
-) => {
-  return existingCodes.reduce((max, code) => {
-    if (!code) return max;
-
-    const text = String(code);
-
-    if (!text.startsWith(prefix)) return max;
-
-    const number = Number(text.replace(prefix, ""));
-
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 0);
-};
-
-const getNextCode = (
-  prefix: string,
-  existingCodes: Array<string | undefined | null>,
-) => {
-  const maxNumber = getMaxCodeNumber(prefix, existingCodes);
-
-  return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
-};
-
 const getProductCategory = (product: Product) => {
   if (product.IsTopping) return "Topping";
 
@@ -265,10 +175,10 @@ const getProductCategory = (product: Product) => {
   return "Khác";
 };
 
-const normalizeProduct = (product: Partial<Product>): Product | null => {
-  const MaSP = product.MaSP;
-  const TenSP = product.TenSP;
-  const GiaHienTai = Number(product.GiaHienTai);
+const normalizeProduct = (product: ProductApiDto): Product | null => {
+  const MaSP = product.MaSP ?? product.maSP;
+  const TenSP = product.TenSP ?? product.tenSP;
+  const GiaHienTai = Number(product.GiaHienTai ?? product.giaHienTai);
 
   if (!MaSP || !TenSP || Number.isNaN(GiaHienTai)) return null;
 
@@ -276,31 +186,181 @@ const normalizeProduct = (product: Partial<Product>): Product | null => {
     MaSP,
     TenSP,
     GiaHienTai,
-    IsTopping: Boolean(product.IsTopping),
-    TrangThai: Number(product.TrangThai ?? 1),
+    IsTopping: Boolean(product.IsTopping ?? product.isTopping),
+    TrangThai: Number(product.TrangThai ?? product.trangThai ?? 1),
   };
+};
+
+const mapPaymentMethod = (method: PaymentMethod) => {
+  return method === "cash" ? "TIEN_MAT" : "CHUYEN_KHOAN";
 };
 
 export default function POSPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [isOffline] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingShiftContext, setIsLoadingShiftContext] = useState(true);
+  const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
+  const [shiftContextError, setShiftContextError] = useState<string | null>(
+    null,
+  );
+  const [productError, setProductError] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [currentBranch, setCurrentBranch] = useState<string>("");
+  const [currentShift, setCurrentShift] = useState<string>("");
 
-  const currentBranch = "CN01";
-  const currentShift = "CA001";
+  const apiError = checkoutError ?? shiftContextError ?? productError;
 
   useEffect(() => {
-    const storedProducts = getFromStorage<Partial<Product>>("SANPHAM", []);
+    const handleOnlineStatus = () => setIsOffline(!navigator.onLine);
 
-    if (storedProducts.length > 0) {
-      const normalizedProducts = storedProducts
-        .map(normalizeProduct)
-        .filter((item): item is Product => item !== null);
+    handleOnlineStatus();
+    window.addEventListener("online", handleOnlineStatus);
+    window.addEventListener("offline", handleOnlineStatus);
 
-      if (normalizedProducts.length > 0) {
-        setProducts(normalizedProducts);
+    return () => {
+      window.removeEventListener("online", handleOnlineStatus);
+      window.removeEventListener("offline", handleOnlineStatus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const resolveShiftContext = async () => {
+      setIsLoadingShiftContext(true);
+
+      try {
+        const user = getCurrentUser();
+
+        if (!user) {
+          setShiftContextError(
+            "Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại.",
+          );
+          return;
+        }
+
+        const userBranch = user.maCN || "";
+        const userMaNV = user.maNV;
+
+        if (!userBranch) {
+          setShiftContextError(
+            "Tài khoản chưa được gán chi nhánh, chưa thể bán hàng POS.",
+          );
+          return;
+        }
+
+        setCurrentBranch(userBranch);
+
+        const caLamViecRes = await api.get<CaLamViecApiDto[]>("/api/calamviec");
+        const dsCa = Array.isArray(caLamViecRes.data) ? caLamViecRes.data : [];
+
+        const dsCaDangMo = dsCa.filter((ca) => {
+          const thoiGianDong = ca.thoiGianDong ?? ca.ThoiGianDong;
+          return !thoiGianDong;
+        });
+
+        const normalizeTime = (value?: string) => {
+          if (!value) return 0;
+          const time = new Date(value).getTime();
+          return Number.isNaN(time) ? 0 : time;
+        };
+
+        const caCuaNhanVien = dsCaDangMo
+          .filter((ca) => {
+            const maNV = ca.maNV ?? ca.MaNV;
+            const maCN = ca.maCN ?? ca.MaCN;
+            return maNV === userMaNV && maCN === userBranch;
+          })
+          .sort(
+            (a, b) =>
+              normalizeTime(b.thoiGianMo ?? b.ThoiGianMo) -
+              normalizeTime(a.thoiGianMo ?? a.ThoiGianMo),
+          );
+
+        const caTheoChiNhanh = dsCaDangMo
+          .filter((ca) => (ca.maCN ?? ca.MaCN) === userBranch)
+          .sort(
+            (a, b) =>
+              normalizeTime(b.thoiGianMo ?? b.ThoiGianMo) -
+              normalizeTime(a.thoiGianMo ?? a.ThoiGianMo),
+          );
+
+        const caDangMo = caCuaNhanVien[0] ?? caTheoChiNhanh[0];
+        const maCaDangMo = caDangMo ? caDangMo.maCa ?? caDangMo.MaCa : "";
+
+        if (!maCaDangMo) {
+          setShiftContextError("Không tìm thấy ca đang mở cho chi nhánh hiện tại.");
+          return;
+        }
+
+        setCurrentShift(maCaDangMo);
+        setShiftContextError(null);
+      } catch {
+        setShiftContextError("Không thể lấy thông tin ca làm việc đang mở.");
+      } finally {
+        setIsLoadingShiftContext(false);
       }
-    }
+    };
+
+    resolveShiftContext();
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoadingProducts(true);
+      setProductError(null);
+
+      try {
+        const [allRes, activeRes, toppingRes, nonToppingRes] = await Promise.all([
+          api.get<ProductApiDto[]>("/api/sanpham"),
+          api.get<ProductApiDto[]>("/api/sanpham/trangthai/1"),
+          api.get<ProductApiDto[]>("/api/sanpham/topping/true"),
+          api.get<ProductApiDto[]>("/api/sanpham/topping/false"),
+        ]);
+
+        const mergedProducts = [
+          ...allRes.data,
+          ...activeRes.data,
+          ...toppingRes.data,
+          ...nonToppingRes.data,
+        ];
+
+        const uniqueMap = new Map<string, Product>();
+
+        mergedProducts.forEach((item) => {
+          const normalized = normalizeProduct(item);
+
+          if (normalized && normalized.TrangThai === 1) {
+            uniqueMap.set(normalized.MaSP, normalized);
+          }
+        });
+
+        if (uniqueMap.size > 0) {
+          setProducts(Array.from(uniqueMap.values()));
+        }
+      } catch (error) {
+        try {
+          const allProductsRes = await api.get<ProductApiDto[]>("/api/sanpham");
+          const fallbackProducts = allProductsRes.data
+            .map(normalizeProduct)
+            .filter((item): item is Product => item !== null)
+            .filter((item) => item.TrangThai === 1);
+
+          if (fallbackProducts.length > 0) {
+            setProducts(fallbackProducts);
+            return;
+          }
+        } catch {
+          setProductError("Không thể tải danh sách sản phẩm từ hệ thống.");
+        }
+
+        console.error("Không tải được sản phẩm", error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   const activeProducts = useMemo<ProductForPOS[]>(() => {
@@ -312,7 +372,7 @@ export default function POSPage() {
       }));
   }, [products]);
 
-  const addToOrder = (product: ProductForPOS) => {
+  const addToOrderState = (product: ProductForPOS) => {
     setOrderItems((prev) => {
       const existing = prev.find((item) => item.MaSP === product.MaSP);
 
@@ -339,6 +399,25 @@ export default function POSPage() {
         },
       ];
     });
+  };
+
+  const addToOrder = async (product: ProductForPOS) => {
+    try {
+      const detailRes = await api.get<ProductApiDto>(`/api/sanpham/${product.MaSP}`);
+      const normalized = normalizeProduct(detailRes.data);
+
+      if (normalized) {
+        addToOrderState({
+          ...normalized,
+          Category: getProductCategory(normalized),
+        });
+        return;
+      }
+    } catch {
+      // Nếu API chi tiết lỗi, vẫn cho phép thêm món từ danh sách hiện tại.
+    }
+
+    addToOrderState(product);
   };
 
   const updateQuantity = (MaSP: string, SoLuong: number) => {
@@ -380,7 +459,20 @@ export default function POSPage() {
     setOrderItems([]);
   };
 
-  const handleCheckout = (paymentMethod: PaymentMethod, giamGia: number) => {
+  const handleCheckout = async (
+    paymentMethod: PaymentMethod,
+    giamGia: number,
+  ) => {
+    if (!currentBranch) {
+      alert("Không xác định được chi nhánh đăng nhập hiện tại.");
+      return;
+    }
+
+    if (!currentShift) {
+      alert("Chưa có ca làm việc đang mở. Vui lòng mở ca trước khi thanh toán.");
+      return;
+    }
+
     if (orderItems.length === 0) {
       alert("Vui lòng chọn sản phẩm trước khi thanh toán");
       return;
@@ -399,97 +491,70 @@ export default function POSPage() {
       return;
     }
 
-    const hoaDonRequest: HoaDonRequest = {
-      maCN: currentBranch,
-      maCa: currentShift,
-      giamGia: finalDiscount,
-      danhSachMon: orderItems.map((item) => ({
-        maSP: item.MaSP,
-        soLuong: item.SoLuong,
-        ghiChu: item.GhiChu,
-      })),
-    };
+    setIsSubmittingCheckout(true);
+    setCheckoutError(null);
 
-    console.log("HoaDonRequest sau này gửi lên backend:", hoaDonRequest);
-
-    const now = new Date().toISOString();
-
-    const storedInvoices = getFromStorage<Partial<Invoice>>("HOADON", []);
-    const storedInvoiceDetails = getFromStorage<Partial<InvoiceDetail>>(
-      "CTHD",
-      [],
-    );
-    const storedPayments = getFromStorage<Partial<Payment>>("THANHTOAN", []);
-    const storedSyncLogs = getFromStorage<Partial<SyncLog>>("SYNCLOG", []);
-
-    const allInvoiceCodes = [
-      ...initialInvoices.map((invoice) => invoice.MaHD),
-      ...storedInvoices.map((invoice) => invoice.MaHD),
-    ];
-
-    const allDetailCodes = [
-      ...initialInvoiceDetails.map((detail) => detail.Id),
-      ...storedInvoiceDetails.map((detail) => detail.Id),
-    ];
-
-    const allPaymentCodes = storedPayments.map((payment) => payment.MaTT);
-    const allSyncLogCodes = storedSyncLogs.map((log) => log.MaLog);
-
-    const MaHD = getNextCode("HD", allInvoiceCodes);
-    const firstDetailNumber = getMaxCodeNumber("CTHD", allDetailCodes) + 1;
-
-    const newInvoice: Invoice = {
-      MaHD,
-      MaCa: currentShift,
-      MaCN: currentBranch,
-      TongTien: total,
-      GiamGia: finalDiscount,
-      TrangThai: 2,
-      IsSynced: !isOffline,
-      CreatedAt: now,
-    };
-
-    const newInvoiceDetails: InvoiceDetail[] = orderItems.map(
-      (item, index) => ({
-        Id: `CTHD${String(firstDetailNumber + index).padStart(3, "0")}`,
-        MaHD,
-        MaSP: item.MaSP,
-        SoLuong: item.SoLuong,
-        GiaBanTaiThoiDiem: item.GiaBanTaiThoiDiem,
-        GhiChu: item.GhiChu,
-      }),
-    );
-
-    const newPayment: Payment = {
-      MaTT: getNextCode("TT", allPaymentCodes),
-      MaHD,
-      PhuongThuc: paymentMethod,
-      SoTien: total,
-      TrangThai: 2,
-      CreatedAt: now,
-      IsSynced: !isOffline,
-    };
-
-    saveToStorage("HOADON", [...storedInvoices, newInvoice]);
-    saveToStorage("CTHD", [...storedInvoiceDetails, ...newInvoiceDetails]);
-    saveToStorage("THANHTOAN", [...storedPayments, newPayment]);
-
-    if (isOffline) {
-      const newSyncLog: SyncLog = {
-        MaLog: getNextCode("SYNC", allSyncLogCodes),
-        ThucThe: "HOADON",
-        RecordId: MaHD,
-        HanhDong: "CREATE",
-        TrangThai: 0,
-        CreatedAt: now,
+    try {
+      const hoaDonRequest: HoaDonRequest = {
+        maCN: currentBranch,
+        maCa: currentShift,
+        giamGia: finalDiscount,
+        danhSachMon: orderItems.map((item) => ({
+          maSP: item.MaSP,
+          soLuong: item.SoLuong,
+          ghiChu: item.GhiChu,
+        })),
       };
 
-      saveToStorage("SYNCLOG", [...storedSyncLogs, newSyncLog]);
+      const taoHoaDonRes = await api.post<ApiResponse<ChiTietHoaDonResponse>>(
+        "/api/hoadon",
+        hoaDonRequest,
+      );
+
+      const maHD = taoHoaDonRes.data?.data?.maHD;
+
+      if (!maHD) {
+        throw new Error("Không nhận được mã hóa đơn từ hệ thống");
+      }
+
+      const chiTietHoaDonRes = await api.get<ApiResponse<ChiTietHoaDonResponse>>(
+        `/api/hoadon/${maHD}`,
+      );
+
+      const soTienThanhToan = Number(
+        chiTietHoaDonRes.data?.data?.tongTien ?? taoHoaDonRes.data?.data?.tongTien,
+      );
+
+      if (Number.isNaN(soTienThanhToan) || soTienThanhToan <= 0) {
+        throw new Error("Tổng tiền hóa đơn không hợp lệ");
+      }
+
+      const thanhToanRes = await api.post<ApiResponse<ThanhToanResponse>>(
+        "/api/thanhtoan",
+        {
+          maHD,
+          phuongThuc: mapPaymentMethod(paymentMethod),
+          soTien: soTienThanhToan,
+        },
+      );
+
+      if (!thanhToanRes.data || thanhToanRes.data.status !== 200) {
+        throw new Error(thanhToanRes.data?.message || "Thanh toán thất bại");
+      }
+
+      alert(`Thanh toán thành công hóa đơn ${maHD}`);
+      clearOrder();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Không thể hoàn tất thanh toán. Vui lòng thử lại.";
+
+      setCheckoutError(errorMessage);
+      alert(errorMessage);
+    } finally {
+      setIsSubmittingCheckout(false);
     }
-
-    alert(`Thanh toán thành công hóa đơn ${MaHD}`);
-
-    clearOrder();
   };
 
   return (
@@ -505,12 +570,29 @@ export default function POSPage() {
         </div>
       )}
 
+      {apiError && (
+        <div className="mb-4 rounded-lg bg-[#F8D7DA] px-4 py-3 text-sm text-[#842029]">
+          {apiError}
+        </div>
+      )}
+
       <div className="mb-4 rounded-lg bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
         Chi nhánh hiện tại:{" "}
-        <span className="font-semibold text-foreground">CN01</span>
+        <span className="font-semibold text-foreground">
+          {currentBranch || "Chưa xác định"}
+        </span>
         {" · "}
         Ca làm việc:{" "}
-        <span className="font-semibold text-foreground">CA001</span>
+        <span className="font-semibold text-foreground">
+          {isLoadingShiftContext
+            ? "Đang tải ca..."
+            : currentShift || "Chưa có ca đang mở"}
+        </span>
+        {" · "}
+        Trạng thái dữ liệu:{" "}
+        <span className="font-semibold text-foreground">
+          {isLoadingProducts ? "Đang tải sản phẩm..." : "Đã đồng bộ API"}
+        </span>
       </div>
 
       <div className="flex h-[calc(100vh-230px)] gap-6">
@@ -526,6 +608,7 @@ export default function POSPage() {
             onRemoveItem={removeItem}
             onClearOrder={clearOrder}
             onCheckout={handleCheckout}
+            isProcessingCheckout={isSubmittingCheckout}
           />
         </div>
       </div>

@@ -105,7 +105,7 @@ interface ApiTransferReceipt {
   maNVTao: string;
   tenNVTao?: string;
   ngayTao: string;
-  trangThai: string;
+  trangThai: string | number;
   chiTiet?: ApiTransferDetail[];
 }
 
@@ -155,6 +155,26 @@ const employeeStorageKey = "NHANVIEN";
 const ingredientStorageKey = "NGUYENLIEU";
 const unitStorageKey = "DONVI";
 
+const transferApi = {
+  list: (params?: { maKho?: string; trangThai?: string }) =>
+    api.get<ApiTransferReceipt[]>("/api/dieuchuyenkho", { params }),
+  create: (payload: {
+    maPC: string;
+    maCNXuat: string;
+    maCNNhap: string;
+    maNVTao: string;
+    chiTiet: Array<{ maNL: string; soLuong: number }>;
+  }) => api.post<ApiTransferReceipt>("/api/dieuchuyenkho", payload),
+  getById: (maPDC: string) =>
+    api.get<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPDC}`),
+  send: (maPDC: string, payload: { maNV: string; ghiChu?: string }) =>
+    api.post<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPDC}/gui`, payload),
+  receive: (maPDC: string, payload: { maNV: string; ghiChu?: string }) =>
+    api.post<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPDC}/nhan`, payload),
+  cancel: (maPDC: string, payload?: { maNV: string; ghiChu?: string }) =>
+    api.post<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPDC}/huy`, payload),
+};
+
 const statusConfig: Record<
   TransferStatus,
   { label: string; className: string }
@@ -181,6 +201,8 @@ const normalizeTransferStatus = (
   value?: string | number | null,
 ): TransferStatus => {
   const status = String(value || "").trim();
+  const upperStatus = status.toUpperCase();
+  const lowerStatus = status.toLowerCase();
 
   switch (status) {
     case "DRAFT":
@@ -224,8 +246,50 @@ const normalizeTransferStatus = (
       return "CANCELLED";
 
     default:
-      return "DRAFT";
+      break;
   }
+
+  if (
+    upperStatus.includes("CANCEL") ||
+    upperStatus.includes("HUY") ||
+    lowerStatus.includes("huy") ||
+    lowerStatus.includes("h\u1ee7y") ||
+    lowerStatus.includes("Â§y")
+  ) {
+    return "CANCELLED";
+  }
+
+  if (
+    upperStatus.includes("RECEIVED") ||
+    upperStatus.includes("DA_NHAN") ||
+    lowerStatus.includes("nhan") ||
+    lowerStatus.includes("nh\u1eadn") ||
+    lowerStatus.includes("nhÃ")
+  ) {
+    return "RECEIVED";
+  }
+
+  if (
+    upperStatus.includes("SENT") ||
+    upperStatus.includes("DANG_CHUYEN") ||
+    lowerStatus.includes("chuyen") ||
+    lowerStatus.includes("chuy\u1ec3n") ||
+    lowerStatus.includes("chuyÃ")
+  ) {
+    return "SENT";
+  }
+
+  if (
+    upperStatus.includes("TAO_PHIEU") ||
+    upperStatus.includes("CHO_GUI") ||
+    lowerStatus.includes("tao") ||
+    lowerStatus.includes("t\u1ea1o") ||
+    lowerStatus.includes("phi")
+  ) {
+    return "DRAFT";
+  }
+
+  return "DRAFT";
 };
 
 const getTransferStatusInfo = (value?: string | number | null) => {
@@ -624,16 +688,15 @@ export default function InventoryTransferPage() {
     try {
       setIsLoading(true);
 
-      const receiptsResponse = await api.get<ApiTransferReceipt[]>(
-        "/api/dieuchuyenkho",
-        {
-          params:
-            filterBranch !== "all"
-              ? { maKho: filterBranch }
-              : filterStatus !== "all"
-                ? { trangThai: toBackendTransferStatus(filterStatus) }
-                : undefined,
-        },
+      const receiptsParams = {
+        ...(filterBranch !== "all" ? { maKho: filterBranch } : {}),
+        ...(filterStatus !== "all"
+          ? { trangThai: toBackendTransferStatus(filterStatus) }
+          : {}),
+      };
+
+      const receiptsResponse = await transferApi.list(
+        Object.keys(receiptsParams).length > 0 ? receiptsParams : undefined,
       );
 
       const [
@@ -985,8 +1048,8 @@ export default function InventoryTransferPage() {
 
     try {
       setIsSubmitting(true);
-      await api.post<ApiTransferReceipt>("/api/dieuchuyenkho", payload);
-      await api.get<ApiTransferReceipt>(`/api/dieuchuyenkho/${receiptCode}`);
+      await transferApi.create(payload);
+      await transferApi.getById(receiptCode);
       await loadData();
 
       alert("Tạo phiếu điều chuyển thành công");
@@ -1015,11 +1078,20 @@ export default function InventoryTransferPage() {
 
     try {
       setActionMaPC(maPC);
-      await api.post<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPC}/${action}`, {
+      const payload = {
         maNV: selectedEmployee,
         ghiChu: note.trim(),
-      });
-      await api.get<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPC}`);
+      };
+
+      if (action === "gui") {
+        await transferApi.send(maPC, payload);
+      } else if (action === "nhan") {
+        await transferApi.receive(maPC, payload);
+      } else {
+        await transferApi.cancel(maPC, payload);
+      }
+
+      await transferApi.getById(maPC);
       await loadData();
       alert(`Đã ${actionLabel} phiếu điều chuyển ${maPC}`);
     } catch (error: any) {
