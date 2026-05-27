@@ -41,7 +41,7 @@ public class SecurityConfig {
             
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/error").permitAll()
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Cho phép request OPTIONS (CORS pre-flight)
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
                 
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasAnyRole("ADMIN", "QUANLY")
@@ -52,7 +52,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/nguyenlieu", "/api/nguyenlieu/**").authenticated()
                 .requestMatchers("/api/congthuc", "/api/congthuc/**").authenticated()
                 
-
+                .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/dieuchuyenkho", "/api/dieuchuyenkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                
                 .anyRequest().authenticated()
             );
 
