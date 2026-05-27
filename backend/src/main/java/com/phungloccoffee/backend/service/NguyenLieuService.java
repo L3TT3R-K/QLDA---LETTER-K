@@ -14,11 +14,6 @@ import java.util.UUID;
 
 @Service
 public class NguyenLieuService {
-<<<<<<< HEAD
-    private static final Integer HOAT_DONG = 1;
-    private static final Integer NGUNG_HOAT_DONG = 0;
-=======
->>>>>>> 47d02dc8386c090471396d0803dce3aef6b65174
 
     @Autowired 
     private NguyenLieuRepository repository;
