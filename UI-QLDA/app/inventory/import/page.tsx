@@ -10,11 +10,13 @@ import {
   X,
   RefreshCw,
   PackagePlus,
+  Pencil,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import api from "@/services/api";
 import {
   Select,
   SelectContent,
@@ -28,8 +30,11 @@ interface ImportReceipt {
   LoaiNguon: string;
   MaKhoNguon?: string;
   MaNCC: string;
+  TenNCC?: string;
   MaCN: string;
+  TenCN?: string;
   MaNV: string;
+  TenNV?: string;
   NgayNhap: string;
   GhiChu?: string;
   TongTien: number;
@@ -44,6 +49,7 @@ interface ImportDetail {
   MaLo: string;
   MaLoNguon?: string;
   MaNL: string;
+  TenNL?: string;
   SoLuong: number;
   DonGiaNhap: number;
   ThanhTien: number;
@@ -59,13 +65,6 @@ interface Batch {
   SoLuongCon: number;
   IsSynced: boolean;
   CreatedAt?: string;
-  UpdatedAt?: string;
-}
-
-interface InventoryStock {
-  MaCN: string;
-  MaNL: string;
-  SoLuongTon: number;
   UpdatedAt?: string;
 }
 
@@ -97,7 +96,11 @@ interface Employee {
 interface Supplier {
   MaNCC: string;
   TenNCC: string;
+  Sdt?: string;
+  DiaChi?: string;
   TrangThai: number;
+  CreatedAt?: string;
+  UpdatedAt?: string;
 }
 
 interface Ingredient {
@@ -114,10 +117,76 @@ interface Unit {
   TrangThai: number;
 }
 
-const receiptStorageKey = "PHIEUNHAP";
-const detailStorageKey = "CTPN";
-const batchStorageKey = "LOHANG";
-const inventoryStorageKey = "TONKHO";
+type ImportSourceType = "NHA_CUNG_CAP" | "KHO_TONG";
+
+interface ApiImportDetail {
+  maLo: string;
+  maNL: string;
+  tenNL?: string;
+  soLuong: number;
+  donGiaNhap: number;
+  thanhTien: number;
+  hanSuDung?: string;
+}
+
+interface ApiImportReceipt {
+  maPN: string;
+  loaiNguon: string;
+  maKhoNguon?: string;
+  maNCC?: string;
+  tenNCC?: string;
+  maCN: string;
+  tenCN?: string;
+  maNV: string;
+  tenNV?: string;
+  ngayNhap: string;
+  tongTien?: number;
+  trangThai?: string | number;
+  chiTiet?: ApiImportDetail[];
+}
+
+interface ApiBranch {
+  maCN: string;
+  tenCN: string;
+  diaChi?: string;
+  trangThai?: number;
+}
+
+interface ApiEmployee {
+  maNV: string;
+  username?: string;
+  tenNV: string;
+  chucVu?: string;
+  maCN?: string | null;
+  tenChiNhanh?: string;
+  trangThai?: number;
+}
+
+interface ApiSupplier {
+  maNCC: string;
+  tenNCC: string;
+  sdt?: string;
+  diaChi?: string;
+  trangThai?: string | number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface ApiIngredient {
+  maNL: string;
+  tenNL: string;
+  tenDonVi?: string;
+  donViCoBan?: string;
+  tonToiThieu?: number;
+  trangThai?: string | number;
+}
+
+interface ApiUnit {
+  maDV: string;
+  tenDonVi: string;
+  trangThai?: number;
+}
+
 const branchStorageKey = "CHINHANH";
 const employeeStorageKey = "NHANVIEN";
 const supplierStorageKey = "NHACUNGCAP";
@@ -329,11 +398,6 @@ const initialDetails: ImportDetail[] = [
   },
 ];
 
-const initialInventory: InventoryStock[] = [
-  { MaCN: "CN01", MaNL: "NL001", SoLuongTon: 25000 },
-  { MaCN: "CN02", MaNL: "NL002", SoLuongTon: 30000 },
-];
-
 const getFromStorage = <T,>(key: string, fallback: T[]): T[] => {
   if (typeof window === "undefined") return fallback;
 
@@ -348,10 +412,6 @@ const getFromStorage = <T,>(key: string, fallback: T[]): T[] => {
   } catch {
     return fallback;
   }
-};
-
-const saveToStorage = <T,>(key: string, data: T[]) => {
-  localStorage.setItem(key, JSON.stringify(data));
 };
 
 const formatCurrency = (value: number) => {
@@ -400,25 +460,105 @@ const getNextCode = (
   return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
 };
 
-const mergeInventoryStocks = (stocks: InventoryStock[]) => {
-  const stockMap = new Map<string, InventoryStock>();
+const mapApiReceipt = (receipt: ApiImportReceipt): ImportReceipt => ({
+  MaPN: receipt.maPN,
+  LoaiNguon: receipt.loaiNguon,
+  MaKhoNguon: receipt.maKhoNguon,
+  MaNCC: receipt.maNCC || "",
+  TenNCC: receipt.tenNCC,
+  MaCN: receipt.maCN,
+  TenCN: receipt.tenCN,
+  MaNV: receipt.maNV,
+  TenNV: receipt.tenNV,
+  NgayNhap: receipt.ngayNhap,
+  TongTien: receipt.tongTien || 0,
+  TrangThai: receipt.trangThai === 1 || receipt.trangThai === "1" ? 1 : 0,
+  IsSynced: true,
+  CreatedAt: receipt.ngayNhap,
+});
 
-  stocks.forEach((stock) => {
-    const key = `${stock.MaCN}-${stock.MaNL}`;
-    const oldStock = stockMap.get(key);
+const mapApiDetails = (receipt: ApiImportReceipt): ImportDetail[] =>
+  (receipt.chiTiet || []).map((detail) => ({
+    MaPN: receipt.maPN,
+    MaLo: detail.maLo,
+    MaNL: detail.maNL,
+    TenNL: detail.tenNL,
+    SoLuong: detail.soLuong || 0,
+    DonGiaNhap: detail.donGiaNhap || 0,
+    ThanhTien: detail.thanhTien || 0,
+    HanSuDung: detail.hanSuDung || "",
+  }));
 
-    if (oldStock) {
-      stockMap.set(key, {
-        ...oldStock,
-        SoLuongTon: oldStock.SoLuongTon + stock.SoLuongTon,
-        UpdatedAt: stock.UpdatedAt || oldStock.UpdatedAt,
-      });
-    } else {
-      stockMap.set(key, stock);
-    }
-  });
+const mapApiBatches = (receipts: ApiImportReceipt[]): Batch[] =>
+  receipts.flatMap((receipt) =>
+    (receipt.chiTiet || []).map((detail) => ({
+      MaLo: detail.maLo,
+      MaNL: detail.maNL,
+      MaCN: receipt.maCN,
+      NgayNhap: receipt.ngayNhap,
+      HSD: detail.hanSuDung || "",
+      SoLuongCon: detail.soLuong || 0,
+      IsSynced: true,
+      CreatedAt: receipt.ngayNhap,
+    })),
+  );
 
-  return Array.from(stockMap.values());
+const isActiveStatus = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = value.trim().toLowerCase();
+
+  return ["1", "active", "hoat_dong", "hoạt động", "đang hoạt động"].includes(
+    normalized,
+  );
+};
+
+const mapApiBranch = (branch: ApiBranch): Branch => ({
+  MaCN: branch.maCN,
+  TenCN: branch.tenCN,
+  DiaChi: branch.diaChi,
+  TrangThai: branch.trangThai ?? 1,
+});
+
+const mapApiEmployee = (employee: ApiEmployee): Employee => ({
+  MaNV: employee.maNV,
+  Username: employee.username,
+  TenNV: employee.tenNV,
+  ChucVu: employee.chucVu,
+  MaCN: employee.maCN ?? null,
+  TrangThai: employee.trangThai ?? 1,
+});
+
+const mapApiSupplier = (supplier: ApiSupplier): Supplier => ({
+  MaNCC: supplier.maNCC,
+  TenNCC: supplier.tenNCC,
+  Sdt: supplier.sdt,
+  DiaChi: supplier.diaChi,
+  TrangThai: isActiveStatus(supplier.trangThai) ? 1 : 0,
+  CreatedAt: supplier.createdAt,
+  UpdatedAt: supplier.updatedAt,
+});
+
+const mapApiIngredient = (ingredient: ApiIngredient): Ingredient => ({
+  MaNL: ingredient.maNL,
+  TenNL: ingredient.tenNL,
+  DonViCoBan: ingredient.donViCoBan || ingredient.tenDonVi || "",
+  TonToiThieu: ingredient.tonToiThieu || 0,
+  TrangThai: isActiveStatus(ingredient.trangThai) ? 1 : 0,
+});
+
+const mapApiUnit = (unit: ApiUnit): Unit => ({
+  MaDV: unit.maDV,
+  TenDonVi: unit.tenDonVi,
+  TrangThai: unit.trangThai ?? 1,
+});
+
+const buildReceiptQueryParams = (maCN: string, maNCC: string) => {
+  if (maNCC !== "all") return { maNCC };
+  if (maCN !== "all") return { maCN };
+
+  return undefined;
 };
 
 const downloadCsv = (
@@ -449,11 +589,9 @@ const downloadCsv = (
 };
 
 export default function ImportPage() {
-  const [receipts, setReceipts] = useState<ImportReceipt[]>(initialReceipts);
-  const [details, setDetails] = useState<ImportDetail[]>(initialDetails);
-  const [batches, setBatches] = useState<Batch[]>(initialBatches);
-  const [inventory, setInventory] =
-    useState<InventoryStock[]>(initialInventory);
+  const [receipts, setReceipts] = useState<ImportReceipt[]>([]);
+  const [details, setDetails] = useState<ImportDetail[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
 
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
@@ -464,11 +602,18 @@ export default function ImportPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [supplierFilter, setSupplierFilter] = useState("all");
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingReceiptMaPN, setEditingReceiptMaPN] = useState<string | null>(
+    null,
+  );
 
   const [selectedBranch, setSelectedBranch] = useState("CN01");
+  const [sourceType, setSourceType] =
+    useState<ImportSourceType>("NHA_CUNG_CAP");
   const [selectedSupplier, setSelectedSupplier] = useState("NCC001");
+  const [selectedSourceWarehouse, setSelectedSourceWarehouse] = useState("CN02");
   const [selectedEmployee, setSelectedEmployee] = useState("NV005");
   const [importDate, setImportDate] = useState(toInputDateTime(new Date()));
   const [note, setNote] = useState("");
@@ -484,108 +629,142 @@ export default function ImportPage() {
   ]);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const pageSize = 10;
 
-  const loadData = () => {
-    const storedBranches = getFromStorage<Branch>(
-      branchStorageKey,
-      initialBranches,
-    );
-    const storedEmployees = getFromStorage<Employee>(
-      employeeStorageKey,
-      initialEmployees,
-    );
-    const storedSuppliers = getFromStorage<Supplier>(
-      supplierStorageKey,
-      initialSuppliers,
-    );
-    const storedIngredients = getFromStorage<Ingredient>(
-      ingredientStorageKey,
-      initialIngredients,
-    );
-    const storedUnits = getFromStorage<Unit>(unitStorageKey, initialUnits);
+  const upsertSupplier = (supplier: Supplier) => {
+    setSuppliers((current) => {
+      const exists = current.some((item) => item.MaNCC === supplier.MaNCC);
 
-    const storedReceipts = getFromStorage<ImportReceipt>(
-      receiptStorageKey,
-      initialReceipts,
-    );
-    const storedDetails = getFromStorage<ImportDetail>(
-      detailStorageKey,
-      initialDetails,
-    );
-    const storedBatches = getFromStorage<Batch>(
-      batchStorageKey,
-      initialBatches,
-    );
-    const storedInventory = getFromStorage<InventoryStock>(
-      inventoryStorageKey,
-      initialInventory,
-    );
+      if (!exists) return [...current, supplier];
 
-    setBranches(storedBranches);
-    setEmployees(storedEmployees);
-    setSuppliers(storedSuppliers);
-    setIngredients(storedIngredients);
-    setUnits(storedUnits);
-
-    setReceipts(storedReceipts);
-    setDetails(storedDetails);
-    setBatches(storedBatches);
-    setInventory(mergeInventoryStocks(storedInventory));
-
-    if (!localStorage.getItem(branchStorageKey)) {
-      saveToStorage(branchStorageKey, initialBranches);
-    }
-
-    if (!localStorage.getItem(employeeStorageKey)) {
-      saveToStorage(employeeStorageKey, initialEmployees);
-    }
-
-    if (!localStorage.getItem(supplierStorageKey)) {
-      saveToStorage(supplierStorageKey, initialSuppliers);
-    }
-
-    if (!localStorage.getItem(ingredientStorageKey)) {
-      saveToStorage(ingredientStorageKey, initialIngredients);
-    }
-
-    if (!localStorage.getItem(unitStorageKey)) {
-      saveToStorage(unitStorageKey, initialUnits);
-    }
-
-    if (!localStorage.getItem(receiptStorageKey)) {
-      saveToStorage(receiptStorageKey, initialReceipts);
-    }
-
-    if (!localStorage.getItem(detailStorageKey)) {
-      saveToStorage(detailStorageKey, initialDetails);
-    }
-
-    if (!localStorage.getItem(batchStorageKey)) {
-      saveToStorage(batchStorageKey, initialBatches);
-    }
-
-    if (!localStorage.getItem(inventoryStorageKey)) {
-      saveToStorage(
-        inventoryStorageKey,
-        mergeInventoryStocks(initialInventory),
+      return current.map((item) =>
+        item.MaNCC === supplier.MaNCC ? supplier : item,
       );
+    });
+  };
+
+  const loadSupplierDetail = async (maNCC: string) => {
+    if (!maNCC) return null;
+
+    const response = await api.get<ApiSupplier>(`/api/nhacungcap/${maNCC}`);
+    const supplier = mapApiSupplier(response.data);
+
+    upsertSupplier(supplier);
+
+    return supplier;
+  };
+
+  const loadData = async (
+    filterMaCN = branchFilter,
+    filterMaNCC = supplierFilter,
+  ) => {
+    try {
+      setIsLoading(true);
+      const receiptsResponse = await api.get<ApiImportReceipt[]>(
+        "/api/nhapkho",
+        {
+          params: buildReceiptQueryParams(filterMaCN, filterMaNCC),
+        },
+      );
+      const [
+        branchesResult,
+        employeesResult,
+        suppliersResult,
+        ingredientsResult,
+        unitsResult,
+      ] = await Promise.allSettled([
+        api.get<ApiBranch[]>("/api/chinhanh"),
+        api.get<ApiEmployee[]>("/api/nhanvien"),
+        api.get<ApiSupplier[]>("/api/nhacungcap"),
+        api.get<ApiIngredient[]>("/api/nguyenlieu"),
+        api.get<ApiUnit[]>("/api/donvi"),
+      ]);
+      const apiReceipts = Array.isArray(receiptsResponse.data)
+        ? receiptsResponse.data
+        : [];
+
+      setReceipts(apiReceipts.map(mapApiReceipt));
+      setDetails(apiReceipts.flatMap(mapApiDetails));
+      setBatches(mapApiBatches(apiReceipts));
+      setBranches(
+        branchesResult.status === "fulfilled" &&
+          Array.isArray(branchesResult.value.data)
+          ? branchesResult.value.data.map(mapApiBranch)
+          : initialBranches,
+      );
+      setEmployees(
+        employeesResult.status === "fulfilled" &&
+          Array.isArray(employeesResult.value.data)
+          ? employeesResult.value.data.map(mapApiEmployee)
+          : initialEmployees,
+      );
+      setSuppliers(
+        suppliersResult.status === "fulfilled" &&
+          Array.isArray(suppliersResult.value.data)
+          ? suppliersResult.value.data.map(mapApiSupplier)
+          : initialSuppliers,
+      );
+      setIngredients(
+        ingredientsResult.status === "fulfilled" &&
+          Array.isArray(ingredientsResult.value.data)
+          ? ingredientsResult.value.data.map(mapApiIngredient)
+          : initialIngredients,
+      );
+      setUnits(
+        unitsResult.status === "fulfilled" &&
+          Array.isArray(unitsResult.value.data)
+          ? unitsResult.value.data.map(mapApiUnit)
+          : initialUnits,
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không tải được danh sách phiếu nhập từ backend";
+      alert(message);
+      setReceipts([]);
+      setDetails([]);
+      setBatches([]);
+      setBranches(getFromStorage<Branch>(branchStorageKey, initialBranches));
+      setEmployees(
+        getFromStorage<Employee>(employeeStorageKey, initialEmployees),
+      );
+      setSuppliers(
+        getFromStorage<Supplier>(supplierStorageKey, initialSuppliers),
+      );
+      setIngredients(
+        getFromStorage<Ingredient>(ingredientStorageKey, initialIngredients),
+      );
+      setUnits(getFromStorage<Unit>(unitStorageKey, initialUnits));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
 
-    window.addEventListener("storage", loadData);
+    const handleStorage = () => loadData();
+
+    window.addEventListener("storage", handleStorage);
 
     return () => {
-      window.removeEventListener("storage", loadData);
+      window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [branchFilter, supplierFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, branchFilter]);
+  }, [searchQuery, branchFilter, supplierFilter]);
+
+  useEffect(() => {
+    if (sourceType !== "NHA_CUNG_CAP" || !selectedSupplier) return;
+
+    loadSupplierDetail(selectedSupplier).catch(() => {
+      // The list endpoint remains the source for the dropdown if detail lookup fails.
+    });
+  }, [sourceType, selectedSupplier]);
 
   useEffect(() => {
     const employee = employees.find(
@@ -608,6 +787,26 @@ export default function ImportPage() {
     }
   }, [selectedBranch, selectedEmployee, employees]);
 
+  useEffect(() => {
+    if (sourceType !== "KHO_TONG") return;
+
+    const sourceWarehouses = branches.filter(
+      (branch) => branch.TrangThai === 1 && branch.MaCN !== selectedBranch,
+    );
+    const sourceWarehouse = sourceWarehouses.find(
+      (branch) => branch.MaCN === selectedSourceWarehouse,
+    );
+
+    if (!sourceWarehouse) {
+      setSelectedSourceWarehouse(sourceWarehouses[0]?.MaCN || "");
+    }
+  }, [
+    sourceType,
+    selectedBranch,
+    selectedSourceWarehouse,
+    branches,
+  ]);
+
   const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
   const activeEmployees = employees.filter(
     (employee) =>
@@ -616,6 +815,9 @@ export default function ImportPage() {
   );
   const activeSuppliers = suppliers.filter(
     (supplier) => supplier.TrangThai === 1,
+  );
+  const activeSourceWarehouses = activeBranches.filter(
+    (branch) => branch.MaCN !== selectedBranch,
   );
   const activeIngredients = ingredients.filter(
     (ingredient) => ingredient.TrangThai === 1,
@@ -656,8 +858,16 @@ export default function ImportPage() {
   }, [receipts]);
 
   const resetForm = () => {
-    setSelectedBranch(activeBranches[0]?.MaCN || "CN01");
+    const defaultBranch = activeBranches[0]?.MaCN || "CN01";
+
+    setEditingReceiptMaPN(null);
+    setSelectedBranch(defaultBranch);
+    setSourceType("NHA_CUNG_CAP");
     setSelectedSupplier(activeSuppliers[0]?.MaNCC || "NCC001");
+    setSelectedSourceWarehouse(
+      activeBranches.find((branch) => branch.MaCN !== defaultBranch)?.MaCN ||
+        "CN02",
+    );
     setSelectedEmployee(activeEmployees[0]?.MaNV || "NV005");
     setImportDate(toInputDateTime(new Date()));
     setNote("");
@@ -680,6 +890,109 @@ export default function ImportPage() {
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
     resetForm();
+  };
+
+  const replaceReceiptFromApi = (apiReceipt: ApiImportReceipt) => {
+    const mappedReceipt = mapApiReceipt(apiReceipt);
+    const mappedDetails = mapApiDetails(apiReceipt);
+    const mappedBatches = mapApiBatches([apiReceipt]);
+
+    setReceipts((current) => [
+      ...current.filter((item) => item.MaPN !== mappedReceipt.MaPN),
+      mappedReceipt,
+    ]);
+    setDetails((current) => [
+      ...current.filter((item) => item.MaPN !== mappedReceipt.MaPN),
+      ...mappedDetails,
+    ]);
+    setBatches((current) => [
+      ...current.filter(
+        (item) => !mappedBatches.some((batch) => batch.MaLo === item.MaLo),
+      ),
+      ...mappedBatches,
+    ]);
+  };
+
+  const handleLoadReceiptDetail = async (maPN: string) => {
+    try {
+      const response = await api.get<ApiImportReceipt>(`/api/nhapkho/${maPN}`);
+      replaceReceiptFromApi(response.data);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không tải được chi tiết phiếu nhập";
+      alert(message);
+    }
+  };
+
+  const handleOpenEdit = async (maPN: string) => {
+    try {
+      const response = await api.get<ApiImportReceipt>(`/api/nhapkho/${maPN}`);
+      const receipt = response.data;
+      const mappedReceipt = mapApiReceipt(receipt);
+      const mappedDetails = mapApiDetails(receipt);
+      const receiptDate = receipt.ngayNhap
+        ? toInputDateTime(new Date(receipt.ngayNhap))
+        : toInputDateTime(new Date());
+      const nextSourceType =
+        mappedReceipt.LoaiNguon === "KHO_TONG" ? "KHO_TONG" : "NHA_CUNG_CAP";
+
+      replaceReceiptFromApi(receipt);
+      setEditingReceiptMaPN(mappedReceipt.MaPN);
+      setSelectedBranch(mappedReceipt.MaCN);
+      setSourceType(nextSourceType);
+      setSelectedSupplier(mappedReceipt.MaNCC || activeSuppliers[0]?.MaNCC || "");
+      setSelectedSourceWarehouse(
+        mappedReceipt.MaKhoNguon ||
+          activeBranches.find((branch) => branch.MaCN !== mappedReceipt.MaCN)
+            ?.MaCN ||
+          "",
+      );
+      setSelectedEmployee(mappedReceipt.MaNV);
+      setImportDate(receiptDate);
+      setNote(mappedReceipt.GhiChu || "");
+      setImportItems(
+        mappedDetails.length > 0
+          ? mappedDetails.map((detail, index) => ({
+              RowId: index + 1,
+              MaNL: detail.MaNL,
+              SoLuong: detail.SoLuong,
+              DonGiaNhap: detail.DonGiaNhap,
+              HanSuDung: detail.HanSuDung,
+            }))
+          : [
+              {
+                RowId: 1,
+                MaNL: "",
+                SoLuong: 0,
+                DonGiaNhap: 0,
+                HanSuDung: "",
+              },
+            ],
+      );
+      setIsDrawerOpen(true);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không tải được phiếu nhập để sửa";
+      alert(message);
+    }
+  };
+
+  const handleDeleteReceipt = async (maPN: string) => {
+    const isConfirmed = confirm(
+      `Bạn có chắc muốn xóa phiếu nhập ${maPN} không? Tồn kho sẽ được hoàn tác.`,
+    );
+
+    if (!isConfirmed) return;
+
+    try {
+      await api.delete(`/api/nhapkho/${maPN}`);
+      await loadData();
+      alert("Đã xóa phiếu nhập và hoàn tác tồn kho");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không xóa được phiếu nhập";
+      alert(message);
+    }
   };
 
   const addItem = () => {
@@ -715,40 +1028,22 @@ export default function ImportPage() {
     );
   };
 
-  const updateInventoryAfterImport = (
-    currentInventory: InventoryStock[],
-    items: ImportFormItem[],
-    MaCN: string,
-  ) => {
-    const updatedInventory = [...currentInventory];
+  const handleConfirmImport = async () => {
+    if (
+      !selectedBranch ||
+      !selectedEmployee ||
+      (sourceType === "NHA_CUNG_CAP" && !selectedSupplier) ||
+      (sourceType === "KHO_TONG" && !selectedSourceWarehouse)
+    ) {
+      alert("Vui lòng chọn đầy đủ nguồn nhập, chi nhánh và nhân viên nhập");
+      return;
+    }
 
-    items.forEach((item) => {
-      const index = updatedInventory.findIndex(
-        (stock) => stock.MaCN === MaCN && stock.MaNL === item.MaNL,
-      );
-
-      if (index >= 0) {
-        updatedInventory[index] = {
-          ...updatedInventory[index],
-          SoLuongTon: updatedInventory[index].SoLuongTon + item.SoLuong,
-          UpdatedAt: new Date().toISOString(),
-        };
-      } else {
-        updatedInventory.push({
-          MaCN,
-          MaNL: item.MaNL,
-          SoLuongTon: item.SoLuong,
-          UpdatedAt: new Date().toISOString(),
-        });
-      }
-    });
-
-    return mergeInventoryStocks(updatedInventory);
-  };
-
-  const handleConfirmImport = () => {
-    if (!selectedBranch || !selectedSupplier || !selectedEmployee) {
-      alert("Vui lòng chọn chi nhánh, nhà cung cấp và nhân viên nhập");
+    if (
+      sourceType === "KHO_TONG" &&
+      selectedSourceWarehouse === selectedBranch
+    ) {
+      alert("Kho tổng nguồn và chi nhánh nhập phải khác nhau");
       return;
     }
 
@@ -761,13 +1056,17 @@ export default function ImportPage() {
       (item) =>
         !item.MaNL ||
         item.SoLuong <= 0 ||
-        item.DonGiaNhap <= 0 ||
+        (sourceType === "NHA_CUNG_CAP"
+          ? item.DonGiaNhap <= 0
+          : item.DonGiaNhap < 0) ||
         !item.HanSuDung,
     );
 
     if (hasInvalidItem) {
       alert(
-        "Vui lòng nhập đầy đủ nguyên liệu, số lượng, đơn giá và hạn sử dụng",
+        sourceType === "NHA_CUNG_CAP"
+          ? "Vui lòng nhập đầy đủ nguyên liệu, số lượng, đơn giá lớn hơn 0 và hạn sử dụng"
+          : "Vui lòng nhập đầy đủ nguyên liệu, số lượng, đơn giá không âm và hạn sử dụng",
       );
       return;
     }
@@ -786,10 +1085,12 @@ export default function ImportPage() {
       return;
     }
 
-    const receiptCode = getNextCode(
-      "PN",
-      receipts.map((receipt) => receipt.MaPN),
-    );
+    const receiptCode =
+      editingReceiptMaPN ||
+      getNextCode(
+        "PN",
+        receipts.map((receipt) => receipt.MaPN),
+      );
 
     const firstBatchNumber = batches.reduce((max, batch) => {
       if (!batch.MaLo.startsWith("LO")) return max;
@@ -799,67 +1100,54 @@ export default function ImportPage() {
       return Number.isNaN(number) ? max : Math.max(max, number);
     }, 0);
 
-    const now = new Date().toISOString();
-
-    const newBatches: Batch[] = importItems.map((item, index) => ({
-      MaLo: `LO${String(firstBatchNumber + index + 1).padStart(3, "0")}`,
-      MaNL: item.MaNL,
-      MaCN: selectedBranch,
-      NgayNhap: importDate,
-      HSD: item.HanSuDung,
-      SoLuongCon: item.SoLuong,
-      IsSynced: false,
-      CreatedAt: now,
-      UpdatedAt: now,
-    }));
-
-    const newDetails: ImportDetail[] = importItems.map((item, index) => ({
-      MaPN: receiptCode,
-      MaLo: newBatches[index].MaLo,
-      MaNL: item.MaNL,
-      SoLuong: item.SoLuong,
-      DonGiaNhap: item.DonGiaNhap,
-      ThanhTien: item.SoLuong * item.DonGiaNhap,
-      HanSuDung: item.HanSuDung,
-    }));
-
-    const newReceipt: ImportReceipt = {
-      MaPN: receiptCode,
-      LoaiNguon: "NCC",
-      MaNCC: selectedSupplier,
-      MaCN: selectedBranch,
-      MaNV: selectedEmployee,
-      NgayNhap: importDate,
-      GhiChu: note.trim(),
-      TongTien: totalValue,
-      TrangThai: 1,
-      IsSynced: false,
-      CreatedAt: now,
-      UpdatedAt: now,
+    const payload = {
+      maPN: receiptCode,
+      loaiNguon: sourceType,
+      maNCC: sourceType === "NHA_CUNG_CAP" ? selectedSupplier : undefined,
+      maKhoNguon:
+        sourceType === "KHO_TONG" ? selectedSourceWarehouse : undefined,
+      maCN: selectedBranch,
+      maNV: selectedEmployee,
+      ngayNhap: importDate,
+      ghiChu: note.trim(),
+      chiTiet: importItems.map((item, index) => ({
+        maLo: `LO${String(firstBatchNumber + index + 1).padStart(3, "0")}`,
+        maNL: item.MaNL,
+        soLuong: item.SoLuong,
+        donGiaNhap: item.DonGiaNhap,
+        hanSuDung: item.HanSuDung,
+      })),
     };
 
-    const updatedReceipts = [...receipts, newReceipt];
-    const updatedDetails = [...details, ...newDetails];
-    const updatedBatches = [...batches, ...newBatches];
-    const updatedInventory = updateInventoryAfterImport(
-      inventory,
-      importItems,
-      selectedBranch,
-    );
+    try {
+      setIsSubmitting(true);
+      if (sourceType === "NHA_CUNG_CAP") {
+        const supplier = await loadSupplierDetail(selectedSupplier);
 
-    setReceipts(updatedReceipts);
-    setDetails(updatedDetails);
-    setBatches(updatedBatches);
-    setInventory(updatedInventory);
+        if (!supplier || supplier.TrangThai !== 1) {
+          alert("Nhà cung cấp không tồn tại hoặc đã ngừng hoạt động");
+          return;
+        }
+      }
 
-    saveToStorage(receiptStorageKey, updatedReceipts);
-    saveToStorage(detailStorageKey, updatedDetails);
-    saveToStorage(batchStorageKey, updatedBatches);
-    saveToStorage(inventoryStorageKey, updatedInventory);
-
-    alert("Tạo phiếu nhập thành công và đã cập nhật tồn kho");
-
-    handleCloseDrawer();
+      if (editingReceiptMaPN) {
+        await api.put<ApiImportReceipt>(
+          `/api/nhapkho/${editingReceiptMaPN}`,
+          payload,
+        );
+      } else {
+        await api.post<ApiImportReceipt>("/api/nhapkho", payload);
+      }
+      await loadData();
+      alert("Tạo phiếu nhập thành công và backend đã cập nhật tồn kho");
+      handleCloseDrawer();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không tạo được phiếu nhập kho";
+      alert(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const importRows = useMemo(() => {
@@ -873,18 +1161,19 @@ export default function ImportPage() {
         NgayNhap: receipt?.NgayNhap || "",
         MaLo: detail.MaLo,
         MaNL: detail.MaNL || batch?.MaNL || "",
-        TenNL: ingredient?.TenNL || detail.MaNL || batch?.MaNL || "",
+        TenNL:
+          detail.TenNL || ingredient?.TenNL || detail.MaNL || batch?.MaNL || "",
         DonVi: ingredient ? getUnitName(ingredient.DonViCoBan) : "-",
         SoLuong: detail.SoLuong,
         DonGiaNhap: detail.DonGiaNhap,
         ThanhTien: detail.ThanhTien,
         HanSuDung: detail.HanSuDung || batch?.HSD || "",
         MaCN: receipt?.MaCN || batch?.MaCN || "",
-        TenCN: receipt ? getBranchName(receipt.MaCN) : "",
+        TenCN: receipt?.TenCN || (receipt ? getBranchName(receipt.MaCN) : ""),
         MaNCC: receipt?.MaNCC || "",
-        TenNCC: receipt ? getSupplierName(receipt.MaNCC) : "",
+        TenNCC: receipt?.TenNCC || (receipt ? getSupplierName(receipt.MaNCC) : ""),
         MaNV: receipt?.MaNV || "",
-        TenNV: receipt ? getEmployeeName(receipt.MaNV) : "",
+        TenNV: receipt?.TenNV || (receipt ? getEmployeeName(receipt.MaNV) : ""),
       };
     });
   }, [
@@ -909,10 +1198,12 @@ export default function ImportPage() {
 
       const matchesBranch =
         branchFilter === "all" || item.MaCN === branchFilter;
+      const matchesSupplier =
+        supplierFilter === "all" || item.MaNCC === supplierFilter;
 
-      return matchesSearch && matchesBranch;
+      return matchesSearch && matchesBranch && matchesSupplier;
     });
-  }, [importRows, searchQuery, branchFilter]);
+  }, [importRows, searchQuery, branchFilter, supplierFilter]);
 
   const totalPages = Math.ceil(filteredData.length / pageSize);
 
@@ -1018,6 +1309,27 @@ export default function ImportPage() {
             </SelectContent>
           </Select>
 
+          <Select
+            value={supplierFilter}
+            onValueChange={(value) => {
+              setSupplierFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Nhà cung cấp" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="all">Tất cả nhà cung cấp</SelectItem>
+              {activeSuppliers.map((supplier) => (
+                <SelectItem key={supplier.MaNCC} value={supplier.MaNCC}>
+                  {supplier.TenNCC}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
@@ -1032,9 +1344,14 @@ export default function ImportPage() {
             />
           </div>
 
-          <Button variant="outline" className="gap-2" onClick={loadData}>
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => loadData()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            {isLoading ? "Đang tải" : "Làm mới"}
           </Button>
 
           <Button
@@ -1070,6 +1387,7 @@ export default function ImportPage() {
                     "Chi nhánh",
                     "Nhà cung cấp",
                     "Nhân viên",
+                    "Thao tác",
                   ].map((header) => (
                     <th
                       key={header}
@@ -1087,8 +1405,14 @@ export default function ImportPage() {
                     key={`${item.MaPN}-${item.MaLo}-${index}`}
                     className="hover:bg-muted/50"
                   >
-                    <td className="px-4 py-3 text-sm font-semibold text-primary">
-                      {item.MaPN}
+                    <td className="px-4 py-3 text-sm font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => handleLoadReceiptDetail(item.MaPN)}
+                        className="text-primary hover:underline"
+                      >
+                        {item.MaPN}
+                      </button>
                     </td>
 
                     <td className="px-4 py-3 text-sm text-muted-foreground">
@@ -1139,13 +1463,35 @@ export default function ImportPage() {
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {item.TenNV}
                     </td>
+
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(item.MaPN)}
+                          className="text-muted-foreground hover:text-primary"
+                          title="Sửa phiếu nhập"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteReceipt(item.MaPN)}
+                          className="text-muted-foreground hover:text-destructive"
+                          title="Xóa phiếu nhập"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
 
                 {paginatedData.length === 0 && (
                   <tr>
                     <td
-                      colSpan={12}
+                      colSpan={13}
                       className="px-4 py-6 text-center text-sm text-muted-foreground"
                     >
                       Không có phiếu nhập phù hợp
@@ -1212,7 +1558,9 @@ export default function ImportPage() {
 
           <div className="relative z-10 flex h-full w-[860px] flex-col bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border p-4">
-              <h3 className="text-lg font-semibold">Tạo phiếu nhập kho</h3>
+              <h3 className="text-lg font-semibold">
+                {editingReceiptMaPN ? "Sửa phiếu nhập kho" : "Tạo phiếu nhập kho"}
+              </h3>
 
               <button
                 onClick={handleCloseDrawer}
@@ -1227,7 +1575,11 @@ export default function ImportPage() {
                 <div>
                   <Label>Mã phiếu</Label>
 
-                  <Input value={nextReceiptCode} disabled className="mt-1.5" />
+                  <Input
+                    value={editingReceiptMaPN || nextReceiptCode}
+                    disabled
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
@@ -1283,25 +1635,73 @@ export default function ImportPage() {
                   </Select>
                 </div>
 
-                <div className="col-span-2">
-                  <Label>Nhà cung cấp *</Label>
+                <div>
+                  <Label>Nguồn nhập *</Label>
 
                   <Select
-                    value={selectedSupplier}
-                    onValueChange={setSelectedSupplier}
+                    value={sourceType}
+                    onValueChange={(value) =>
+                      setSourceType(value as ImportSourceType)
+                    }
                   >
                     <SelectTrigger className="mt-1.5">
-                      <SelectValue placeholder="Chọn nhà cung cấp" />
+                      <SelectValue placeholder="Chọn nguồn nhập" />
                     </SelectTrigger>
 
                     <SelectContent>
-                      {activeSuppliers.map((supplier) => (
-                        <SelectItem key={supplier.MaNCC} value={supplier.MaNCC}>
-                          {supplier.TenNCC}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="NHA_CUNG_CAP">Nhà cung cấp</SelectItem>
+                      <SelectItem value="KHO_TONG">Kho tổng</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  {sourceType === "NHA_CUNG_CAP" ? (
+                    <>
+                      <Label>Nhà cung cấp *</Label>
+
+                      <Select
+                        value={selectedSupplier}
+                        onValueChange={setSelectedSupplier}
+                      >
+                        <SelectTrigger className="mt-1.5">
+                          <SelectValue placeholder="Chọn nhà cung cấp" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {activeSuppliers.map((supplier) => (
+                            <SelectItem
+                              key={supplier.MaNCC}
+                              value={supplier.MaNCC}
+                            >
+                              {supplier.TenNCC}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  ) : (
+                    <>
+                      <Label>Kho tổng nguồn *</Label>
+
+                      <Select
+                        value={selectedSourceWarehouse}
+                        onValueChange={setSelectedSourceWarehouse}
+                      >
+                        <SelectTrigger className="mt-1.5">
+                          <SelectValue placeholder="Chọn kho tổng" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {activeSourceWarehouses.map((branch) => (
+                            <SelectItem key={branch.MaCN} value={branch.MaCN}>
+                              {branch.TenCN}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
                 </div>
 
                 <div className="col-span-2">
@@ -1487,7 +1887,13 @@ export default function ImportPage() {
                 Hủy
               </Button>
 
-              <Button onClick={handleConfirmImport}>Xác nhận nhập kho</Button>
+              <Button onClick={handleConfirmImport} disabled={isSubmitting}>
+                {isSubmitting
+                  ? "Đang lưu..."
+                  : editingReceiptMaPN
+                    ? "Cập nhật phiếu nhập"
+                    : "Xác nhận nhập kho"}
+              </Button>
             </div>
           </div>
         </div>
@@ -1495,3 +1901,4 @@ export default function ImportPage() {
     </MainLayout>
   );
 }
+

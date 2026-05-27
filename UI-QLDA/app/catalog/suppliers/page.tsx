@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import api from "@/services/api";
 import {
   Select,
   SelectContent,
@@ -19,9 +20,21 @@ import { cn } from "@/lib/utils";
 interface Supplier {
   MaNCC: string;
   TenNCC: string;
+  Sdt?: string;
+  DiaChi?: string;
   TrangThai: number;
   CreatedAt?: string;
   UpdatedAt?: string;
+}
+
+interface ApiSupplier {
+  maNCC: string;
+  tenNCC: string;
+  sdt?: string;
+  diaChi?: string;
+  trangThai?: string | number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const storageKey = "NHACUNGCAP";
@@ -84,6 +97,45 @@ const saveToStorage = <T,>(key: string, data: T[]) => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
+const isActiveStatus = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = value.trim().toLowerCase();
+
+  return ["1", "active", "hoat_dong", "hoạt động", "đang hoạt động"].includes(
+    normalized,
+  );
+};
+
+const mapApiSupplier = (supplier: ApiSupplier): Supplier => ({
+  MaNCC: supplier.maNCC,
+  TenNCC: supplier.tenNCC,
+  Sdt: supplier.sdt,
+  DiaChi: supplier.diaChi,
+  TrangThai: isActiveStatus(supplier.trangThai) ? 1 : 0,
+  CreatedAt: supplier.createdAt,
+  UpdatedAt: supplier.updatedAt,
+});
+
+const toApiStatus = (status: number) => {
+  return status === 1 ? "Hoạt động" : "Ngừng hoạt động";
+};
+
+const buildSupplierPayload = (supplier: {
+  MaNCC?: string;
+  TenNCC: string;
+  Sdt?: string;
+  DiaChi?: string;
+  TrangThai: number;
+}) => ({
+  maNCC: supplier.MaNCC,
+  tenNCC: supplier.TenNCC,
+  sdt: supplier.Sdt,
+  diaChi: supplier.DiaChi,
+  trangThai: toApiStatus(supplier.TrangThai),
+});
+
 const normalizeSupplier = (supplier: Partial<Supplier>): Supplier | null => {
   const MaNCC = supplier.MaNCC;
   const TenNCC = supplier.TenNCC;
@@ -93,22 +145,12 @@ const normalizeSupplier = (supplier: Partial<Supplier>): Supplier | null => {
   return {
     MaNCC,
     TenNCC,
+    Sdt: supplier.Sdt,
+    DiaChi: supplier.DiaChi,
     TrangThai: Number(supplier.TrangThai ?? 1),
     CreatedAt: supplier.CreatedAt,
     UpdatedAt: supplier.UpdatedAt,
   };
-};
-
-const getNextSupplierCode = (suppliers: Supplier[]) => {
-  const maxNumber = suppliers.reduce((max, supplier) => {
-    if (!supplier.MaNCC.startsWith("NCC")) return max;
-
-    const number = Number(supplier.MaNCC.replace("NCC", ""));
-
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 0);
-
-  return `NCC${String(maxNumber + 1).padStart(3, "0")}`;
 };
 
 export default function SuppliersPage() {
@@ -126,9 +168,11 @@ export default function SuppliersPage() {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const pageSize = 10;
 
-  useEffect(() => {
+  const loadSuppliersFromStorage = () => {
     const storedSuppliers = getFromStorage<Partial<Supplier>>(storageKey, []);
 
     if (storedSuppliers.length > 0) {
@@ -138,11 +182,65 @@ export default function SuppliersPage() {
 
       if (normalizedSuppliers.length > 0) {
         setSuppliers(normalizedSuppliers);
-        return;
+        return normalizedSuppliers;
       }
     }
 
     saveToStorage(storageKey, initialSuppliers);
+    setSuppliers(initialSuppliers);
+
+    return initialSuppliers;
+  };
+
+  const loadSuppliers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get<ApiSupplier[]>("/api/nhacungcap", {
+        params: { includeInactive: true },
+      });
+      const nextSuppliers = Array.isArray(response.data)
+        ? response.data.map(mapApiSupplier)
+        : [];
+
+      setSuppliers(nextSuppliers);
+      saveToStorage(storageKey, nextSuppliers);
+    } catch (error: any) {
+      loadSuppliersFromStorage();
+      const message =
+        error?.response?.data?.message ||
+        "Không tải được danh sách nhà cung cấp từ backend";
+      alert(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const replaceSupplier = (supplier: Supplier) => {
+    setSuppliers((current) => {
+      const exists = current.some((item) => item.MaNCC === supplier.MaNCC);
+      const nextSuppliers = exists
+        ? current.map((item) =>
+            item.MaNCC === supplier.MaNCC ? supplier : item,
+          )
+        : [...current, supplier];
+
+      saveToStorage(storageKey, nextSuppliers);
+
+      return nextSuppliers;
+    });
+  };
+
+  const loadSupplierDetail = async (maNCC: string) => {
+    const response = await api.get<ApiSupplier>(`/api/nhacungcap/${maNCC}`);
+    const supplier = mapApiSupplier(response.data);
+
+    replaceSupplier(supplier);
+
+    return supplier;
+  };
+
+  useEffect(() => {
+    loadSuppliers();
   }, []);
 
   const filteredSuppliers = useMemo(() => {
@@ -194,21 +292,27 @@ export default function SuppliersPage() {
     setIsDrawerOpen(true);
   };
 
-  const handleOpenEdit = (supplier: Supplier) => {
-    setEditingItem(supplier);
+  const handleOpenEdit = async (supplier: Supplier) => {
+    let supplierDetail = supplier;
+
+    try {
+      supplierDetail = await loadSupplierDetail(supplier.MaNCC);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không tải được chi tiết nhà cung cấp từ backend";
+      alert(message);
+    }
+
+    setEditingItem(supplierDetail);
     setFormData({
-      TenNCC: supplier.TenNCC,
-      TrangThai: supplier.TrangThai,
+      TenNCC: supplierDetail.TenNCC,
+      TrangThai: supplierDetail.TrangThai,
     });
     setIsDrawerOpen(true);
   };
 
-  const persistSuppliers = (updatedSuppliers: Supplier[]) => {
-    setSuppliers(updatedSuppliers);
-    saveToStorage(storageKey, updatedSuppliers);
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     const tenNCC = formData.TenNCC.trim();
 
     if (!tenNCC) {
@@ -231,69 +335,88 @@ export default function SuppliersPage() {
       return;
     }
 
-    const now = new Date().toISOString();
+    const payload = buildSupplierPayload({
+      MaNCC: editingItem?.MaNCC,
+      TenNCC: tenNCC,
+      Sdt: editingItem?.Sdt,
+      DiaChi: editingItem?.DiaChi,
+      TrangThai: formData.TrangThai,
+    });
 
-    if (editingItem) {
-      const updatedSuppliers = suppliers.map((supplier) =>
-        supplier.MaNCC === editingItem.MaNCC
-          ? {
-              ...supplier,
-              TenNCC: tenNCC,
-              TrangThai: formData.TrangThai,
-              UpdatedAt: now,
-            }
-          : supplier,
+    try {
+      setIsSubmitting(true);
+
+      if (editingItem) {
+        const response = await api.put<ApiSupplier>(
+          `/api/nhacungcap/${editingItem.MaNCC}`,
+          payload,
+        );
+
+        replaceSupplier(mapApiSupplier(response.data));
+      } else {
+        const response = await api.post<ApiSupplier>("/api/nhacungcap", {
+          ...payload,
+          maNCC: undefined,
+        });
+
+        replaceSupplier(mapApiSupplier(response.data));
+        setCurrentPage(1);
+      }
+
+      closeDrawer();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        (editingItem
+          ? "Không cập nhật được nhà cung cấp"
+          : "Không tạo được nhà cung cấp");
+      alert(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleStatus = async (MaNCC: string) => {
+    const supplier = suppliers.find((item) => item.MaNCC === MaNCC);
+
+    if (!supplier) return;
+
+    const nextSupplier = {
+      ...supplier,
+      TrangThai: supplier.TrangThai === 1 ? 0 : 1,
+    };
+
+    try {
+      const response = await api.put<ApiSupplier>(
+        `/api/nhacungcap/${MaNCC}`,
+        buildSupplierPayload(nextSupplier),
       );
 
-      persistSuppliers(updatedSuppliers);
-    } else {
-      const newSupplier: Supplier = {
-        MaNCC: getNextSupplierCode(suppliers),
-        TenNCC: tenNCC,
-        TrangThai: formData.TrangThai,
-        CreatedAt: now,
-        UpdatedAt: now,
-      };
-
-      persistSuppliers([...suppliers, newSupplier]);
-      setCurrentPage(1);
+      replaceSupplier(mapApiSupplier(response.data));
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không cập nhật được trạng thái nhà cung cấp";
+      alert(message);
     }
-
-    closeDrawer();
   };
 
-  const handleToggleStatus = (MaNCC: string) => {
-    const updatedSuppliers = suppliers.map((supplier) =>
-      supplier.MaNCC === MaNCC
-        ? {
-            ...supplier,
-            TrangThai: supplier.TrangThai === 1 ? 0 : 1,
-            UpdatedAt: new Date().toISOString(),
-          }
-        : supplier,
-    );
-
-    persistSuppliers(updatedSuppliers);
-  };
-
-  const handleDelete = (MaNCC: string) => {
+  const handleDelete = async (MaNCC: string) => {
     const isConfirmed = confirm(
       "Bạn có chắc muốn ngừng hợp tác với nhà cung cấp này không?",
     );
 
     if (!isConfirmed) return;
 
-    const updatedSuppliers = suppliers.map((supplier) =>
-      supplier.MaNCC === MaNCC
-        ? {
-            ...supplier,
-            TrangThai: 0,
-            UpdatedAt: new Date().toISOString(),
-          }
-        : supplier,
-    );
-
-    persistSuppliers(updatedSuppliers);
+    try {
+      await api.delete(`/api/nhacungcap/${MaNCC}`);
+      await loadSuppliers();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không ngừng hợp tác được nhà cung cấp";
+      alert(message);
+    }
   };
 
   return (
@@ -458,7 +581,9 @@ export default function SuppliersPage() {
                       colSpan={4}
                       className="px-4 py-6 text-center text-sm text-muted-foreground"
                     >
-                      Không có nhà cung cấp phù hợp
+                      {isLoading
+                        ? "Đang tải danh sách nhà cung cấp..."
+                        : "Không có nhà cung cấp phù hợp"}
                     </td>
                   </tr>
                 )}
@@ -593,8 +718,12 @@ export default function SuppliersPage() {
                 Hủy
               </Button>
 
-              <Button className="flex-1" onClick={handleSave}>
-                Lưu
+              <Button
+                className="flex-1"
+                onClick={handleSave}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Đang lưu..." : "Lưu"}
               </Button>
             </div>
           </div>

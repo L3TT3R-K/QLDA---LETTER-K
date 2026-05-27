@@ -1,50 +1,71 @@
 package com.phungloccoffee.backend.service;
 
+import com.phungloccoffee.backend.dto.NguyenLieuResponse;
+import com.phungloccoffee.backend.entity.DonVi;
 import com.phungloccoffee.backend.entity.NguyenLieu;
 import com.phungloccoffee.backend.repository.NguyenLieuRepository;
-import com.phungloccoffee.backend.dto.NguyenLieuResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.*;
-import java.util.stream.Collectors;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class NguyenLieuService {
+<<<<<<< HEAD
     private static final Integer HOAT_DONG = 1;
     private static final Integer NGUNG_HOAT_DONG = 0;
+=======
+>>>>>>> 47d02dc8386c090471396d0803dce3aef6b65174
 
-    @Autowired private NguyenLieuRepository repository;
+    @Autowired 
+    private NguyenLieuRepository repository;
 
     public List<NguyenLieuResponse> getAllNguyenLieu() {
-        return repository.findAll().stream()
-            .filter(nl -> !NGUNG_HOAT_DONG.equals(nl.getTrangThai()))
-            .map(nl -> {
-                NguyenLieuResponse dto = new NguyenLieuResponse();
-                dto.setMaNL(nl.getMaNL());
-                dto.setTenNL(nl.getTenNL());
-                dto.setTonToiThieu(nl.getTonToiThieu());
-                dto.setTrangThai(nl.getTrangThai());
-                if (nl.getDonViCoBan() != null) {
-                    dto.setTenDonVi(nl.getDonViCoBan().getTenDonVi());
-                }
-                return dto;
-            }).collect(Collectors.toList());
+        List<Object[]> rows = repository.findAllCustom();
+        List<NguyenLieuResponse> list = new ArrayList<>();
+        
+        for (Object[] row : rows) {
+            NguyenLieuResponse dto = NguyenLieuResponse.builder()
+                .maNL((String) row[0])
+                .tenNL((String) row[1])
+                .donViCoBan((String) row[2])
+                .tonToiThieu(row[3] != null ? ((Number) row[3]).doubleValue() : 0.0)
+                .trangThai(row[4] != null ? ((Number) row[4]).intValue() : 0)
+                .build();
+            list.add(dto);
+        }
+        return list;
     }
 
-    public NguyenLieu createNguyenLieu(NguyenLieu nl) {
+    public NguyenLieu createNguyenLieu(NguyenLieuResponse dto) {
+        NguyenLieu nl = new NguyenLieu();
         nl.setMaNL("NL" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
-        nl.setTrangThai(HOAT_DONG);
+        nl.setTenNL(dto.getTenNL());
+        nl.setTonToiThieu(dto.getTonToiThieu());
+        nl.setTrangThai(dto.getTrangThai() != null ? dto.getTrangThai() : 1);
+        
+        DonVi dv = new DonVi();
+        dv.setMaDV(dto.getDonViCoBan()); 
+        nl.setDonViCoBan(dv);
+        
         return repository.save(nl);
     }
 
-    public NguyenLieu updateNguyenLieu(String maNL, NguyenLieu details) {
+    public NguyenLieu updateNguyenLieu(String maNL, NguyenLieuResponse dto) {
         Optional<NguyenLieu> optional = repository.findById(maNL);
         if (optional.isPresent()) {
             NguyenLieu existing = optional.get();
-            existing.setTenNL(details.getTenNL());
-            existing.setTonToiThieu(details.getTonToiThieu());
-            existing.setTrangThai(details.getTrangThai());
-            existing.setDonViCoBan(details.getDonViCoBan());
+            existing.setTenNL(dto.getTenNL());
+            existing.setTonToiThieu(dto.getTonToiThieu());
+            existing.setTrangThai(dto.getTrangThai());
+            
+            DonVi dv = new DonVi();
+            dv.setMaDV(dto.getDonViCoBan());
+            existing.setDonViCoBan(dv);
+            
             return repository.save(existing);
         }
         return null;
@@ -52,7 +73,7 @@ public class NguyenLieuService {
 
     public void deleteNguyenLieu(String maNL) {
         repository.findById(maNL).ifPresent(nl -> {
-            nl.setTrangThai(NGUNG_HOAT_DONG);
+            nl.setTrangThai(0); 
             repository.save(nl);
         });
     }

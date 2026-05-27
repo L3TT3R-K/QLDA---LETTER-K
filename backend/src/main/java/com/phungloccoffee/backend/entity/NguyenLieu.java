@@ -34,7 +34,11 @@ public class NguyenLieu {
     @JoinColumn(name = "donvicoban")
     private DonVi donViCoBan;
 
+<<<<<<< HEAD
     @Column(name = "trangthai")
+=======
+    @Column(name = "trangthai", length = 30)
+>>>>>>> 47d02dc8386c090471396d0803dce3aef6b65174
     private Integer trangThai;
 
     @CreationTimestamp

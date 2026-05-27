@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import api from "@/services/api";
 
 type TransferStatus = "DRAFT" | "SENT" | "RECEIVED" | "CANCELLED";
 
@@ -89,6 +90,63 @@ interface Ingredient {
   TrangThai: number;
 }
 
+interface ApiTransferDetail {
+  maLo?: string;
+  maNL: string;
+  tenNL?: string;
+  soLuong: number;
+  hanSuDung?: string;
+}
+
+interface ApiTransferReceipt {
+  maPC: string;
+  maCNXuat: string;
+  maCNNhap: string;
+  maNVTao: string;
+  tenNVTao?: string;
+  ngayTao: string;
+  trangThai: string;
+  chiTiet?: ApiTransferDetail[];
+}
+
+interface ApiBranch {
+  maCN: string;
+  tenCN: string;
+  diaChi?: string;
+  trangThai?: number;
+}
+
+interface ApiEmployee {
+  maNV: string;
+  username?: string;
+  tenNV: string;
+  chucVu?: string;
+  maCN?: string | null;
+  trangThai?: number;
+}
+
+interface ApiIngredient {
+  maNL: string;
+  tenNL: string;
+  tenDonVi?: string;
+  donViCoBan?: string;
+  tonToiThieu?: number;
+  trangThai?: string | number;
+}
+
+interface ApiUnit {
+  maDV: string;
+  tenDonVi: string;
+  trangThai?: number;
+}
+
+interface ApiInventoryStock {
+  maNL: string;
+  maCN?: string;
+  chiNhanh?: string;
+  tonHienTai: number;
+}
+
 const receiptStorageKey = "PHIEUCHUYEN";
 const detailStorageKey = "CTPC";
 const inventoryStorageKey = "TONKHO";
@@ -128,13 +186,18 @@ const normalizeTransferStatus = (
     case "DRAFT":
     case "0":
     case "CHO_GUI":
+    case "TAO_PHIEU":
+    case "Tao phieu":
+    case "Tạo phiếu":
     case "Chờ gửi":
     case "Cho gui":
       return "DRAFT";
 
     case "SENT":
     case "1":
+    case "DA_GUI":
     case "DANG_CHUYEN":
+    case "Đang chuyển":
     case "Đang chuyển":
     case "Dang chuyen":
       return "SENT";
@@ -144,6 +207,7 @@ const normalizeTransferStatus = (
     case "DONE":
     case "2":
     case "HOAN_THANH":
+    case "DA_NHAN":
     case "Đã nhận":
     case "Da nhan":
     case "Hoàn thành":
@@ -154,6 +218,7 @@ const normalizeTransferStatus = (
     case "CANCELED":
     case "3":
     case "HUY":
+    case "Hủy":
     case "Đã hủy":
     case "Da huy":
       return "CANCELLED";
@@ -165,6 +230,21 @@ const normalizeTransferStatus = (
 
 const getTransferStatusInfo = (value?: string | number | null) => {
   return statusConfig[normalizeTransferStatus(value)];
+};
+
+const toBackendTransferStatus = (status: string) => {
+  switch (normalizeTransferStatus(status)) {
+    case "DRAFT":
+      return "TAO_PHIEU";
+    case "SENT":
+      return "DANG_CHUYEN";
+    case "RECEIVED":
+      return "DA_NHAN";
+    case "CANCELLED":
+      return "HUY";
+    default:
+      return status;
+  }
 };
 
 const initialBranches: Branch[] = [
@@ -406,6 +486,72 @@ const mergeInventoryStocks = (stocks: InventoryStock[]) => {
   return Array.from(stockMap.values());
 };
 
+const isActiveStatus = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = value.trim().toLowerCase();
+
+  return ["1", "active", "hoat_dong", "hoạt động", "đang hoạt động"].includes(
+    normalized,
+  );
+};
+
+const mapApiReceipt = (receipt: ApiTransferReceipt): TransferReceipt => ({
+  MaPC: receipt.maPC,
+  MaCNXuat: receipt.maCNXuat,
+  MaCNNhap: receipt.maCNNhap,
+  MaNVTao: receipt.maNVTao,
+  NgayTao: receipt.ngayTao,
+  TrangThai: normalizeTransferStatus(receipt.trangThai),
+  GhiChu: "",
+  IsSynced: true,
+  CreatedAt: receipt.ngayTao,
+});
+
+const mapApiDetails = (receipt: ApiTransferReceipt): TransferDetail[] =>
+  (receipt.chiTiet || []).map((detail) => ({
+    MaPC: receipt.maPC,
+    MaNL: detail.maNL,
+    SoLuong: detail.soLuong || 0,
+  }));
+
+const mapApiBranch = (branch: ApiBranch): Branch => ({
+  MaCN: branch.maCN,
+  TenCN: branch.tenCN,
+  DiaChi: branch.diaChi,
+  TrangThai: branch.trangThai ?? 1,
+});
+
+const mapApiEmployee = (employee: ApiEmployee): Employee => ({
+  MaNV: employee.maNV,
+  Username: employee.username,
+  TenNV: employee.tenNV,
+  ChucVu: employee.chucVu,
+  MaCN: employee.maCN ?? null,
+  TrangThai: employee.trangThai ?? 1,
+});
+
+const mapApiIngredient = (ingredient: ApiIngredient): Ingredient => ({
+  MaNL: ingredient.maNL,
+  TenNL: ingredient.tenNL,
+  DonViCoBan: ingredient.donViCoBan || ingredient.tenDonVi || "",
+  TonToiThieu: ingredient.tonToiThieu || 0,
+  TrangThai: isActiveStatus(ingredient.trangThai) ? 1 : 0,
+});
+
+const mapApiUnit = (unit: ApiUnit): Unit => ({
+  MaDV: unit.maDV,
+  TenDonVi: unit.tenDonVi,
+  TrangThai: unit.trangThai ?? 1,
+});
+
+const mapApiInventoryStock = (stock: ApiInventoryStock): InventoryStock => ({
+  MaCN: stock.maCN || stock.chiNhanh || "",
+  MaNL: stock.maNL,
+  SoLuongTon: stock.tonHienTai || 0,
+});
+
 const downloadCsv = (
   fileName: string,
   headers: string[],
@@ -466,95 +612,123 @@ export default function InventoryTransferPage() {
   ]);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionMaPC, setActionMaPC] = useState<string | null>(null);
   const pageSize = 10;
 
-  const loadData = () => {
-    const storedBranches = getFromStorage<Branch>(
-      branchStorageKey,
-      initialBranches,
-    );
+  const loadData = async (
+    filterBranch = branchFilter,
+    filterStatus = statusFilter,
+  ) => {
+    try {
+      setIsLoading(true);
 
-    const storedEmployees = getFromStorage<Employee>(
-      employeeStorageKey,
-      initialEmployees,
-    );
-
-    const storedIngredients = getFromStorage<Ingredient>(
-      ingredientStorageKey,
-      initialIngredients,
-    );
-
-    const storedUnits = getFromStorage<Unit>(unitStorageKey, initialUnits);
-
-    const storedReceipts = getFromStorage<TransferReceipt>(
-      receiptStorageKey,
-      initialReceipts,
-    ).map((receipt) => ({
-      ...receipt,
-      TrangThai: normalizeTransferStatus(receipt.TrangThai),
-    }));
-
-    const storedDetails = getFromStorage<TransferDetail>(
-      detailStorageKey,
-      initialDetails,
-    );
-
-    const storedInventory = getFromStorage<InventoryStock>(
-      inventoryStorageKey,
-      initialInventory,
-    );
-
-    setBranches(storedBranches);
-    setEmployees(storedEmployees);
-    setIngredients(storedIngredients);
-    setUnits(storedUnits);
-    setReceipts(storedReceipts);
-    setDetails(storedDetails);
-    setInventory(mergeInventoryStocks(storedInventory));
-
-    if (!localStorage.getItem(branchStorageKey)) {
-      saveToStorage(branchStorageKey, initialBranches);
-    }
-
-    if (!localStorage.getItem(employeeStorageKey)) {
-      saveToStorage(employeeStorageKey, initialEmployees);
-    }
-
-    if (!localStorage.getItem(ingredientStorageKey)) {
-      saveToStorage(ingredientStorageKey, initialIngredients);
-    }
-
-    if (!localStorage.getItem(unitStorageKey)) {
-      saveToStorage(unitStorageKey, initialUnits);
-    }
-
-    if (!localStorage.getItem(receiptStorageKey)) {
-      saveToStorage(receiptStorageKey, initialReceipts);
-    } else {
-      saveToStorage(receiptStorageKey, storedReceipts);
-    }
-
-    if (!localStorage.getItem(detailStorageKey)) {
-      saveToStorage(detailStorageKey, initialDetails);
-    }
-
-    if (!localStorage.getItem(inventoryStorageKey)) {
-      saveToStorage(
-        inventoryStorageKey,
-        mergeInventoryStocks(initialInventory),
+      const receiptsResponse = await api.get<ApiTransferReceipt[]>(
+        "/api/dieuchuyenkho",
+        {
+          params:
+            filterBranch !== "all"
+              ? { maKho: filterBranch }
+              : filterStatus !== "all"
+                ? { trangThai: toBackendTransferStatus(filterStatus) }
+                : undefined,
+        },
       );
+
+      const [
+        branchesResult,
+        employeesResult,
+        ingredientsResult,
+        unitsResult,
+        inventoryResult,
+      ] = await Promise.allSettled([
+        api.get<ApiBranch[]>("/api/chinhanh"),
+        api.get<ApiEmployee[]>("/api/nhanvien"),
+        api.get<ApiIngredient[]>("/api/nguyenlieu"),
+        api.get<ApiUnit[]>("/api/donvi"),
+        api.get<ApiInventoryStock[]>("/api/inventory/stock"),
+      ]);
+
+      const apiReceipts = Array.isArray(receiptsResponse.data)
+        ? receiptsResponse.data
+        : [];
+
+      setReceipts(apiReceipts.map(mapApiReceipt));
+      setDetails(apiReceipts.flatMap(mapApiDetails));
+      setBranches(
+        branchesResult.status === "fulfilled" &&
+          Array.isArray(branchesResult.value.data)
+          ? branchesResult.value.data.map(mapApiBranch)
+          : initialBranches,
+      );
+      setEmployees(
+        employeesResult.status === "fulfilled" &&
+          Array.isArray(employeesResult.value.data)
+          ? employeesResult.value.data.map(mapApiEmployee)
+          : initialEmployees,
+      );
+      setIngredients(
+        ingredientsResult.status === "fulfilled" &&
+          Array.isArray(ingredientsResult.value.data)
+          ? ingredientsResult.value.data.map(mapApiIngredient)
+          : initialIngredients,
+      );
+      setUnits(
+        unitsResult.status === "fulfilled" && Array.isArray(unitsResult.value.data)
+          ? unitsResult.value.data.map(mapApiUnit)
+          : initialUnits,
+      );
+      setInventory(
+        inventoryResult.status === "fulfilled" &&
+          Array.isArray(inventoryResult.value.data)
+          ? mergeInventoryStocks(inventoryResult.value.data.map(mapApiInventoryStock))
+          : initialInventory,
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không tải được danh sách phiếu điều chuyển từ backend";
+      alert(message);
+
+      setReceipts(
+        getFromStorage<TransferReceipt>(receiptStorageKey, initialReceipts).map(
+          (receipt) => ({
+            ...receipt,
+            TrangThai: normalizeTransferStatus(receipt.TrangThai),
+          }),
+        ),
+      );
+      setDetails(getFromStorage<TransferDetail>(detailStorageKey, initialDetails));
+      setBranches(getFromStorage<Branch>(branchStorageKey, initialBranches));
+      setEmployees(
+        getFromStorage<Employee>(employeeStorageKey, initialEmployees),
+      );
+      setIngredients(
+        getFromStorage<Ingredient>(ingredientStorageKey, initialIngredients),
+      );
+      setUnits(getFromStorage<Unit>(unitStorageKey, initialUnits));
+      setInventory(
+        mergeInventoryStocks(
+          getFromStorage<InventoryStock>(inventoryStorageKey, initialInventory),
+        ),
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
 
-    window.addEventListener("storage", loadData);
+    const handleStorage = () => loadData();
+
+    window.addEventListener("storage", handleStorage);
 
     return () => {
-      window.removeEventListener("storage", loadData);
+      window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [branchFilter, statusFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -740,7 +914,7 @@ export default function InventoryTransferPage() {
     return mergeInventoryStocks(updatedInventory);
   };
 
-  const handleConfirmTransfer = () => {
+  const handleConfirmTransfer = async () => {
     if (!fromBranch || !toBranch || !selectedEmployee || !transferDate) {
       alert(
         "Vui lòng chọn chi nhánh xuất, chi nhánh nhận, nhân viên và ngày chuyển",
@@ -798,47 +972,64 @@ export default function InventoryTransferPage() {
       receipts.map((receipt) => receipt.MaPC),
     );
 
-    const now = new Date().toISOString();
-
-    const newReceipt: TransferReceipt = {
-      MaPC: receiptCode,
-      MaCNXuat: fromBranch,
-      MaCNNhap: toBranch,
-      MaNVTao: selectedEmployee,
-      NgayTao: transferDate,
-      TrangThai: "RECEIVED",
-      GhiChu: note.trim(),
-      IsSynced: false,
-      CreatedAt: now,
-      UpdatedAt: now,
+    const payload = {
+      maPC: receiptCode,
+      maCNXuat: fromBranch,
+      maCNNhap: toBranch,
+      maNVTao: selectedEmployee,
+      chiTiet: transferItems.map((item) => ({
+        maNL: item.MaNL,
+        soLuong: item.SoLuong,
+      })),
     };
 
-    const newDetails: TransferDetail[] = transferItems.map((item) => ({
-      MaPC: receiptCode,
-      MaNL: item.MaNL,
-      SoLuong: item.SoLuong,
-    }));
+    try {
+      setIsSubmitting(true);
+      await api.post<ApiTransferReceipt>("/api/dieuchuyenkho", payload);
+      await api.get<ApiTransferReceipt>(`/api/dieuchuyenkho/${receiptCode}`);
+      await loadData();
 
-    const updatedReceipts = [...receipts, newReceipt];
-    const updatedDetails = [...details, ...newDetails];
-    const updatedInventory = updateInventoryAfterTransfer(
-      inventory,
-      transferItems,
-      fromBranch,
-      toBranch,
+      alert("Tạo phiếu điều chuyển thành công");
+      handleCloseDrawer();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không tạo được phiếu điều chuyển kho";
+      alert(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTransferAction = async (
+    maPC: string,
+    action: "gui" | "nhan" | "huy",
+  ) => {
+    const actionLabel =
+      action === "gui" ? "gửi" : action === "nhan" ? "nhận" : "hủy";
+    const isConfirmed = confirm(
+      `Bạn có chắc muốn ${actionLabel} phiếu điều chuyển ${maPC} không?`,
     );
 
-    setReceipts(updatedReceipts);
-    setDetails(updatedDetails);
-    setInventory(updatedInventory);
+    if (!isConfirmed) return;
 
-    saveToStorage(receiptStorageKey, updatedReceipts);
-    saveToStorage(detailStorageKey, updatedDetails);
-    saveToStorage(inventoryStorageKey, updatedInventory);
-
-    alert("Tạo phiếu điều chuyển thành công và đã cập nhật tồn kho");
-
-    handleCloseDrawer();
+    try {
+      setActionMaPC(maPC);
+      await api.post<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPC}/${action}`, {
+        maNV: selectedEmployee,
+        ghiChu: note.trim(),
+      });
+      await api.get<ApiTransferReceipt>(`/api/dieuchuyenkho/${maPC}`);
+      await loadData();
+      alert(`Đã ${actionLabel} phiếu điều chuyển ${maPC}`);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        `Không ${actionLabel} được phiếu điều chuyển`;
+      alert(message);
+    } finally {
+      setActionMaPC(null);
+    }
   };
 
   const transferRows = useMemo(() => {
@@ -1026,9 +1217,14 @@ export default function InventoryTransferPage() {
             />
           </div>
 
-          <Button variant="outline" className="gap-2" onClick={loadData}>
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => loadData()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            {isLoading ? "Đang tải" : "Làm mới"}
           </Button>
 
           <Button
@@ -1062,6 +1258,7 @@ export default function InventoryTransferPage() {
                     "Trạng thái",
                     "Nhân viên",
                     "Ghi chú",
+                    "Thao tác",
                   ].map((header) => (
                     <th
                       key={header}
@@ -1133,6 +1330,48 @@ export default function InventoryTransferPage() {
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {item.GhiChu || "—"}
                       </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          {item.TrangThai === "DRAFT" && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={actionMaPC === item.MaPC}
+                                onClick={() =>
+                                  handleTransferAction(item.MaPC, "gui")
+                                }
+                              >
+                                Gửi
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={actionMaPC === item.MaPC}
+                                onClick={() =>
+                                  handleTransferAction(item.MaPC, "huy")
+                                }
+                              >
+                                Hủy
+                              </Button>
+                            </>
+                          )}
+
+                          {item.TrangThai === "SENT" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={actionMaPC === item.MaPC}
+                              onClick={() =>
+                                handleTransferAction(item.MaPC, "nhan")
+                              }
+                            >
+                              Nhận
+                            </Button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -1140,7 +1379,7 @@ export default function InventoryTransferPage() {
                 {paginatedData.length === 0 && (
                   <tr>
                     <td
-                      colSpan={10}
+                      colSpan={11}
                       className="px-4 py-6 text-center text-sm text-muted-foreground"
                     >
                       Không có phiếu điều chuyển phù hợp
@@ -1443,8 +1682,8 @@ export default function InventoryTransferPage() {
                 Hủy
               </Button>
 
-              <Button onClick={handleConfirmTransfer}>
-                Xác nhận điều chuyển
+              <Button onClick={handleConfirmTransfer} disabled={isSubmitting}>
+                {isSubmitting ? "Đang xử lý" : "Xác nhận điều chuyển"}
               </Button>
             </div>
           </div>

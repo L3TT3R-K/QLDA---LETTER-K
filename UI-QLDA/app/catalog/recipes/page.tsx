@@ -22,101 +22,46 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import api from "@/services/api"; // Import API instance
 
+// --- INTERFACES (Chuẩn hóa camelCase theo Backend DTO) ---
 interface Product {
-  MaSP: string;
-  TenSP: string;
-  GiaHienTai: number;
-  IsTopping: boolean;
-  TrangThai: number;
-  CreatedAt?: string;
-  UpdatedAt?: string;
+  maSP: string;
+  tenSP: string;
+  giaHienTai: number;
+  isTopping: boolean;
+  trangThai: number;
 }
 
 interface Ingredient {
-  MaNL: string;
-  TenNL: string;
-  DonViCoBan: string;
-  TonToiThieu: number;
-  TrangThai: number;
-  CreatedAt?: string;
-  UpdatedAt?: string;
+  maNL: string;
+  tenNL: string;
+  donViCoBan: string;
+  tonToiThieu: number;
+  trangThai: number;
 }
 
 interface Unit {
   MaDV: string;
   TenDonVi: string;
   TrangThai: number;
-  CreatedAt?: string;
-  UpdatedAt?: string;
-}
-
-interface RecipeVersion {
-  MaPB: string;
-  MaSP: string;
-  NgayHieuLuc: string;
-  TrangThai: string;
-  CreatedAt?: string;
-  UpdatedAt?: string;
 }
 
 interface RecipeDetail {
-  MaPB: string;
-  MaNL: string;
-  SoLuong: number;
+  maNL: string;
+  tenNL?: string;
+  donViCoBan?: string;
+  soLuong: number;
 }
 
-const productStorageKey = "SANPHAM";
-const ingredientStorageKey = "NGUYENLIEU";
+interface ActiveRecipe {
+  maPB: string;
+  maSP: string;
+  tenSP: string;
+  chiTiet: RecipeDetail[];
+}
+
 const unitStorageKey = "DONVI";
-const recipeVersionStorageKey = "PHIENBANCONGTHUC";
-const recipeDetailStorageKey = "DINHMUCCONGTHUC";
-
-const initialProducts: Product[] = [
-  {
-    MaSP: "SP001",
-    TenSP: "Cà phê đen đá",
-    GiaHienTai: 25000,
-    IsTopping: false,
-    TrangThai: 1,
-  },
-  {
-    MaSP: "SP002",
-    TenSP: "Cà phê sữa đá",
-    GiaHienTai: 30000,
-    IsTopping: false,
-    TrangThai: 1,
-  },
-  {
-    MaSP: "SP003",
-    TenSP: "Bạc xỉu",
-    GiaHienTai: 35000,
-    IsTopping: false,
-    TrangThai: 1,
-  },
-  {
-    MaSP: "SP004",
-    TenSP: "Trà đào cam sả",
-    GiaHienTai: 45000,
-    IsTopping: false,
-    TrangThai: 1,
-  },
-  {
-    MaSP: "SP005",
-    TenSP: "Trà sữa truyền thống",
-    GiaHienTai: 40000,
-    IsTopping: false,
-    TrangThai: 1,
-  },
-  {
-    MaSP: "SPT01",
-    TenSP: "Trân châu đen",
-    GiaHienTai: 7000,
-    IsTopping: true,
-    TrangThai: 1,
-  },
-];
-
 const initialUnits: Unit[] = [
   { MaDV: "GRAM", TenDonVi: "Gram", TrangThai: 1 },
   { MaDV: "KG", TenDonVi: "Kilogram", TrangThai: 1 },
@@ -124,490 +69,159 @@ const initialUnits: Unit[] = [
   { MaDV: "LIT", TenDonVi: "Lít", TrangThai: 1 },
   { MaDV: "CAI", TenDonVi: "Cái", TrangThai: 1 },
   { MaDV: "HOP", TenDonVi: "Hộp", TrangThai: 1 },
-  { MaDV: "CHAI", TenDonVi: "Chai", TrangThai: 1 },
-  { MaDV: "LON", TenDonVi: "Lon", TrangThai: 1 },
-  { MaDV: "GOI", TenDonVi: "Gói", TrangThai: 1 },
 ];
-
-const initialIngredients: Ingredient[] = [
-  {
-    MaNL: "NL001",
-    TenNL: "Cà phê bột",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 5000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL002",
-    TenNL: "Sữa tươi",
-    DonViCoBan: "ML",
-    TonToiThieu: 10000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL003",
-    TenNL: "Sữa đặc",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 3000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL004",
-    TenNL: "Đường",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 5000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL005",
-    TenNL: "Trà đào",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 2000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL006",
-    TenNL: "Siro đào",
-    DonViCoBan: "ML",
-    TonToiThieu: 2000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL007",
-    TenNL: "Bột matcha",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 1000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL008",
-    TenNL: "Trân châu đen",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 3000,
-    TrangThai: 1,
-  },
-  {
-    MaNL: "NL009",
-    TenNL: "Kem cheese",
-    DonViCoBan: "GRAM",
-    TonToiThieu: 1500,
-    TrangThai: 1,
-  },
-];
-
-const initialRecipeVersions: RecipeVersion[] = [
-  {
-    MaPB: "PB001",
-    MaSP: "SP001",
-    NgayHieuLuc: "2026-05-23T00:00:00",
-    TrangThai: "ACTIVE",
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaPB: "PB002",
-    MaSP: "SP002",
-    NgayHieuLuc: "2026-05-23T00:00:00",
-    TrangThai: "ACTIVE",
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaPB: "PB003",
-    MaSP: "SP003",
-    NgayHieuLuc: "2026-05-23T00:00:00",
-    TrangThai: "ACTIVE",
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-];
-
-const initialRecipeDetails: RecipeDetail[] = [
-  { MaPB: "PB001", MaNL: "NL001", SoLuong: 20 },
-  { MaPB: "PB001", MaNL: "NL004", SoLuong: 10 },
-
-  { MaPB: "PB002", MaNL: "NL001", SoLuong: 18 },
-  { MaPB: "PB002", MaNL: "NL002", SoLuong: 60 },
-  { MaPB: "PB002", MaNL: "NL003", SoLuong: 25 },
-  { MaPB: "PB002", MaNL: "NL004", SoLuong: 8 },
-
-  { MaPB: "PB003", MaNL: "NL001", SoLuong: 12 },
-  { MaPB: "PB003", MaNL: "NL002", SoLuong: 80 },
-  { MaPB: "PB003", MaNL: "NL003", SoLuong: 30 },
-];
-
-const getFromStorage = <T,>(key: string, fallback: T[]): T[] => {
-  if (typeof window === "undefined") return fallback;
-
-  const data = localStorage.getItem(key);
-
-  if (!data) return fallback;
-
-  try {
-    const parsed = JSON.parse(data);
-
-    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const saveToStorage = <T,>(key: string, data: T[]) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 };
 
-const formatDateTime = (value: string) => {
-  if (!value) return "—";
-
-  return new Date(value).toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const getNextCode = (
-  prefix: string,
-  existingCodes: Array<string | undefined | null>,
-) => {
-  const maxNumber = existingCodes.reduce((max, code) => {
-    if (!code) return max;
-    if (!String(code).startsWith(prefix)) return max;
-
-    const number = Number(String(code).replace(prefix, ""));
-
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 0);
-
-  return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
-};
-
-const normalizeProduct = (product: Partial<Product>): Product | null => {
-  if (!product.MaSP || !product.TenSP) return null;
-
-  return {
-    MaSP: product.MaSP,
-    TenSP: product.TenSP,
-    GiaHienTai: Number(product.GiaHienTai ?? 0),
-    IsTopping: Boolean(product.IsTopping),
-    TrangThai: Number(product.TrangThai ?? 1),
-    CreatedAt: product.CreatedAt,
-    UpdatedAt: product.UpdatedAt,
-  };
-};
-
-const normalizeIngredient = (
-  ingredient: Partial<Ingredient>,
-): Ingredient | null => {
-  if (!ingredient.MaNL || !ingredient.TenNL || !ingredient.DonViCoBan) {
-    return null;
-  }
-
-  return {
-    MaNL: ingredient.MaNL,
-    TenNL: ingredient.TenNL,
-    DonViCoBan: ingredient.DonViCoBan,
-    TonToiThieu: Number(ingredient.TonToiThieu ?? 0),
-    TrangThai: Number(ingredient.TrangThai ?? 1),
-    CreatedAt: ingredient.CreatedAt,
-    UpdatedAt: ingredient.UpdatedAt,
-  };
-};
-
-const normalizeUnit = (unit: Partial<Unit>): Unit | null => {
-  if (!unit.MaDV || !unit.TenDonVi) return null;
-
-  return {
-    MaDV: unit.MaDV,
-    TenDonVi: unit.TenDonVi,
-    TrangThai: Number(unit.TrangThai ?? 1),
-    CreatedAt: unit.CreatedAt,
-    UpdatedAt: unit.UpdatedAt,
-  };
-};
-
-const normalizeRecipeVersion = (
-  version: Partial<RecipeVersion>,
-): RecipeVersion | null => {
-  if (!version.MaPB || !version.MaSP) return null;
-
-  return {
-    MaPB: version.MaPB,
-    MaSP: version.MaSP,
-    NgayHieuLuc: version.NgayHieuLuc || new Date().toISOString(),
-    TrangThai:
-      String(version.TrangThai) === "1" || version.TrangThai === "ACTIVE"
-        ? "ACTIVE"
-        : "INACTIVE",
-    CreatedAt: version.CreatedAt,
-    UpdatedAt: version.UpdatedAt,
-  };
-};
-
-const normalizeRecipeDetail = (
-  detail: Partial<RecipeDetail>,
-): RecipeDetail | null => {
-  if (!detail.MaPB || !detail.MaNL) return null;
-
-  const soLuong = Number(detail.SoLuong);
-
-  if (Number.isNaN(soLuong)) return null;
-
-  return {
-    MaPB: detail.MaPB,
-    MaNL: detail.MaNL,
-    SoLuong: soLuong,
-  };
-};
-
 export default function RecipesPage() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [ingredients, setIngredients] =
-    useState<Ingredient[]>(initialIngredients);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [units, setUnits] = useState<Unit[]>(initialUnits);
 
-  const [recipeVersions, setRecipeVersions] = useState<RecipeVersion[]>(
-    initialRecipeVersions,
-  );
+  // Lưu trạng thái sản phẩm nào đã có công thức để hiển thị Sidebar
+  const [hasRecipeMap, setHasRecipeMap] = useState<Record<string, boolean>>({});
 
-  const [recipeDetails, setRecipeDetails] =
-    useState<RecipeDetail[]>(initialRecipeDetails);
+  const [activeRecipe, setActiveRecipe] = useState<ActiveRecipe | null>(null);
+  const [editingDetails, setEditingDetails] = useState<RecipeDetail[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [recipeFilter, setRecipeFilter] = useState("all");
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [editingDetails, setEditingDetails] = useState<RecipeDetail[]>([]);
+  // --- HÀM LOAD DỮ LIỆU TỪ BACKEND ---
+  const loadData = async () => {
+    try {
+      // 1. Gọi API lấy Sản phẩm và Nguyên liệu cùng lúc
+      const [prodRes, ingRes] = await Promise.all([
+        api.get("/api/sanpham"),
+        api.get("/api/nguyenlieu")
+      ]);
+      
+      const loadedProducts = prodRes.data || [];
+      setProducts(loadedProducts);
+      setIngredients(ingRes.data || []);
 
-  const loadData = () => {
-    const storedProducts = getFromStorage<Partial<Product>>(
-      productStorageKey,
-      [],
-    );
-    const normalizedProducts = storedProducts
-      .map(normalizeProduct)
-      .filter((item): item is Product => item !== null);
+      // 2. Chạy ngầm API check công thức để hiển thị badge "Đã có CT / Chưa có CT"
+      const activeProds = loadedProducts.filter((p: Product) => p.trangThai === 1);
+      const statusMap: Record<string, boolean> = {};
+      
+      await Promise.all(
+        activeProds.map(async (p: Product) => {
+          try {
+            const res = await api.get(`/api/congthuc/${p.maSP}`);
+            statusMap[p.maSP] = res.data?.chiTiet?.length > 0;
+          } catch (error) {
+            statusMap[p.maSP] = false;
+          }
+        })
+      );
+      setHasRecipeMap(statusMap);
 
-    if (normalizedProducts.length > 0) {
-      setProducts(normalizedProducts);
-    } else {
-      setProducts(initialProducts);
-      saveToStorage(productStorageKey, initialProducts);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu nền:", error);
     }
 
-    const storedIngredients = getFromStorage<Partial<Ingredient>>(
-      ingredientStorageKey,
-      [],
-    );
-    const normalizedIngredients = storedIngredients
-      .map(normalizeIngredient)
-      .filter((item): item is Ingredient => item !== null);
-
-    if (normalizedIngredients.length > 0) {
-      setIngredients(normalizedIngredients);
-    } else {
-      setIngredients(initialIngredients);
-      saveToStorage(ingredientStorageKey, initialIngredients);
-    }
-
-    const storedUnits = getFromStorage<Partial<Unit>>(unitStorageKey, []);
-    const normalizedUnits = storedUnits
-      .map(normalizeUnit)
-      .filter((item): item is Unit => item !== null);
-
-    if (normalizedUnits.length > 0) {
-      setUnits(normalizedUnits);
-    } else {
-      setUnits(initialUnits);
-      saveToStorage(unitStorageKey, initialUnits);
-    }
-
-    const storedRecipeVersions = getFromStorage<Partial<RecipeVersion>>(
-      recipeVersionStorageKey,
-      [],
-    );
-    const normalizedRecipeVersions = storedRecipeVersions
-      .map(normalizeRecipeVersion)
-      .filter((item): item is RecipeVersion => item !== null);
-
-    if (normalizedRecipeVersions.length > 0) {
-      setRecipeVersions(normalizedRecipeVersions);
-    } else {
-      setRecipeVersions(initialRecipeVersions);
-      saveToStorage(recipeVersionStorageKey, initialRecipeVersions);
-    }
-
-    const storedRecipeDetails = getFromStorage<Partial<RecipeDetail>>(
-      recipeDetailStorageKey,
-      [],
-    );
-    const normalizedRecipeDetails = storedRecipeDetails
-      .map(normalizeRecipeDetail)
-      .filter((item): item is RecipeDetail => item !== null);
-
-    if (normalizedRecipeDetails.length > 0) {
-      setRecipeDetails(normalizedRecipeDetails);
-    } else {
-      setRecipeDetails(initialRecipeDetails);
-      saveToStorage(recipeDetailStorageKey, initialRecipeDetails);
+    // Load Đơn vị từ LocalStorage
+    if (typeof window !== "undefined") {
+      const storedUnits = localStorage.getItem(unitStorageKey);
+      if (storedUnits) setUnits(JSON.parse(storedUnits));
+      else localStorage.setItem(unitStorageKey, JSON.stringify(initialUnits));
     }
   };
 
   useEffect(() => {
     loadData();
-
-    window.addEventListener("storage", loadData);
-
-    return () => {
-      window.removeEventListener("storage", loadData);
-    };
   }, []);
 
+  // Tự động chọn sản phẩm đầu tiên
   useEffect(() => {
-    const activeProducts = products.filter(
-      (product) => product.TrangThai === 1,
-    );
-
+    const activeProducts = products.filter((p) => p.trangThai === 1);
     if (!selectedProduct && activeProducts.length > 0) {
-      const firstProduct = activeProducts[0];
-      setSelectedProduct(firstProduct);
-      setEditingDetails(getRecipeDetailsByProduct(firstProduct.MaSP));
+      selectProduct(activeProducts[0]);
     }
-  }, [products, selectedProduct]);
+  }, [products]);
 
-  const activeProducts = products.filter((product) => product.TrangThai === 1);
-
-  const activeIngredients = ingredients.filter(
-    (ingredient) => ingredient.TrangThai === 1,
-  );
+  const activeProducts = products.filter((p) => p.trangThai === 1);
+  const activeIngredients = ingredients.filter((i) => i.trangThai === 1);
 
   const getUnitName = (MaDV: string) => {
     return units.find((unit) => unit.MaDV === MaDV)?.TenDonVi || MaDV;
   };
 
-  const getIngredient = (MaNL: string) => {
-    return ingredients.find((ingredient) => ingredient.MaNL === MaNL);
+  const getIngredient = (maNL: string) => {
+    return ingredients.find((i) => i.maNL === maNL);
   };
 
-  const getActiveRecipeVersion = (MaSP: string) => {
-    return recipeVersions.find(
-      (version) => version.MaSP === MaSP && version.TrangThai === "ACTIVE",
-    );
+  const hasRecipe = (maSP: string) => !!hasRecipeMap[maSP];
+
+  // --- HÀM CHỌN SẢN PHẨM & LOAD CÔNG THỨC CHI TIẾT ---
+  const selectProduct = async (product: Product) => {
+    setSelectedProduct(product);
+    try {
+      const res = await api.get(`/api/congthuc/${product.maSP}`);
+      setActiveRecipe(res.data);
+      setEditingDetails(res.data.chiTiet || []);
+    } catch (error) {
+      setActiveRecipe(null);
+      setEditingDetails([]);
+    }
   };
 
-  function getRecipeDetailsByProduct(MaSP: string) {
-    const version = getActiveRecipeVersion(MaSP);
-
-    if (!version) return [];
-
-    return recipeDetails.filter((detail) => detail.MaPB === version.MaPB);
-  }
-
-  const hasRecipe = (MaSP: string) => {
-    return getRecipeDetailsByProduct(MaSP).length > 0;
-  };
-
-  const recipeIngredientCount = selectedProduct
-    ? getRecipeDetailsByProduct(selectedProduct.MaSP).length
-    : 0;
-
-  const productsWithRecipe = activeProducts.filter((product) =>
-    hasRecipe(product.MaSP),
-  ).length;
-
+  // --- THỐNG KÊ SIDEBAR ---
+  const productsWithRecipe = activeProducts.filter((p) => hasRecipe(p.maSP)).length;
   const productsWithoutRecipe = activeProducts.length - productsWithRecipe;
+  const recipeIngredientCount = editingDetails.length;
 
   const filteredProducts = useMemo(() => {
     return activeProducts.filter((product) => {
       const matchesSearch =
-        product.MaSP.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.TenSP.toLowerCase().includes(searchQuery.toLowerCase());
+        product.maSP.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.tenSP.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesType =
         typeFilter === "all" ||
-        (typeFilter === "product" && !product.IsTopping) ||
-        (typeFilter === "topping" && product.IsTopping);
+        (typeFilter === "product" && !product.isTopping) ||
+        (typeFilter === "topping" && product.isTopping);
 
       const matchesRecipe =
         recipeFilter === "all" ||
-        (recipeFilter === "hasRecipe" && hasRecipe(product.MaSP)) ||
-        (recipeFilter === "noRecipe" && !hasRecipe(product.MaSP));
+        (recipeFilter === "hasRecipe" && hasRecipe(product.maSP)) ||
+        (recipeFilter === "noRecipe" && !hasRecipe(product.maSP));
 
       return matchesSearch && matchesType && matchesRecipe;
     });
-  }, [
-    activeProducts,
-    searchQuery,
-    typeFilter,
-    recipeFilter,
-    recipeVersions,
-    recipeDetails,
-  ]);
+  }, [activeProducts, searchQuery, typeFilter, recipeFilter, hasRecipeMap]);
 
-  const selectProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setEditingDetails(getRecipeDetailsByProduct(product.MaSP));
-  };
-
+  // --- THAO TÁC TRÊN BẢNG ---
   const addIngredient = () => {
-    if (!selectedProduct) return;
-
-    const activeVersion = getActiveRecipeVersion(selectedProduct.MaSP);
-
-    setEditingDetails([
-      ...editingDetails,
-      {
-        MaPB: activeVersion?.MaPB || "",
-        MaNL: "",
-        SoLuong: 0,
-      },
-    ]);
+    setEditingDetails([...editingDetails, { maNL: "", soLuong: 0 }]);
   };
 
   const removeIngredient = (index: number) => {
     setEditingDetails(editingDetails.filter((_, i) => i !== index));
   };
 
-  const updateIngredient = (index: number, MaNL: string) => {
+  const updateIngredient = (index: number, maNL: string) => {
     setEditingDetails(
-      editingDetails.map((item, i) =>
-        i === index
-          ? {
-              ...item,
-              MaNL,
-            }
-          : item,
-      ),
+      editingDetails.map((item, i) => (i === index ? { ...item, maNL } : item))
     );
   };
 
-  const updateAmount = (index: number, SoLuong: number) => {
+  const updateAmount = (index: number, soLuong: number) => {
     setEditingDetails(
-      editingDetails.map((item, i) =>
-        i === index
-          ? {
-              ...item,
-              SoLuong,
-            }
-          : item,
-      ),
+      editingDetails.map((item, i) => (i === index ? { ...item, soLuong } : item))
     );
   };
 
   const handleCancel = () => {
-    if (!selectedProduct) return;
-
-    setEditingDetails(getRecipeDetailsByProduct(selectedProduct.MaSP));
+    if (selectedProduct) selectProduct(selectedProduct); // Load lại từ server
   };
 
-  const handleSave = () => {
+  // --- HÀM LƯU CÔNG THỨC LÊN BACKEND ---
+  const handleSave = async () => {
     if (!selectedProduct) return;
 
     if (editingDetails.length === 0) {
@@ -616,7 +230,7 @@ export default function RecipesPage() {
     }
 
     const hasInvalidItem = editingDetails.some(
-      (item) => !item.MaNL || item.SoLuong <= 0 || Number.isNaN(item.SoLuong),
+      (item) => !item.maNL || item.soLuong <= 0 || Number.isNaN(item.soLuong)
     );
 
     if (hasInvalidItem) {
@@ -625,190 +239,76 @@ export default function RecipesPage() {
     }
 
     const duplicatedIngredient = editingDetails.some((item, index) =>
-      editingDetails.some(
-        (otherItem, otherIndex) =>
-          otherIndex !== index && otherItem.MaNL === item.MaNL,
-      ),
+      editingDetails.some((otherItem, otherIndex) => otherIndex !== index && otherItem.maNL === item.maNL)
     );
 
     if (duplicatedIngredient) {
-      alert(
-        "Một nguyên liệu không được xuất hiện nhiều lần trong cùng công thức",
-      );
+      alert("Một nguyên liệu không được xuất hiện nhiều lần trong cùng công thức");
       return;
     }
 
-    let activeVersion = getActiveRecipeVersion(selectedProduct.MaSP);
-    let updatedVersions = [...recipeVersions];
-
-    const now = new Date().toISOString();
-
-    if (!activeVersion) {
-      activeVersion = {
-        MaPB: getNextCode(
-          "PB",
-          recipeVersions.map((version) => version.MaPB),
-        ),
-        MaSP: selectedProduct.MaSP,
-        NgayHieuLuc: now,
-        TrangThai: "ACTIVE",
-        CreatedAt: now,
-        UpdatedAt: now,
-      };
-
-      updatedVersions = [...updatedVersions, activeVersion];
-    } else {
-      updatedVersions = updatedVersions.map((version) =>
-        version.MaPB === activeVersion?.MaPB
-          ? {
-              ...version,
-              UpdatedAt: now,
-            }
-          : version,
-      );
-    }
-
-    const newDetails = editingDetails.map((item) => ({
-      MaPB: activeVersion.MaPB,
-      MaNL: item.MaNL,
-      SoLuong: item.SoLuong,
-    }));
-
-    const updatedDetails = [
-      ...recipeDetails.filter((detail) => detail.MaPB !== activeVersion.MaPB),
-      ...newDetails,
-    ];
-
-    setRecipeVersions(updatedVersions);
-    setRecipeDetails(updatedDetails);
-    setEditingDetails(newDetails);
-
-    saveToStorage(recipeVersionStorageKey, updatedVersions);
-    saveToStorage(recipeDetailStorageKey, updatedDetails);
-
-    alert("Lưu công thức thành công");
-  };
-
-  const handleCreateNewVersion = () => {
-    if (!selectedProduct) return;
-
-    const isConfirmed = confirm(
-      "Tạo phiên bản công thức mới sẽ ngưng áp dụng phiên bản hiện tại và tạo phiên bản mới cho sản phẩm này. Bạn muốn tiếp tục?",
-    );
-
-    if (!isConfirmed) return;
-
-    const now = new Date().toISOString();
-
-    const oldActiveVersion = getActiveRecipeVersion(selectedProduct.MaSP);
-
-    const newVersion: RecipeVersion = {
-      MaPB: getNextCode(
-        "PB",
-        recipeVersions.map((version) => version.MaPB),
-      ),
-      MaSP: selectedProduct.MaSP,
-      NgayHieuLuc: now,
-      TrangThai: "ACTIVE",
-      CreatedAt: now,
-      UpdatedAt: now,
+    // Backend đã tự lo việc versioning, chỉ cần đẩy list xuống
+    const payload = {
+      maSP: selectedProduct.maSP,
+      chiTiet: editingDetails.map((item) => ({
+        maNL: item.maNL,
+        soLuong: item.soLuong,
+      })),
     };
 
-    const updatedVersions = recipeVersions.map((version) =>
-      version.MaSP === selectedProduct.MaSP && version.TrangThai === "ACTIVE"
-        ? {
-            ...version,
-            TrangThai: "INACTIVE",
-            UpdatedAt: now,
-          }
-        : version,
-    );
-
-    const copiedDetails = oldActiveVersion
-      ? recipeDetails
-          .filter((detail) => detail.MaPB === oldActiveVersion.MaPB)
-          .map((detail) => ({
-            MaPB: newVersion.MaPB,
-            MaNL: detail.MaNL,
-            SoLuong: detail.SoLuong,
-          }))
-      : [];
-
-    const finalVersions = [...updatedVersions, newVersion];
-    const finalDetails = [...recipeDetails, ...copiedDetails];
-
-    setRecipeVersions(finalVersions);
-    setRecipeDetails(finalDetails);
-    setEditingDetails(copiedDetails);
-
-    saveToStorage(recipeVersionStorageKey, finalVersions);
-    saveToStorage(recipeDetailStorageKey, finalDetails);
-
-    alert("Đã tạo phiên bản công thức mới");
+    try {
+      await api.post("/api/congthuc", payload);
+      alert("Đã cập nhật công thức thành công!");
+      
+      // Đánh dấu lại Sidebar và tải lại công thức mới nhất
+      setHasRecipeMap((prev) => ({ ...prev, [selectedProduct.maSP]: true }));
+      selectProduct(selectedProduct);
+    } catch (error) {
+      alert("Có lỗi xảy ra khi lưu công thức!");
+      console.error(error);
+    }
   };
 
-  const activeVersion = selectedProduct
-    ? getActiveRecipeVersion(selectedProduct.MaSP)
-    : null;
-
   return (
-    <MainLayout
-      title="Công thức pha chế"
-      breadcrumb="Trang chủ / Danh mục / Công thức"
-    >
+    <MainLayout title="Công thức pha chế" breadcrumb="Trang chủ / Danh mục / Công thức">
       <div className="space-y-4">
+        {/* CARD THỐNG KÊ */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <p className="text-sm text-muted-foreground">Sản phẩm đang bán</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">
-              {activeProducts.length}
-            </p>
+            <p className="mt-1 text-2xl font-bold text-foreground">{activeProducts.length}</p>
           </div>
-
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <p className="text-sm text-muted-foreground">Đã có công thức</p>
-            <p className="mt-1 text-2xl font-bold text-[#198754]">
-              {productsWithRecipe}
-            </p>
+            <p className="mt-1 text-2xl font-bold text-[#198754]">{productsWithRecipe}</p>
           </div>
-
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <p className="text-sm text-muted-foreground">Chưa có công thức</p>
-            <p className="mt-1 text-2xl font-bold text-[#DC3545]">
-              {productsWithoutRecipe}
-            </p>
+            <p className="mt-1 text-2xl font-bold text-[#DC3545]">{productsWithoutRecipe}</p>
           </div>
-
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-            <p className="text-sm text-muted-foreground">
-              Nguyên liệu trong CT
-            </p>
-            <p className="mt-1 text-2xl font-bold text-primary">
-              {recipeIngredientCount}
-            </p>
+            <p className="text-sm text-muted-foreground">Nguyên liệu trong CT</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{recipeIngredientCount}</p>
           </div>
         </div>
 
         <div className="flex gap-6 h-[calc(100vh-270px)] min-h-[520px]">
-          <div className="w-[380px] flex-shrink-0 rounded-lg bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+          {/* SIDEBAR SẢN PHẨM */}
+          <div className="w-[380px] flex-shrink-0 rounded-lg bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex flex-col">
             <div className="space-y-3 border-b border-border p-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
                 <Input
                   placeholder="Tìm mã hoặc tên sản phẩm..."
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Loại" />
-                  </SelectTrigger>
-
+                  <SelectTrigger><SelectValue placeholder="Loại" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả loại</SelectItem>
                     <SelectItem value="product">Sản phẩm chính</SelectItem>
@@ -817,10 +317,7 @@ export default function RecipesPage() {
                 </Select>
 
                 <Select value={recipeFilter} onValueChange={setRecipeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Công thức" />
-                  </SelectTrigger>
-
+                  <SelectTrigger><SelectValue placeholder="Công thức" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả</SelectItem>
                     <SelectItem value="hasRecipe">Đã có CT</SelectItem>
@@ -829,292 +326,151 @@ export default function RecipesPage() {
                 </Select>
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={loadData}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Làm mới
-                </Button>
-              </div>
+              <Button variant="outline" className="w-full gap-2" onClick={loadData}>
+                <RefreshCw className="h-4 w-4" /> Làm mới dữ liệu
+              </Button>
             </div>
 
-            <div
-              className="overflow-y-auto"
-              style={{ maxHeight: "calc(100% - 170px)" }}
-            >
+            <div className="flex-1 overflow-y-auto">
               {filteredProducts.map((product) => (
                 <button
-                  key={product.MaSP}
+                  key={product.maSP}
                   onClick={() => selectProduct(product)}
                   className={cn(
                     "flex w-full items-center gap-3 border-b border-border p-4 text-left transition-colors",
-                    selectedProduct?.MaSP === product.MaSP
+                    selectedProduct?.maSP === product.maSP
                       ? "bg-primary/10 border-l-4 border-l-primary"
-                      : "hover:bg-muted/50",
+                      : "hover:bg-muted/50"
                   )}
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
                     <Coffee className="h-5 w-5 text-muted-foreground" />
                   </div>
-
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-primary">
-                        {product.MaSP}
-                      </span>
-
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                          product.IsTopping
-                            ? "bg-[#CFF4FC] text-[#055160]"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {product.IsTopping ? "Topping" : "SP chính"}
+                      <span className="text-xs font-semibold text-primary">{product.maSP}</span>
+                      <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", product.isTopping ? "bg-[#CFF4FC] text-[#055160]" : "bg-muted text-muted-foreground")}>
+                        {product.isTopping ? "Topping" : "SP chính"}
                       </span>
                     </div>
-
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {product.TenSP}
-                    </p>
-
+                    <p className="truncate text-sm font-medium text-foreground">{product.tenSP}</p>
                     <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatCurrency(product.GiaHienTai)}
-                      </span>
-
-                      <span
-                        className={cn(
-                          "text-xs font-medium",
-                          hasRecipe(product.MaSP)
-                            ? "text-[#198754]"
-                            : "text-[#DC3545]",
-                        )}
-                      >
-                        {hasRecipe(product.MaSP) ? "Đã có CT" : "Chưa có CT"}
+                      <span className="text-xs text-muted-foreground">{formatCurrency(product.giaHienTai)}</span>
+                      <span className={cn("text-xs font-medium", hasRecipe(product.maSP) ? "text-[#198754]" : "text-[#DC3545]")}>
+                        {hasRecipe(product.maSP) ? "Đã có CT" : "Chưa có CT"}
                       </span>
                     </div>
                   </div>
                 </button>
               ))}
-
-              {filteredProducts.length === 0 && (
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  Không có sản phẩm phù hợp
-                </div>
-              )}
+              {filteredProducts.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Không có sản phẩm phù hợp</div>}
             </div>
           </div>
 
+          {/* MAIN CONTENT: CHI TIẾT CÔNG THỨC */}
           <div className="flex-1 rounded-lg bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             {selectedProduct ? (
               <div className="flex h-full flex-col">
-                <div className="border-b border-border p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
-                        <Coffee className="h-8 w-8 text-muted-foreground" />
+                <div className="border-b border-border p-6 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                      <Coffee className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-primary">{selectedProduct.maSP}</span>
+                        <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {selectedProduct.isTopping ? "Topping" : "Sản phẩm chính"}
+                        </span>
                       </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-primary">
-                            {selectedProduct.MaSP}
+                      <h2 className="text-xl font-semibold text-foreground">{selectedProduct.tenSP}</h2>
+                      <div className="mt-1 flex items-center gap-3">
+                        <span className="text-sm font-semibold text-primary">{formatCurrency(selectedProduct.giaHienTai)}</span>
+                        {activeRecipe?.maPB ? (
+                          <span className="text-sm text-muted-foreground">
+                            Đang áp dụng: <span className="font-medium text-foreground">{activeRecipe.maPB}</span>
                           </span>
-
-                          <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                            {selectedProduct.IsTopping
-                              ? "Topping"
-                              : "Sản phẩm chính"}
-                          </span>
-                        </div>
-
-                        <h2 className="text-xl font-semibold text-foreground">
-                          {selectedProduct.TenSP}
-                        </h2>
-
-                        <div className="mt-1 flex items-center gap-3">
-                          <span className="text-sm font-semibold text-primary">
-                            {formatCurrency(selectedProduct.GiaHienTai)}
-                          </span>
-
-                          {activeVersion ? (
-                            <span className="text-sm text-muted-foreground">
-                              Phiên bản:{" "}
-                              <span className="font-medium text-foreground">
-                                {activeVersion.MaPB}
-                              </span>{" "}
-                              · Hiệu lực:{" "}
-                              {formatDateTime(activeVersion.NgayHieuLuc)}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-[#DC3545]">
-                              Chưa có phiên bản công thức
-                            </span>
-                          )}
-                        </div>
+                        ) : (
+                          <span className="text-sm text-[#DC3545]">Chưa có phiên bản công thức</span>
+                        )}
                       </div>
                     </div>
-
-                    <Button
-                      variant="outline"
-                      className="gap-2"
-                      onClick={handleCreateNewVersion}
-                    >
-                      <FileText className="h-4 w-4" />
-                      Tạo phiên bản mới
-                    </Button>
                   </div>
+                  {/* Vì Backend tự động handle việc tạo version mới, ta gộp luôn chức năng Lưu và Tạo mới thành 1 nút để UX đơn giản hơn */}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-muted">
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Nguyên liệu
-                        </th>
-
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Đơn vị
-                        </th>
-
-                        <th className="w-40 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Định mức
-                        </th>
-
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nguyên liệu</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Đơn vị</th>
+                        <th className="w-40 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Định mức</th>
                         <th className="w-16 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"></th>
                       </tr>
                     </thead>
-
                     <tbody className="divide-y divide-border">
                       {editingDetails.map((item, index) => {
-                        const ingredient = getIngredient(item.MaNL);
-
+                        const ingredient = getIngredient(item.maNL);
                         return (
-                          <tr
-                            key={`${item.MaPB || "new"}-${item.MaNL}-${index}`}
-                            className="hover:bg-muted/50"
-                          >
+                          <tr key={`${item.maNL}-${index}`} className="hover:bg-muted/50">
                             <td className="px-4 py-3">
-                              <Select
-                                value={item.MaNL}
-                                onValueChange={(value) =>
-                                  updateIngredient(index, value)
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Chọn nguyên liệu" />
-                                </SelectTrigger>
-
+                              <Select value={item.maNL} onValueChange={(value) => updateIngredient(index, value)}>
+                                <SelectTrigger><SelectValue placeholder="Chọn nguyên liệu" /></SelectTrigger>
                                 <SelectContent>
-                                  {activeIngredients.map((ingredient) => (
-                                    <SelectItem
-                                      key={ingredient.MaNL}
-                                      value={ingredient.MaNL}
-                                    >
-                                      {ingredient.MaNL} - {ingredient.TenNL}
-                                    </SelectItem>
+                                  {activeIngredients.map((ing) => (
+                                    <SelectItem key={ing.maNL} value={ing.maNL}>{ing.maNL} - {ing.tenNL}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                             </td>
-
                             <td className="px-4 py-3 text-center text-sm text-muted-foreground">
-                              {ingredient
-                                ? `${getUnitName(ingredient.DonViCoBan)} (${ingredient.DonViCoBan})`
-                                : "-"}
+                              {ingredient ? `${getUnitName(ingredient.donViCoBan)} (${ingredient.donViCoBan})` : "-"}
                             </td>
-
                             <td className="px-4 py-3">
                               <Input
                                 type="number"
                                 min={0}
-                                value={item.SoLuong || ""}
-                                onChange={(event) =>
-                                  updateAmount(
-                                    index,
-                                    Number(event.target.value) || 0,
-                                  )
-                                }
+                                value={item.soLuong || ""}
+                                onChange={(e) => updateAmount(index, Number(e.target.value) || 0)}
                                 className="text-center"
                               />
                             </td>
-
                             <td className="px-4 py-3 text-center">
-                              <button
-                                onClick={() => removeIngredient(index)}
-                                className="text-muted-foreground hover:text-destructive"
-                              >
+                              <button onClick={() => removeIngredient(index)} className="text-muted-foreground hover:text-destructive">
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             </td>
                           </tr>
                         );
                       })}
-
                       {editingDetails.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="px-4 py-8 text-center text-sm text-muted-foreground"
-                          >
-                            Sản phẩm này chưa có nguyên liệu trong công thức
-                          </td>
-                        </tr>
+                        <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">Chưa có nguyên liệu trong công thức</td></tr>
                       )}
                     </tbody>
                   </table>
 
-                  <Button
-                    variant="outline"
-                    onClick={addIngredient}
-                    className="mt-4 gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Thêm nguyên liệu vào công thức
+                  <Button variant="outline" onClick={addIngredient} className="mt-4 gap-2">
+                    <Plus className="h-4 w-4" /> Thêm nguyên liệu
                   </Button>
 
                   <div className="mt-6 flex items-start gap-3 rounded-lg bg-[#CFF4FC] p-4">
                     <Info className="h-5 w-5 shrink-0 text-[#055160]" />
-
                     <div className="space-y-1 text-sm text-[#055160]">
-                      {/* <p>
-                        Công thức dùng bảng{" "}
-                        <span className="font-semibold">PHIENBANCONGTHUC</span>{" "}
-                        và{" "}
-                        <span className="font-semibold">DINHMUCCONGTHUC</span>.
-                      </p> */}
-
-                      {/* <p>
-                        Định mức này sẽ được dùng để tự động trừ kho khi bán sản
-                        phẩm ở POS sau này.
-                      </p> */}
+                      <p>Mỗi lần Lưu, hệ thống sẽ tự động tạo một <b>Mã phiên bản mới</b> và đóng phiên bản cũ để phục vụ Kế toán tính giá vốn sau này.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-3 border-t border-border p-4">
-                  <Button variant="outline" onClick={handleCancel}>
-                    Hủy thay đổi
-                  </Button>
-
+                  <Button variant="outline" onClick={handleCancel}>Hủy thay đổi</Button>
                   <Button onClick={handleSave} className="gap-2">
-                    <Save className="h-4 w-4" />
-                    Lưu công thức
+                    <Save className="h-4 w-4" /> Cập nhật công thức
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-muted-foreground">
-                  Chọn sản phẩm để xem công thức
-                </p>
-              </div>
+              <div className="flex h-full items-center justify-center"><p className="text-muted-foreground">Chọn sản phẩm để xem công thức</p></div>
             )}
           </div>
         </div>

@@ -21,18 +21,71 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import api from "@/services/api"; 
+import api from "@/services/api";
 
+interface ApiResponse<T> {
+  status: number;
+  message: string;
+  data: T;
+}
 
-interface StockResponse {
+interface ApiBranch {
+  maCN: string;
+  tenCN: string;
+  trangThai?: number;
+}
+
+interface BaoCaoTonKhoResponse {
+  maCN: string;
+  maNL: string;
+  tenNL: string;
+  soLuongTon: number;
+  tonToiThieu: number;
+  trangThai: string;
+  loaiCanhBao?: string;
+  mucDo?: string;
+  thongDiep?: string;
+}
+
+interface BaoCaoHaoHutResponse {
+  maKK: string;
+  ngayKiem: string;
+  maNL: string;
+  tenNL: string;
+  soLuongHeThong: number;
+  soLuongThucTe: number;
+  chenhLech: number;
+  tyLeHaoHut: number;
+}
+
+interface CanhBaoTonKhoTongHopResponse {
+  duoiTonToiThieu?: BaoCaoTonKhoResponse[];
+  tonAm?: BaoCaoTonKhoResponse[];
+  giaoDichDongBoLoi?: unknown[];
+  soDuoiTonToiThieu?: number;
+  soTonAm?: number;
+  soGiaoDichDongBoLoi?: number;
+  tongCanhBao?: number;
+}
+
+interface StockRow {
   maNL: string;
   tenNguyenLieu: string;
   donVi: string;
-  maCN?: string; 
-  chiNhanh: string; 
+  chiNhanh: string;
+  maCN: string;
   tonHienTai: number;
   tonToiThieu: number;
-  trangThai: string; 
+  trangThai: string;
+  MaNL: string;
+  TenNL: string;
+  DonVi: string;
+  TenCN: string;
+  MaCN: string;
+  SoLuongTon: number;
+  TonToiThieu: number;
+  Status: StockStatus;
+  ThongDiep?: string;
 }
 
 const statusConfig = {
@@ -58,6 +111,79 @@ type StockStatus = keyof typeof statusConfig;
 
 const formatNumber = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(value);
+};
+
+const toInputDateTime = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
+
+const getMonthRangeParams = () => {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59);
+
+  return {
+    tuNgay: toInputDateTime(firstDay),
+    denNgay: toInputDateTime(lastDay),
+  };
+};
+
+const getStatusKey = (value?: string, quantity = 0): StockStatus => {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (normalized.includes("tồn âm") || quantity < 0) return "danger";
+  if (normalized.includes("cần nhập") || normalized.includes("nguy")) {
+    return "danger";
+  }
+  if (normalized.includes("cảnh báo") || normalized.includes("duoi")) {
+    return "warning";
+  }
+  if (normalized.includes("hết") || quantity === 0) return "outOfStock";
+
+  return "normal";
+};
+
+const mapReportStock = (
+  item: BaoCaoTonKhoResponse,
+  branchNames: Map<string, string>,
+): StockRow => {
+  const branchName = branchNames.get(item.maCN) || item.maCN;
+  const quantity = item.soLuongTon || 0;
+  const minQuantity = item.tonToiThieu || 0;
+  const status =
+    quantity < 0
+      ? "danger"
+      : quantity === 0
+        ? "outOfStock"
+        : quantity < minQuantity
+          ? "danger"
+          : getStatusKey(item.trangThai, quantity);
+
+  return {
+    maNL: item.maNL,
+    tenNguyenLieu: item.tenNL,
+    donVi: "-",
+    chiNhanh: branchName,
+    maCN: item.maCN,
+    tonHienTai: quantity,
+    tonToiThieu: minQuantity,
+    trangThai: statusConfig[status].label,
+    MaNL: item.maNL,
+    TenNL: item.tenNL,
+    DonVi: "-",
+    TenCN: branchName,
+    MaCN: item.maCN,
+    SoLuongTon: quantity,
+    TonToiThieu: minQuantity,
+    Status: status,
+    ThongDiep: item.thongDiep,
+  };
 };
 
 const downloadCsv = (
@@ -88,7 +214,14 @@ const downloadCsv = (
 };
 
 export default function InventoryStockPage() {
-  const [inventoryData, setInventoryData] = useState<StockResponse[]>([]);
+  const [inventoryData, setInventoryData] = useState<StockRow[]>([]);
+  const [branches, setBranches] = useState<ApiBranch[]>([]);
+  const [stockWarnings, setStockWarnings] = useState<BaoCaoTonKhoResponse[]>(
+    [],
+  );
+  const [warningSummary, setWarningSummary] =
+    useState<CanhBaoTonKhoTongHopResponse | null>(null);
+  const [lossReports, setLossReports] = useState<BaoCaoHaoHutResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -98,14 +231,84 @@ export default function InventoryStockPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // Gọi API lấy dữ liệu thực tế từ Spring Boot
   const fetchStockData = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get("/api/inventory/stock");
-      setInventoryData(response.data);
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu tồn kho:", error);
+
+      const branchesResponse = await api.get<ApiBranch[]>("/api/chinhanh");
+      const activeBranches = (branchesResponse.data || []).filter(
+        (branch) => branch.trangThai === undefined || branch.trangThai === 1,
+      );
+      const branchNames = new Map(
+        activeBranches.map((branch) => [branch.maCN, branch.tenCN]),
+      );
+      const selectedBranches = activeBranches;
+      const selectedLossBranches =
+        branchFilter === "all"
+          ? activeBranches
+          : activeBranches.filter((branch) => branch.maCN === branchFilter);
+
+      const [stockResults, warningResult, summaryResult, lossResults] =
+        await Promise.all([
+          Promise.all(
+            selectedBranches.map((branch) =>
+              api.get<ApiResponse<BaoCaoTonKhoResponse[]>>(
+                "/api/baocao/ton-kho",
+                {
+                  params: { maCN: branch.maCN },
+                },
+              ),
+            ),
+          ),
+          api.get<ApiResponse<BaoCaoTonKhoResponse[]>>(
+            "/api/baocao/canh-bao-ton-kho",
+            {
+              params:
+                branchFilter !== "all" ? { maCN: branchFilter } : undefined,
+            },
+          ),
+          api.get<ApiResponse<CanhBaoTonKhoTongHopResponse>>(
+            "/api/baocao/canh-bao",
+            {
+              params:
+                branchFilter !== "all" ? { maCN: branchFilter } : undefined,
+            },
+          ),
+          Promise.all(
+            selectedLossBranches.map((branch) =>
+              api.get<ApiResponse<BaoCaoHaoHutResponse[]>>(
+                "/api/baocao/hao-hut",
+                {
+                  params: {
+                    maCN: branch.maCN,
+                    ...getMonthRangeParams(),
+                  },
+                },
+              ),
+            ),
+          ),
+        ]);
+
+      setBranches(activeBranches);
+      setInventoryData(
+        stockResults.flatMap((result) =>
+          (result.data.data || []).map((item) =>
+            mapReportStock(item, branchNames),
+          ),
+        ),
+      );
+      setStockWarnings(warningResult.data.data || []);
+      setWarningSummary(summaryResult.data.data || null);
+      setLossReports(lossResults.flatMap((result) => result.data.data || []));
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không tải được báo cáo tồn kho từ backend";
+      alert(message);
+      setInventoryData([]);
+      setStockWarnings([]);
+      setWarningSummary(null);
+      setLossReports([]);
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +316,7 @@ export default function InventoryStockPage() {
 
   useEffect(() => {
     fetchStockData();
-  }, []);
+  }, [branchFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -181,6 +384,9 @@ export default function InventoryStockPage() {
   const warningCount = enrichedInventory.filter((item) => item.Status === "warning").length;
   const dangerCount = enrichedInventory.filter((item) => item.Status === "danger").length;
   const outOfStockCount = enrichedInventory.filter((item) => item.Status === "outOfStock").length;
+  const totalWarningCount =
+    warningSummary?.tongCanhBao ?? stockWarnings.length;
+  const lossCount = lossReports.length;
 
   const handleExportExcel = () => {
     const headers = [
@@ -214,7 +420,7 @@ export default function InventoryStockPage() {
       breadcrumb="Trang chủ / Kho nguyên liệu / Tồn kho"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -251,7 +457,7 @@ export default function InventoryStockPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Cảnh báo</p>
                 <p className="text-2xl font-bold text-[#856404]">
-                  {warningCount + dangerCount}
+                  {totalWarningCount || warningCount + dangerCount}
                 </p>
               </div>
             </div>
@@ -266,6 +472,20 @@ export default function InventoryStockPage() {
                 <p className="text-sm text-muted-foreground">Hết hàng</p>
                 <p className="text-2xl font-bold text-[#DC3545]">
                   {outOfStockCount}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F8D7DA]">
+                <AlertTriangle className="h-5 w-5 text-[#DC3545]" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Hao hụt tháng này</p>
+                <p className="text-2xl font-bold text-[#DC3545]">
+                  {lossCount}
                 </p>
               </div>
             </div>

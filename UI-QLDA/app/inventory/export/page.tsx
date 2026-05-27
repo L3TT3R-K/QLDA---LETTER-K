@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import api from "@/services/api";
 
 type ExportReason = "USE" | "EXPIRE" | "DAMAGE" | "OTHER";
 
@@ -89,6 +90,71 @@ interface Ingredient {
   TrangThai: number;
 }
 
+interface ApiExportDetail {
+  maLo?: string;
+  maNL: string;
+  tenNL?: string;
+  soLuong: number;
+  hanSuDung?: string;
+}
+
+interface ApiExportReceipt {
+  maPX: string;
+  maCN: string;
+  tenCN?: string;
+  maNV: string;
+  tenNV?: string;
+  ngayXuat: string;
+  lyDo: string;
+  trangThai?: string | number;
+  chiTiet?: ApiExportDetail[];
+}
+
+interface ApiHaoHutXuatKho {
+  maNL: string;
+  tenNL?: string;
+  lyDo: string;
+  tongSoLuong: number;
+}
+
+interface ApiBranch {
+  maCN: string;
+  tenCN: string;
+  diaChi?: string;
+  trangThai?: number;
+}
+
+interface ApiEmployee {
+  maNV: string;
+  username?: string;
+  tenNV: string;
+  chucVu?: string;
+  maCN?: string | null;
+  trangThai?: number;
+}
+
+interface ApiIngredient {
+  maNL: string;
+  tenNL: string;
+  tenDonVi?: string;
+  donViCoBan?: string;
+  tonToiThieu?: number;
+  trangThai?: string | number;
+}
+
+interface ApiUnit {
+  maDV: string;
+  tenDonVi: string;
+  trangThai?: number;
+}
+
+interface ApiInventoryStock {
+  maNL: string;
+  maCN?: string;
+  chiNhanh?: string;
+  tonHienTai: number;
+}
+
 const receiptStorageKey = "PHIEUXUAT";
 const detailStorageKey = "CTPX";
 const inventoryStorageKey = "TONKHO";
@@ -137,6 +203,7 @@ const normalizeExportReason = (value?: string | null): ExportReason => {
     case "Hủy nguyên liệu hết hạn":
     case "Huy nguyen lieu het han":
     case "XUAT_HET_HAN":
+    case "HET_HAN":
       return "EXPIRE";
 
     case "DAMAGE":
@@ -144,6 +211,7 @@ const normalizeExportReason = (value?: string | null): ExportReason => {
     case "Hư hỏng":
     case "Hu hong":
     case "XUAT_HU_HONG":
+    case "HONG":
       return "DAMAGE";
 
     case "OTHER":
@@ -153,6 +221,7 @@ const normalizeExportReason = (value?: string | null): ExportReason => {
     case "Hao hut":
     case "LOSS":
     case "XUAT_KHAC":
+    case "THAT_THOAT":
       return "OTHER";
 
     default:
@@ -162,6 +231,27 @@ const normalizeExportReason = (value?: string | null): ExportReason => {
 
 const getReasonInfo = (value?: string | null) => {
   return reasonConfig[normalizeExportReason(value)];
+};
+
+const toBackendExportReason = (reason: ExportReason) => {
+  switch (reason) {
+    case "USE":
+      return "XUAT_SU_DUNG";
+    case "EXPIRE":
+      return "HET_HAN";
+    case "DAMAGE":
+      return "HONG";
+    case "OTHER":
+    default:
+      return "THAT_THOAT";
+  }
+};
+
+const getCreateExportEndpoint = (reason: ExportReason) => {
+  if (reason === "USE") return "/api/xuatkho/xuat-nguyen-lieu";
+  if (reason === "OTHER") return "/api/xuatkho";
+
+  return "/api/xuatkho/hao-hut";
 };
 
 const initialBranches: Branch[] = [
@@ -333,10 +423,6 @@ const getFromStorage = <T,>(key: string, fallback: T[]): T[] => {
   }
 };
 
-const saveToStorage = <T,>(key: string, data: T[]) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
 const formatNumber = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(Number(value || 0));
 };
@@ -404,6 +490,83 @@ const mergeInventoryStocks = (stocks: InventoryStock[]) => {
   return Array.from(stockMap.values());
 };
 
+const isActiveStatus = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = value.trim().toLowerCase();
+
+  return ["1", "active", "hoat_dong", "hoạt động", "đang hoạt động"].includes(
+    normalized,
+  );
+};
+
+const mapApiReceipt = (receipt: ApiExportReceipt): ExportReceipt => ({
+  MaPX: receipt.maPX,
+  MaCN: receipt.maCN,
+  MaNV: receipt.maNV,
+  NgayXuat: receipt.ngayXuat,
+  LyDo: normalizeExportReason(receipt.lyDo),
+  GhiChu: "",
+  TrangThai: receipt.trangThai === 0 || receipt.trangThai === "0" ? 0 : 1,
+  IsSynced: true,
+  CreatedAt: receipt.ngayXuat,
+});
+
+const mapApiDetails = (receipt: ApiExportReceipt): ExportDetail[] =>
+  (receipt.chiTiet || []).map((detail) => ({
+    MaPX: receipt.maPX,
+    MaNL: detail.maNL,
+    SoLuong: detail.soLuong || 0,
+  }));
+
+const mapApiBranch = (branch: ApiBranch): Branch => ({
+  MaCN: branch.maCN,
+  TenCN: branch.tenCN,
+  DiaChi: branch.diaChi,
+  TrangThai: branch.trangThai ?? 1,
+});
+
+const mapApiEmployee = (employee: ApiEmployee): Employee => ({
+  MaNV: employee.maNV,
+  Username: employee.username,
+  TenNV: employee.tenNV,
+  ChucVu: employee.chucVu,
+  MaCN: employee.maCN ?? null,
+  TrangThai: employee.trangThai ?? 1,
+});
+
+const mapApiIngredient = (ingredient: ApiIngredient): Ingredient => ({
+  MaNL: ingredient.maNL,
+  TenNL: ingredient.tenNL,
+  DonViCoBan: ingredient.donViCoBan || ingredient.tenDonVi || "",
+  TonToiThieu: ingredient.tonToiThieu || 0,
+  TrangThai: isActiveStatus(ingredient.trangThai) ? 1 : 0,
+});
+
+const mapApiUnit = (unit: ApiUnit): Unit => ({
+  MaDV: unit.maDV,
+  TenDonVi: unit.tenDonVi,
+  TrangThai: unit.trangThai ?? 1,
+});
+
+const mapApiInventoryStock = (stock: ApiInventoryStock): InventoryStock => ({
+  MaCN: stock.maCN || stock.chiNhanh || "",
+  MaNL: stock.maNL,
+  SoLuongTon: stock.tonHienTai || 0,
+});
+
+const getMonthRangeParams = () => {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59);
+
+  return {
+    tuNgay: toInputDateTime(firstDay),
+    denNgay: toInputDateTime(lastDay),
+  };
+};
+
 const downloadCsv = (
   fileName: string,
   headers: string[],
@@ -464,95 +627,132 @@ export default function InventoryExportPage() {
   ]);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [haoHutStats, setHaoHutStats] = useState<ApiHaoHutXuatKho[]>([]);
   const pageSize = 10;
 
-  const loadData = () => {
-    const storedBranches = getFromStorage<Branch>(
-      branchStorageKey,
-      initialBranches,
-    );
+  const loadData = async (filterMaCN = branchFilter) => {
+    try {
+      setIsLoading(true);
 
-    const storedEmployees = getFromStorage<Employee>(
-      employeeStorageKey,
-      initialEmployees,
-    );
-
-    const storedIngredients = getFromStorage<Ingredient>(
-      ingredientStorageKey,
-      initialIngredients,
-    );
-
-    const storedUnits = getFromStorage<Unit>(unitStorageKey, initialUnits);
-
-    const storedReceipts = getFromStorage<ExportReceipt>(
-      receiptStorageKey,
-      initialReceipts,
-    ).map((receipt) => ({
-      ...receipt,
-      LyDo: normalizeExportReason(receipt.LyDo),
-    }));
-
-    const storedDetails = getFromStorage<ExportDetail>(
-      detailStorageKey,
-      initialDetails,
-    );
-
-    const storedInventory = getFromStorage<InventoryStock>(
-      inventoryStorageKey,
-      initialInventory,
-    );
-
-    setBranches(storedBranches);
-    setEmployees(storedEmployees);
-    setIngredients(storedIngredients);
-    setUnits(storedUnits);
-    setReceipts(storedReceipts);
-    setDetails(storedDetails);
-    setInventory(mergeInventoryStocks(storedInventory));
-
-    if (!localStorage.getItem(branchStorageKey)) {
-      saveToStorage(branchStorageKey, initialBranches);
-    }
-
-    if (!localStorage.getItem(employeeStorageKey)) {
-      saveToStorage(employeeStorageKey, initialEmployees);
-    }
-
-    if (!localStorage.getItem(ingredientStorageKey)) {
-      saveToStorage(ingredientStorageKey, initialIngredients);
-    }
-
-    if (!localStorage.getItem(unitStorageKey)) {
-      saveToStorage(unitStorageKey, initialUnits);
-    }
-
-    if (!localStorage.getItem(receiptStorageKey)) {
-      saveToStorage(receiptStorageKey, initialReceipts);
-    } else {
-      saveToStorage(receiptStorageKey, storedReceipts);
-    }
-
-    if (!localStorage.getItem(detailStorageKey)) {
-      saveToStorage(detailStorageKey, initialDetails);
-    }
-
-    if (!localStorage.getItem(inventoryStorageKey)) {
-      saveToStorage(
-        inventoryStorageKey,
-        mergeInventoryStocks(initialInventory),
+      const receiptsResponse = await api.get<ApiExportReceipt[]>(
+        "/api/xuatkho",
+        {
+          params: filterMaCN !== "all" ? { maCN: filterMaCN } : undefined,
+        },
       );
+
+      const [
+        branchesResult,
+        employeesResult,
+        ingredientsResult,
+        unitsResult,
+        inventoryResult,
+        haoHutResult,
+      ] = await Promise.allSettled([
+        api.get<ApiBranch[]>("/api/chinhanh"),
+        api.get<ApiEmployee[]>("/api/nhanvien"),
+        api.get<ApiIngredient[]>("/api/nguyenlieu"),
+        api.get<ApiUnit[]>("/api/donvi"),
+        api.get<ApiInventoryStock[]>("/api/inventory/stock"),
+        filterMaCN !== "all"
+          ? api.get<ApiHaoHutXuatKho[]>("/api/xuatkho/hao-hut", {
+              params: {
+                maCN: filterMaCN,
+                ...getMonthRangeParams(),
+              },
+            })
+          : Promise.resolve({ data: [] as ApiHaoHutXuatKho[] }),
+      ]);
+
+      const apiReceipts = Array.isArray(receiptsResponse.data)
+        ? receiptsResponse.data
+        : [];
+
+      setReceipts(apiReceipts.map(mapApiReceipt));
+      setDetails(apiReceipts.flatMap(mapApiDetails));
+      setBranches(
+        branchesResult.status === "fulfilled" &&
+          Array.isArray(branchesResult.value.data)
+          ? branchesResult.value.data.map(mapApiBranch)
+          : initialBranches,
+      );
+      setEmployees(
+        employeesResult.status === "fulfilled" &&
+          Array.isArray(employeesResult.value.data)
+          ? employeesResult.value.data.map(mapApiEmployee)
+          : initialEmployees,
+      );
+      setIngredients(
+        ingredientsResult.status === "fulfilled" &&
+          Array.isArray(ingredientsResult.value.data)
+          ? ingredientsResult.value.data.map(mapApiIngredient)
+          : initialIngredients,
+      );
+      setUnits(
+        unitsResult.status === "fulfilled" && Array.isArray(unitsResult.value.data)
+          ? unitsResult.value.data.map(mapApiUnit)
+          : initialUnits,
+      );
+      setInventory(
+        inventoryResult.status === "fulfilled" &&
+          Array.isArray(inventoryResult.value.data)
+          ? mergeInventoryStocks(inventoryResult.value.data.map(mapApiInventoryStock))
+          : initialInventory,
+      );
+      setHaoHutStats(
+        haoHutResult.status === "fulfilled" &&
+          Array.isArray(haoHutResult.value.data)
+          ? haoHutResult.value.data
+          : [],
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Không tải được danh sách phiếu xuất từ backend";
+      alert(message);
+
+      const storedReceipts = getFromStorage<ExportReceipt>(
+        receiptStorageKey,
+        initialReceipts,
+      ).map((receipt) => ({
+        ...receipt,
+        LyDo: normalizeExportReason(receipt.LyDo),
+      }));
+
+      setReceipts(storedReceipts);
+      setDetails(getFromStorage<ExportDetail>(detailStorageKey, initialDetails));
+      setBranches(getFromStorage<Branch>(branchStorageKey, initialBranches));
+      setEmployees(
+        getFromStorage<Employee>(employeeStorageKey, initialEmployees),
+      );
+      setIngredients(
+        getFromStorage<Ingredient>(ingredientStorageKey, initialIngredients),
+      );
+      setUnits(getFromStorage<Unit>(unitStorageKey, initialUnits));
+      setInventory(
+        mergeInventoryStocks(
+          getFromStorage<InventoryStock>(inventoryStorageKey, initialInventory),
+        ),
+      );
+      setHaoHutStats([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
 
-    window.addEventListener("storage", loadData);
+    const handleStorage = () => loadData();
+
+    window.addEventListener("storage", handleStorage);
 
     return () => {
-      window.removeEventListener("storage", loadData);
+      window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [branchFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -686,31 +886,7 @@ export default function InventoryExportPage() {
     );
   };
 
-  const updateInventoryAfterExport = (
-    currentInventory: InventoryStock[],
-    items: ExportFormItem[],
-    MaCN: string,
-  ) => {
-    const updatedInventory = [...currentInventory];
-
-    items.forEach((item) => {
-      const index = updatedInventory.findIndex(
-        (stock) => stock.MaCN === MaCN && stock.MaNL === item.MaNL,
-      );
-
-      if (index >= 0) {
-        updatedInventory[index] = {
-          ...updatedInventory[index],
-          SoLuongTon: updatedInventory[index].SoLuongTon - item.SoLuong,
-          UpdatedAt: new Date().toISOString(),
-        };
-      }
-    });
-
-    return mergeInventoryStocks(updatedInventory);
-  };
-
-  const handleConfirmExport = () => {
+  const handleConfirmExport = async () => {
     if (!selectedBranch || !selectedEmployee || !exportDate) {
       alert("Vui lòng chọn chi nhánh, nhân viên và ngày xuất");
       return;
@@ -761,46 +937,35 @@ export default function InventoryExportPage() {
       receipts.map((receipt) => receipt.MaPX),
     );
 
-    const now = new Date().toISOString();
-
-    const newReceipt: ExportReceipt = {
-      MaPX: receiptCode,
-      MaCN: selectedBranch,
-      MaNV: selectedEmployee,
-      NgayXuat: exportDate,
-      LyDo: selectedReason,
-      GhiChu: note.trim(),
-      TrangThai: 1,
-      IsSynced: false,
-      CreatedAt: now,
-      UpdatedAt: now,
+    const payload = {
+      maPX: receiptCode,
+      maCN: selectedBranch,
+      maNV: selectedEmployee,
+      lyDo: toBackendExportReason(selectedReason),
+      chiTiet: exportItems.map((item) => ({
+        maNL: item.MaNL,
+        soLuong: item.SoLuong,
+      })),
     };
 
-    const newDetails: ExportDetail[] = exportItems.map((item) => ({
-      MaPX: receiptCode,
-      MaNL: item.MaNL,
-      SoLuong: item.SoLuong,
-    }));
+    try {
+      setIsSubmitting(true);
+      await api.post<ApiExportReceipt>(
+        getCreateExportEndpoint(selectedReason),
+        payload,
+      );
+      await api.get<ApiExportReceipt>(`/api/xuatkho/${receiptCode}`);
+      await loadData();
 
-    const updatedReceipts = [...receipts, newReceipt];
-    const updatedDetails = [...details, ...newDetails];
-    const updatedInventory = updateInventoryAfterExport(
-      inventory,
-      exportItems,
-      selectedBranch,
-    );
-
-    setReceipts(updatedReceipts);
-    setDetails(updatedDetails);
-    setInventory(updatedInventory);
-
-    saveToStorage(receiptStorageKey, updatedReceipts);
-    saveToStorage(detailStorageKey, updatedDetails);
-    saveToStorage(inventoryStorageKey, updatedInventory);
-
-    alert("Tạo phiếu xuất thành công và đã trừ tồn kho");
-
-    handleCloseDrawer();
+      alert("Tạo phiếu xuất thành công và backend đã cập nhật tồn kho");
+      handleCloseDrawer();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không tạo được phiếu xuất kho";
+      alert(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const exportRows = useMemo(() => {
@@ -881,13 +1046,18 @@ export default function InventoryExportPage() {
     downloadCsv("phieu-xuat-kho.csv", headers, rows);
   };
 
+  const haoHutTotal = haoHutStats.reduce(
+    (sum, item) => sum + Number(item.tongSoLuong || 0),
+    0,
+  );
+
   return (
     <MainLayout
       title="Xuất kho"
       breadcrumb="Trang chủ / Kho nguyên liệu / Xuất kho"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -919,6 +1089,13 @@ export default function InventoryExportPage() {
                   0,
                 ),
               )}
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+            <p className="text-sm text-muted-foreground">Hao hụt tháng này</p>
+            <p className="mt-1 text-2xl font-bold text-destructive">
+              {branchFilter === "all" ? "—" : formatNumber(haoHutTotal)}
             </p>
           </div>
         </div>
@@ -979,9 +1156,14 @@ export default function InventoryExportPage() {
             />
           </div>
 
-          <Button variant="outline" className="gap-2" onClick={loadData}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => loadData()}
+            disabled={isLoading}
+          >
             <RefreshCw className="h-4 w-4" />
-            Làm mới
+            {isLoading ? "Đang tải" : "Làm mới"}
           </Button>
 
           <Button
@@ -1396,7 +1578,9 @@ export default function InventoryExportPage() {
                 Hủy
               </Button>
 
-              <Button onClick={handleConfirmExport}>Xác nhận xuất kho</Button>
+              <Button onClick={handleConfirmExport} disabled={isSubmitting}>
+                {isSubmitting ? "Đang xử lý" : "Xác nhận xuất kho"}
+              </Button>
             </div>
           </div>
         </div>
