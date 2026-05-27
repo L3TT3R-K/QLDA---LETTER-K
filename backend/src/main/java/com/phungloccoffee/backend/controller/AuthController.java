@@ -3,7 +3,7 @@ package com.phungloccoffee.backend.controller;
 import com.phungloccoffee.backend.dto.AuthRequest;
 import com.phungloccoffee.backend.entity.NhanVien;
 import com.phungloccoffee.backend.service.AuthService;
-import com.phungloccoffee.backend.security.JwtUtils; // <-- Import class JwtUtils của cậu
+import com.phungloccoffee.backend.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-    private final JwtUtils jwtUtils; // <-- Bơm JwtUtils vào đây bằng Lombok
+    private final JwtUtils jwtUtils; 
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
@@ -27,10 +27,8 @@ public class AuthController {
             NhanVien nv = authService.authenticate(request);
 
             // 2. Sinh Token JWT xịn từ JwtUtils
-            // LƯU Ý: Mở file JwtUtils.java của cậu ra xem hàm tạo token tên là gì nhé.
-            // Thường nó sẽ là generateToken, generateJwtToken, hoặc createToken. 
-            // Ở đây tớ đang giả định tên hàm là generateToken.
-            String token = jwtUtils.generateToken(nv.getUsername(), nv.getChucVu());
+            // 🌟 ĐÃ SỬA: Bơm thêm nv.getMaCN() vào Token để thực hiện cách ly dữ liệu
+            String token = jwtUtils.generateToken(nv.getUsername(), nv.getChucVu(), nv.getMaCN());
 
             // 3. Đóng gói dữ liệu trả về cho Frontend
             Map<String, Object> response = new HashMap<>();

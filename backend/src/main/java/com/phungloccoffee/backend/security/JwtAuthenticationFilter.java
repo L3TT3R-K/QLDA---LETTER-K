@@ -24,31 +24,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
-        // 1. Lấy cái thẻ từ (Token) từ Header của luồng API gửi tới
         String header = request.getHeader("Authorization");
 
-        // Token chuẩn luôn bắt đầu bằng chữ "Bearer "
         if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7); // Cắt bỏ chữ "Bearer " để lấy đúng mã code
+            String token = header.substring(7);
 
-            // 2. Đưa qua máy quét xem thẻ thật hay giả
             if (jwtUtils.validateToken(token)) {
                 String username = jwtUtils.getUsernameFromToken(token);
                 String chucVu = jwtUtils.getChucVuFromToken(token);
+                String maCN = jwtUtils.getMaCNFromToken(token); 
 
-                // 3. Nếu thẻ chuẩn, cấp quyền đi tiếp vào Controller
-                // Spring Security quy định Role phải có chữ "ROLE_" đứng trước
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + chucVu);
                 
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        username, null, Collections.singletonList(authority));
+                UserPrincipal principal = new UserPrincipal(username, "", maCN, Collections.singletonList(authority));
                 
-                // Đóng dấu "Đã kiểm duyệt" cho luồng request này
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        principal, null, Collections.singletonList(authority));
+                
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
         
-        // Đi tiếp đến chốt kiểm tra tiếp theo (hoặc vào thẳng Controller)
         filterChain.doFilter(request, response);
     }
 }
