@@ -2,6 +2,7 @@ package com.phungloccoffee.backend.service;
 
 import com.phungloccoffee.backend.dto.TonKhoResponse;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,8 @@ public class InventoryService {
     private final TonKhoRepository tonKhoRepository;
 
     public List<TonKhoResponse> getDanhSachTonKho() {
-        List<Object[]> results = tonKhoRepository.layDanhSachTonKho();
+        String maCN = SecurityUtils.requireCurrentUserBranch();
+        List<Object[]> results = tonKhoRepository.layDanhSachTonKhoTheoChiNhanh(maCN);
         return results.stream().map(row -> {
             // Lưu ý: Thứ tự row[index] phải khớp chính xác với câu SELECT trong Repository
             Double hienTai = ((Number) row[5]).doubleValue(); 

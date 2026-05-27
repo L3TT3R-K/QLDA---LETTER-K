@@ -7,6 +7,7 @@ import com.phungloccoffee.backend.entity.*;
 import com.phungloccoffee.backend.repository.CTKKRepository;
 import com.phungloccoffee.backend.repository.KiemKhoRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,8 @@ public class KiemKhoService {
     private final TonKhoRepository tonKhoRepo;
 
     public List<KiemKhoChiTietResponse> getAllLichSuKiemKho() {
-        List<Object[]> rows = ctkkRepo.findAllChiTietKiemKho();
+        String maCN = SecurityUtils.requireCurrentUserBranch();
+        List<Object[]> rows = ctkkRepo.findAllChiTietKiemKhoByMaCN(maCN);
         List<KiemKhoChiTietResponse> list = new ArrayList<>();
 
         for (Object[] row : rows) {
@@ -54,12 +56,15 @@ public class KiemKhoService {
 
     @Transactional
     public void taoPhieuKiemKho(KiemKhoRequest request) {
+        String maCN = SecurityUtils.requireCurrentUserBranch();
+        SecurityUtils.requireSameBranch(request.getMaCN());
+
         KiemKho kk = new KiemKho();
         kk.setMaKK("KK" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
         kk.setNgayKiem(LocalDateTime.now());
         kk.setIsSynced(request.getIsSynced());
 
-        ChiNhanh cn = new ChiNhanh(); cn.setMaCN(request.getMaCN());
+        ChiNhanh cn = new ChiNhanh(); cn.setMaCN(maCN);
         kk.setChiNhanh(cn);
 
         NhanVien nv = new NhanVien(); nv.setMaNV(request.getMaNV());
@@ -77,8 +82,8 @@ public class KiemKhoService {
             ctkkRepo.save(ct);
 
             if (request.getIsSynced()) {
-                TonKho_ID tkId = new TonKho_ID(request.getMaCN(), chiTiet.getMaNL());
-                TonKho tk = tonKhoRepo.findById(tkId).orElse(new TonKho(request.getMaCN(), chiTiet.getMaNL(), 0.0));
+                TonKho_ID tkId = new TonKho_ID(maCN, chiTiet.getMaNL());
+                TonKho tk = tonKhoRepo.findById(tkId).orElse(new TonKho(maCN, chiTiet.getMaNL(), 0.0));
                 tk.setSoLuongTon(chiTiet.getSoLuongThucTe()); 
                 tonKhoRepo.save(tk);
             }

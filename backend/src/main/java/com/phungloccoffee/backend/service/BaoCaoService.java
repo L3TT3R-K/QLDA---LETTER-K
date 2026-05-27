@@ -46,7 +46,7 @@ public class BaoCaoService {
     }
 
     public List<BaoCaoTonKhoResponse> layBaoCaoTonKho(String maCN) {
-        List<TonKho> danhSachTonKho = tonKhoRepository.findByMaCN(maCN);
+        List<TonKho> danhSachTonKho = isBlank(maCN) ? tonKhoRepository.findAll() : tonKhoRepository.findByMaCN(maCN);
         List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
 
         for (TonKho tk : danhSachTonKho) {

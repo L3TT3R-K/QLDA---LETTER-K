@@ -2,6 +2,7 @@ package com.phungloccoffee.backend.controller;
 
 import com.phungloccoffee.backend.entity.TonKho;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,9 +17,17 @@ public class TonKhoController {
 
     private final TonKhoRepository tonKhoRepo;
 
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    public ResponseEntity<List<TonKho>> getTonKhoCuaChiNhanhHienTai() {
+        String maCN = SecurityUtils.requireCurrentUserBranch();
+        return ResponseEntity.ok(tonKhoRepo.findByMaCN(maCN));
+    }
+
     @GetMapping("/{maCN}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<List<TonKho>> getTonKhoByChiNhanh(@PathVariable String maCN) {
+        SecurityUtils.requireSameBranch(maCN);
         return ResponseEntity.ok(tonKhoRepo.findByMaCN(maCN));
     }
 }

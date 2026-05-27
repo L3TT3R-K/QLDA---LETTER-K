@@ -45,6 +45,19 @@ public class SecurityConfig {
                 
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasAnyRole("ADMIN", "QUANLY")
+                .requestMatchers(
+                    "/api/baocao/ton-kho",
+                    "/api/baocao/canh-bao-ton-kho",
+                    "/api/baocao/canh-bao",
+                    "/api/baocao/giao-dich-dong-bo-loi",
+                    "/api/baocao/hao-hut"
+                ).hasAnyAuthority(
+                    "ADMIN", "ROLE_ADMIN",
+                    "QUANLY", "ROLE_QUANLY",
+                    "QUANLY_CHINHANH", "ROLE_QUANLY_CHINHANH",
+                    "NHANVIEN_KHO", "ROLE_NHANVIEN_KHO",
+                    "KHO", "ROLE_KHO"
+                )
                 .requestMatchers("/api/baocao/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN", "QUANLY", "ROLE_QUANLY")                
               
                 .requestMatchers("/api/kiemkho", "/api/kiemkho/**").authenticated()
