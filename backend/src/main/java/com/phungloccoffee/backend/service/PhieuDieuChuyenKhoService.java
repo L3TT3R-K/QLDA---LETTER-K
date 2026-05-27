@@ -39,10 +39,10 @@ import java.util.stream.Collectors;
 @Service
 public class PhieuDieuChuyenKhoService {
 
-    private static final String TAO_PHIEU = "Táº¡o phiáº¿u";
-    private static final String DANG_CHUYEN = "Äang chuyá»ƒn";
-    private static final String DA_NHAN = "ÄÃ£ nháº­n";
-    private static final String DA_HUY = "Há»§y";
+    private static final Integer TAO_PHIEU = 0;
+    private static final Integer DANG_CHUYEN = 1;
+    private static final Integer DA_NHAN = 2;
+    private static final Integer DA_HUY = 3;
     private static final Integer TRANG_THAI_HOP_LE = 1;
 
     @Autowired private PhieuDieuChuyenKhoRepository phieuDieuChuyenKhoRepository;
@@ -75,8 +75,6 @@ public class PhieuDieuChuyenKhoService {
         phieu.setMaCNNhap(request.getMaCNNhap().trim());
         phieu.setNhanVien(nhanVien);
         phieu.setTrangThai(TAO_PHIEU);
-        phieu.setDaXuLyKho(false);
-        phieu.setDaNhanKho(false);
         phieu.setIsSynced(false);
 
         PhieuDieuChuyenKho savedPhieu = phieuDieuChuyenKhoRepository.save(phieu);
@@ -91,13 +89,9 @@ public class PhieuDieuChuyenKhoService {
     @Transactional
     public PhieuDieuChuyenKhoResponse guiPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
         PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
-        if (!TAO_PHIEU.equals(phieu.getTrangThai())) {
+        if (!TAO_PHIEU.equals(parseTrangThai(phieu.getTrangThai()))) {
             throw new IllegalArgumentException("Chi co phieu Tao phieu moi duoc gui");
         }
-        if (Boolean.TRUE.equals(phieu.getDaXuLyKho())) {
-            throw new IllegalArgumentException("Phieu chuyen da xu ly kho xuat");
-        }
-
         for (CTPhieuDieuChuyenKho chiTiet : ctPhieuDieuChuyenKhoRepository.findByMaPC(phieu.getMaPC())) {
             LoHang loHang = loHangRepository.findById(chiTiet.getMaLo())
                     .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang: " + chiTiet.getMaLo()));
@@ -109,23 +103,15 @@ public class PhieuDieuChuyenKhoService {
         }
 
         phieu.setTrangThai(DANG_CHUYEN);
-        phieu.setDaXuLyKho(true);
         return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
     }
 
     @Transactional
     public PhieuDieuChuyenKhoResponse nhanPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
         PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
-        if (!DANG_CHUYEN.equals(phieu.getTrangThai())) {
+        if (!DANG_CHUYEN.equals(parseTrangThai(phieu.getTrangThai()))) {
             throw new IllegalArgumentException("Chi co phieu Dang chuyen moi duoc nhan");
         }
-        if (!Boolean.TRUE.equals(phieu.getDaXuLyKho())) {
-            throw new IllegalArgumentException("Phieu chuyen chua xu ly kho xuat");
-        }
-        if (Boolean.TRUE.equals(phieu.getDaNhanKho())) {
-            throw new IllegalArgumentException("Phieu chuyen da nhan kho");
-        }
-
         ChiNhanh chiNhanhNhan = chiNhanhRepository.findById(phieu.getMaCNNhap())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh nhap: " + phieu.getMaCNNhap()));
         for (CTPhieuDieuChuyenKho chiTiet : ctPhieuDieuChuyenKhoRepository.findByMaPC(phieu.getMaPC())) {
@@ -139,14 +125,13 @@ public class PhieuDieuChuyenKhoService {
         }
 
         phieu.setTrangThai(DA_NHAN);
-        phieu.setDaNhanKho(true);
         return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
     }
 
     @Transactional
     public PhieuDieuChuyenKhoResponse huyPhieu(String maPC, CapNhatTrangThaiDieuChuyenRequest request) {
         PhieuDieuChuyenKho phieu = getPhieuOrThrow(maPC);
-        if (!TAO_PHIEU.equals(phieu.getTrangThai())) {
+        if (!TAO_PHIEU.equals(parseTrangThai(phieu.getTrangThai()))) {
             throw new IllegalArgumentException("Chi co phieu Tao phieu moi duoc huy");
         }
         phieu.setTrangThai(DA_HUY);
@@ -377,14 +362,23 @@ public class PhieuDieuChuyenKhoService {
         return maLo;
     }
 
-    private String parseTrangThai(String trangThai) {
+    private Integer parseTrangThai(Integer trangThai) {
+        return trangThai;
+    }
+
+    private Integer parseTrangThai(String trangThai) {
         String value = trangThai.trim();
         String upper = value.toUpperCase();
-        if ("CHO_GUI".equals(upper) || "TAO_PHIEU".equals(upper) || "Táº O PHIáº¾U".equals(upper)) return TAO_PHIEU;
-        if ("DA_GUI".equals(upper) || "DANG_CHUYEN".equals(upper) || "ÄANG CHUYá»‚N".equals(upper)) return DANG_CHUYEN;
-        if ("DA_NHAN".equals(upper) || "ÄÃƒ NHáº¬N".equals(upper)) return DA_NHAN;
-        if ("DA_HUY".equals(upper) || "HUY".equals(upper) || "Há»¦Y".equals(upper)) return DA_HUY;
-        return value;
+        if ("CHO_GUI".equals(upper) || "DRAFT".equals(upper) || "0".equals(upper) || "TAO_PHIEU".equals(upper)
+                || "TAO PHIEU".equals(upper) || upper.contains("PHI")) return TAO_PHIEU;
+        if ("DA_GUI".equals(upper) || "SENT".equals(upper) || "1".equals(upper) || "DANG_CHUYEN".equals(upper)
+                || "DANG CHUYEN".equals(upper) || upper.contains("CHUYEN")) return DANG_CHUYEN;
+        if ("DA_NHAN".equals(upper) || "RECEIVED".equals(upper) || "COMPLETED".equals(upper) || "DONE".equals(upper)
+                || "2".equals(upper) || "HOAN_THANH".equals(upper) || "DA NHAN".equals(upper)
+                || upper.contains("NHAN") || upper.contains("THANH")) return DA_NHAN;
+        if ("DA_HUY".equals(upper) || "CANCELLED".equals(upper) || "3".equals(upper) || "HUY".equals(upper)
+                || upper.contains("HUY")) return DA_HUY;
+        throw new IllegalArgumentException("Trang thai phieu chuyen khong hop le: " + trangThai);
     }
 
     private boolean isBlank(String value) {

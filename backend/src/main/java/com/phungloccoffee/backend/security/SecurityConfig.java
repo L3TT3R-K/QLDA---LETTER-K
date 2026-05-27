@@ -54,6 +54,7 @@ public class SecurityConfig {
                 // Thêm quyền cho API tồn kho mới của chúng ta
                 .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
                 .requestMatchers("/api/kiemkho", "/api/kiemkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/dieuchuyenkho", "/api/dieuchuyenkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
                 .anyRequest().authenticated()
             );
 

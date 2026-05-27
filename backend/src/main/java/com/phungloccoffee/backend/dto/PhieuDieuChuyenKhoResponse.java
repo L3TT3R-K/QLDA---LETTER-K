@@ -19,6 +19,6 @@ public class PhieuDieuChuyenKhoResponse {
     private String maNVTao;
     private String tenNVTao;
     private LocalDateTime ngayTao;
-    private String trangThai;
+    private Integer trangThai;
     private List<CTPhieuDieuChuyenKhoResponse> chiTiet;
 }
