@@ -48,12 +48,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 
                 .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasAnyRole("ADMIN", "QUANLY")
-                .requestMatchers("/api/baocao/**").hasRole("QUANLY")
+                .requestMatchers("/api/baocao/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 
                 // Thêm quyền cho API tồn kho mới của chúng ta
-                .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO")
-                .requestMatchers("/api/kiemkho", "/api/kiemkho/**").hasAnyRole("QUANLY", "NHANVIEN_KHO")
+                .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/kiemkho", "/api/kiemkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
                 .anyRequest().authenticated()
             );
 

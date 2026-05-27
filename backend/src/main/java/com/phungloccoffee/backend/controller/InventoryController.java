@@ -16,7 +16,7 @@ public class InventoryController {
     private final InventoryService inventoryService;
 
     @GetMapping("/stock")
-    @PreAuthorize("hasAnyRole('KHO', 'QUANLY', 'ADMIN')") 
+    @PreAuthorize("hasAnyRole('KHO', 'NHANVIEN_KHO', 'QUANLY', 'ADMIN')") 
     public ResponseEntity<?> getStock() {
         try {
             return ResponseEntity.ok(inventoryService.getDanhSachTonKho());

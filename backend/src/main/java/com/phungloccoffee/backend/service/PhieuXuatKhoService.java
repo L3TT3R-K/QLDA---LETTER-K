@@ -45,7 +45,7 @@ public class PhieuXuatKhoService {
     private static final String HONG = "HONG";
     private static final String THAT_THOAT = "THAT_THOAT";
     private static final String HET_HAN = "HET_HAN";
-    private static final String TRANG_THAI_DA_XUAT_KHO = "ÄÃ£ xuáº¥t kho";
+    private static final Integer TRANG_THAI_DA_XUAT_KHO = 1;
     private static final Integer TRANG_THAI_HOP_LE = 1;
 
     @Autowired private PhieuXuatKhoRepository phieuXuatKhoRepository;
@@ -96,7 +96,6 @@ public class PhieuXuatKhoService {
         phieuXuatKho.setNhanVien(nhanVien);
         phieuXuatKho.setLyDo(lyDo);
         phieuXuatKho.setTrangThai(TRANG_THAI_DA_XUAT_KHO);
-        phieuXuatKho.setDaXuLyKho(true);
         phieuXuatKho.setIsSynced(false);
 
         PhieuXuatKho savedPhieuXuatKho = phieuXuatKhoRepository.save(phieuXuatKho);
