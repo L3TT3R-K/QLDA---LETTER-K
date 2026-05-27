@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class NguyenLieuService {
-    private static final String HOAT_DONG = "Hoạt động";
-    private static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
+    private static final Integer HOAT_DONG = 1;
+    private static final Integer NGUNG_HOAT_DONG = 0;
 
     @Autowired private NguyenLieuRepository repository;
 

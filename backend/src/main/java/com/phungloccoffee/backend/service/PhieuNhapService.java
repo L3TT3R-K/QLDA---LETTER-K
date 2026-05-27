@@ -42,7 +42,7 @@ public class PhieuNhapService {
 
     private static final String NGUON_NHA_CUNG_CAP = "NHA_CUNG_CAP";
     private static final String NGUON_KHO_TONG = "KHO_TONG";
-    private static final String TRANG_THAI_DA_NHAP_KHO = "ÄÃ£ nháº­p kho";
+    private static final Integer TRANG_THAI_DA_NHAP_KHO = 1;
     private static final Integer TRANG_THAI_HOP_LE = 1;
 
     @Autowired private PhieuNhapRepository phieuNhapRepository;
@@ -86,7 +86,6 @@ public class PhieuNhapService {
         phieuNhap.setNhanVien(nhanVien);
         phieuNhap.setNgayNhap(request.getNgayNhap() != null ? request.getNgayNhap() : LocalDateTime.now());
         phieuNhap.setTrangThai(TRANG_THAI_DA_NHAP_KHO);
-        phieuNhap.setDaXuLyKho(true);
         phieuNhap.setIsSynced(false);
 
         double tongTien = 0.0;
@@ -102,6 +101,34 @@ public class PhieuNhapService {
 
         savedPhieuNhap.setTongTien(toBigDecimal(tongTien));
         return toResponse(phieuNhapRepository.save(savedPhieuNhap));
+    }
+
+    @Transactional
+    public PhieuNhapResponse capNhatPhieuNhap(String maPN, PhieuNhapRequest request) {
+        if (isBlank(maPN)) {
+            throw new IllegalArgumentException("Ma phieu nhap khong duoc de trong");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Du lieu phieu nhap khong duoc de trong");
+        }
+        PhieuNhap existing = phieuNhapRepository.findById(maPN)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phieu nhap: " + maPN));
+
+        request.setMaPN(maPN.trim());
+        validateRequest(request);
+        hoanTacVaXoaPhieuNhap(existing);
+        phieuNhapRepository.flush();
+        return taoPhieuNhap(request);
+    }
+
+    @Transactional
+    public void xoaPhieuNhap(String maPN) {
+        if (isBlank(maPN)) {
+            throw new IllegalArgumentException("Ma phieu nhap khong duoc de trong");
+        }
+        PhieuNhap existing = phieuNhapRepository.findById(maPN)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phieu nhap: " + maPN));
+        hoanTacVaXoaPhieuNhap(existing);
     }
 
     public List<PhieuNhapResponse> getAll() {
@@ -126,6 +153,67 @@ public class PhieuNhapService {
         return phieuNhapRepository.findByChiNhanhMaCN(maCN).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    private void hoanTacVaXoaPhieuNhap(PhieuNhap phieuNhap) {
+        List<CTPhieuNhap> chiTietList = ctPhieuNhapRepository.findByMaPN(phieuNhap.getMaPN());
+        List<InventoryTransaction> giaoDichList = inventoryTransactionRepository
+                .findByLoaiChungTuAndIdChungTu("PHIEUNHAP", phieuNhap.getMaPN());
+
+        for (CTPhieuNhap chiTiet : chiTietList) {
+            LoHang loHang = loHangRepository.findById(chiTiet.getMaLo())
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lo hang cua phieu nhap: " + chiTiet.getMaLo()));
+            NguyenLieu nguyenLieu = getNguyenLieuFromLo(loHang);
+            double soLuongNhap = valueOrZero(chiTiet.getSoLuong());
+            double soLuongCon = valueOrZero(loHang.getSoLuongCon());
+            if (Math.abs(soLuongCon - soLuongNhap) > 0.000001) {
+                throw new IllegalArgumentException("Khong the sua/xoa phieu nhap vi lo " + loHang.getMaLo()
+                        + " da phat sinh thay doi ton kho. So luong con: " + soLuongCon);
+            }
+            if (loHang.getChiNhanh() == null) {
+                throw new IllegalArgumentException("Lo hang chua gan chi nhanh: " + loHang.getMaLo());
+            }
+            truTonKhoBatBuoc(loHang.getChiNhanh().getMaCN(), nguyenLieu.getMaNL(), soLuongNhap);
+        }
+
+        for (InventoryTransaction giaoDich : giaoDichList) {
+            if (Integer.valueOf(3).equals(giaoDich.getLoaiGiaoDich())) {
+                hoanTraKhoNguon(giaoDich);
+            }
+        }
+
+        inventoryTransactionRepository.deleteAll(giaoDichList);
+        ctPhieuNhapRepository.deleteAll(chiTietList);
+        for (CTPhieuNhap chiTiet : chiTietList) {
+            loHangRepository.deleteById(chiTiet.getMaLo());
+        }
+        phieuNhapRepository.delete(phieuNhap);
+    }
+
+    private void hoanTraKhoNguon(InventoryTransaction giaoDich) {
+        if (isBlank(giaoDich.getMaCN()) || isBlank(giaoDich.getMaNL()) || isBlank(giaoDich.getMaLo())) {
+            return;
+        }
+        double soLuong = valueOrZero(giaoDich.getSoLuong());
+        loHangRepository.findById(giaoDich.getMaLo()).ifPresent(loHang -> {
+            double soLuongCon = valueOrZero(loHang.getSoLuongCon());
+            loHang.setSoLuongCon(toBigDecimal(soLuongCon + soLuong));
+            loHangRepository.save(loHang);
+        });
+        congTonKho(giaoDich.getMaCN(), giaoDich.getMaNL(), soLuong);
+    }
+
+    private void truTonKhoBatBuoc(String maCN, String maNL, double soLuong) {
+        TonKho_ID tonKhoId = new TonKho_ID(maCN, maNL);
+        TonKho tonKho = tonKhoRepository.findById(tonKhoId)
+                .orElseThrow(() -> new IllegalArgumentException("Nguyen lieu chua co ton kho tai chi nhanh: " + maNL));
+        double tonHienTai = valueOrZero(tonKho.getSoLuongTon());
+        if (tonHienTai < soLuong) {
+            throw new IllegalArgumentException("Khong du ton kho de hoan tac phieu nhap cho nguyen lieu "
+                    + maNL + ". Ton hien tai: " + tonHienTai);
+        }
+        tonKho.setSoLuongTon(tonHienTai - soLuong);
+        tonKhoRepository.save(tonKho);
     }
 
     private void validateRequest(PhieuNhapRequest request) {
@@ -365,11 +453,22 @@ public class PhieuNhapService {
         NhaCungCap nhaCungCap = phieuNhap.getNhaCungCap();
         ChiNhanh chiNhanh = phieuNhap.getChiNhanh();
         NhanVien nhanVien = phieuNhap.getNhanVien();
+        String maKhoNguon = null;
+        if (nhaCungCap == null) {
+            maKhoNguon = inventoryTransactionRepository
+                    .findByLoaiChungTuAndIdChungTu("PHIEUNHAP", phieuNhap.getMaPN())
+                    .stream()
+                    .filter(item -> Integer.valueOf(3).equals(item.getLoaiGiaoDich()))
+                    .map(InventoryTransaction::getMaCN)
+                    .filter(value -> !isBlank(value))
+                    .findFirst()
+                    .orElse(null);
+        }
 
         return new PhieuNhapResponse(
                 phieuNhap.getMaPN(),
                 phieuNhap.getNhaCungCap() != null ? NGUON_NHA_CUNG_CAP : NGUON_KHO_TONG,
-                null,
+                maKhoNguon,
                 nhaCungCap != null ? nhaCungCap.getMaNCC() : null,
                 nhaCungCap != null ? nhaCungCap.getTenNCC() : null,
                 chiNhanh != null ? chiNhanh.getMaCN() : null,

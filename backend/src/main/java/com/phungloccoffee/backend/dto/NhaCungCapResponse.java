@@ -16,7 +16,7 @@ public class NhaCungCapResponse {
     private String tenNCC;
     private String sdt;
     private String diaChi;
-    private String trangThai;
+    private Integer trangThai;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

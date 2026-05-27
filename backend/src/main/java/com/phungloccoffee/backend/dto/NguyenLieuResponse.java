@@ -8,5 +8,5 @@ public class NguyenLieuResponse {
     private String tenNL;
     private Double tonToiThieu;
     private String tenDonVi;
-    private String trangThai;
+    private Integer trangThai;
 }

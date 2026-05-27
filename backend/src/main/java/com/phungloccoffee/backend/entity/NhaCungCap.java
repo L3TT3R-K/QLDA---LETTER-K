@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,14 +26,14 @@ public class NhaCungCap {
     @Column(name = "tenncc", length = 150, nullable = false)
     private String tenNCC;
 
-    @Column(name = "sdt", length = 20)
+    @Transient
     private String sdt;
 
-    @Column(name = "diachi", length = 255)
+    @Transient
     private String diaChi;
 
-    @Column(name = "trangthai", length = 30, nullable = false)
-    private String trangThai;
+    @Column(name = "trangthai", nullable = false)
+    private Integer trangThai;
 
     @CreationTimestamp
     @Column(name = "createdat", updatable = false, nullable = false)

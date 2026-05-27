@@ -24,6 +24,6 @@ public class PhieuNhapResponse {
     private String tenNV;
     private LocalDateTime ngayNhap;
     private Double tongTien;
-    private String trangThai;
+    private Integer trangThai;
     private List<CTPhieuNhapResponse> chiTiet;
 }

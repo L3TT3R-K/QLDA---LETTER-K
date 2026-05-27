@@ -13,4 +13,6 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
             "AND (t.isSynced = false OR t.trangThai = 0) " +
             "ORDER BY t.createdAt DESC")
     List<InventoryTransaction> findCanhBaoDongBo(@Param("maCN") String maCN);
+
+    List<InventoryTransaction> findByLoaiChungTuAndIdChungTu(String loaiChungTu, String idChungTu);
 }

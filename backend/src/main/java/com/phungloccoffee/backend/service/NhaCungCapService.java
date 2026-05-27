@@ -13,15 +13,15 @@ import java.util.stream.Collectors;
 
 @Service
 public class NhaCungCapService {
-    private static final String HOAT_DONG = "Ho\u1EA1t \u0111\u1ED9ng";
-    private static final String NGUNG_HOAT_DONG = "Ng\u1EEBng ho\u1EA1t \u0111\u1ED9ng";
+    private static final Integer HOAT_DONG = 1;
+    private static final Integer NGUNG_HOAT_DONG = 0;
 
     @Autowired private NhaCungCapRepository repository;
 
     public List<NhaCungCapResponse> getAllNCC(String trangThai, boolean includeInactive) {
         return repository.findAll().stream()
                 .filter(ncc -> includeInactive || !NGUNG_HOAT_DONG.equals(ncc.getTrangThai()))
-                .filter(ncc -> isBlank(trangThai) || trangThai.trim().equalsIgnoreCase(ncc.getTrangThai()))
+                .filter(ncc -> isBlank(trangThai) || parseTrangThai(trangThai).equals(ncc.getTrangThai()))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -45,7 +45,7 @@ public class NhaCungCapService {
             throw new IllegalArgumentException("Ma nha cung cap da ton tai: " + ncc.getMaNCC());
         }
         validate(ncc);
-        ncc.setTrangThai(isBlank(ncc.getTrangThai()) ? HOAT_DONG : ncc.getTrangThai().trim());
+        ncc.setTrangThai(ncc.getTrangThai() == null ? HOAT_DONG : ncc.getTrangThai());
         return toResponse(repository.save(ncc));
     }
 
@@ -62,8 +62,8 @@ public class NhaCungCapService {
         existing.setTenNCC(details.getTenNCC());
         existing.setSdt(details.getSdt());
         existing.setDiaChi(details.getDiaChi());
-        if (!isBlank(details.getTrangThai())) {
-            existing.setTrangThai(details.getTrangThai().trim());
+        if (details.getTrangThai() != null) {
+            existing.setTrangThai(details.getTrangThai());
         }
         validate(existing);
         return toResponse(repository.save(existing));
@@ -113,5 +113,9 @@ public class NhaCungCapService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private Integer parseTrangThai(String value) {
+        return Integer.valueOf(value.trim());
     }
 }
