@@ -14,9 +14,9 @@ public interface DinhMucCongThucRepository extends JpaRepository<DinhMucCongThuc
   List<DinhMucCongThuc> findByIdMaNL(String maNL);
 
   void deleteByIdMaPB(String maPB);
-  @Query(value = "SELECT d.manl, n.tennl, n.donvicoban, d.so_luong " +
+  @Query(value = "SELECT d.manl, n.tennl, n.donvicoban, d.soluong " +
                    "FROM dinhmuccongthuc d " +
                    "JOIN nguyenlieu n ON d.manl = n.manl " +
                    "WHERE d.mapb = ?1", nativeQuery = true)
-    List<Object[]> findChiTietByMaPB(String maPB);
+  List<Object[]> findChiTietByMaPB(String maPB);
 }

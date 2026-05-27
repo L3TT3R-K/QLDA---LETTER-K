@@ -38,6 +38,6 @@ public class KiemKho {
     private Boolean isSynced;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
 }

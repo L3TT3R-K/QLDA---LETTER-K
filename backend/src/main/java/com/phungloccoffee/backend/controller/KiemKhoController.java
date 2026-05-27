@@ -1,57 +1,32 @@
 package com.phungloccoffee.backend.controller;
 
-import com.phungloccoffee.backend.dto.CTKKRequest;
+import com.phungloccoffee.backend.dto.KiemKhoChiTietResponse;
 import com.phungloccoffee.backend.dto.KiemKhoRequest;
-import com.phungloccoffee.backend.entity.ChiNhanh;
-import com.phungloccoffee.backend.entity.CTKK;
-import com.phungloccoffee.backend.entity.KiemKho;
-import com.phungloccoffee.backend.entity.NhanVien;
 import com.phungloccoffee.backend.service.KiemKhoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/kiemkho")
+@RequiredArgsConstructor
 public class KiemKhoController {
 
-    @Autowired
-    private KiemKhoService kiemKhoService;
+    private final KiemKhoService kiemKhoService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    public ResponseEntity<List<KiemKhoChiTietResponse>> getAll() {
+        return ResponseEntity.ok(kiemKhoService.getAllLichSuKiemKho());
+    }
 
     @PostMapping
-    public ResponseEntity<?> taoPhieuKiemKho(@RequestBody KiemKhoRequest request) {
-        
-        KiemKho kiemKho = new KiemKho();
-        kiemKho.setMaKK(request.getMaKK());
-        kiemKho.setNgayKiem(LocalDateTime.now());
-        kiemKho.setIsSynced(false);
-
-        NhanVien nv = new NhanVien();
-        nv.setMaNV(request.getMaNV());
-        kiemKho.setNhanVien(nv);
-
-        ChiNhanh cn = new ChiNhanh();
-        cn.setMaCN(request.getMaCN());
-        kiemKho.setChiNhanh(cn);
-
-        List<CTKK> danhSachChiTiet = new ArrayList<>();
-        if (request.getChiTiet() != null) {
-            for (CTKKRequest dto : request.getChiTiet()) {
-                CTKK chiTiet = new CTKK();
-                chiTiet.setMaKK(request.getMaKK());
-                chiTiet.setMaNL(dto.getMaNL());
-                chiTiet.setSoLuongHeThong(dto.getSoLuongHeThong());
-                chiTiet.setSoLuongThucTe(dto.getSoLuongThucTe());
-                danhSachChiTiet.add(chiTiet);
-            }
-        }
-
-        KiemKho result = kiemKhoService.luuPhieuKiemKho(kiemKho, danhSachChiTiet);
-
-        return ResponseEntity.ok(result);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    public ResponseEntity<String> createKiemKho(@RequestBody KiemKhoRequest request) {
+        kiemKhoService.taoPhieuKiemKho(request);
+        return ResponseEntity.ok("Tạo phiếu kiểm kho thành công!");
     }
 }

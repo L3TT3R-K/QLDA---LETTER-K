@@ -1,86 +1,87 @@
 package com.phungloccoffee.backend.service;
 
-import com.phungloccoffee.backend.entity.CTKK;
-import com.phungloccoffee.backend.entity.InventoryTransaction;
-import com.phungloccoffee.backend.entity.KiemKho;
-import com.phungloccoffee.backend.entity.TonKho;
-import com.phungloccoffee.backend.entity.TonKho_ID;
+import com.phungloccoffee.backend.dto.CTKKRequest;
+import com.phungloccoffee.backend.dto.KiemKhoChiTietResponse;
+import com.phungloccoffee.backend.dto.KiemKhoRequest;
+import com.phungloccoffee.backend.entity.*;
 import com.phungloccoffee.backend.repository.CTKKRepository;
-import com.phungloccoffee.backend.repository.InventoryTransactionRepository;
 import com.phungloccoffee.backend.repository.KiemKhoRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class KiemKhoService {
 
-    @Autowired
-    private KiemKhoRepository kiemKhoRepository;
+    private final KiemKhoRepository kiemKhoRepo;
+    private final CTKKRepository ctkkRepo;
+    private final TonKhoRepository tonKhoRepo;
 
-    @Autowired
-    private CTKKRepository ctkkRepository;
+    public List<KiemKhoChiTietResponse> getAllLichSuKiemKho() {
+        List<Object[]> rows = ctkkRepo.findAllChiTietKiemKho();
+        List<KiemKhoChiTietResponse> list = new ArrayList<>();
 
-    @Autowired
-    private TonKhoRepository tonKhoRepository;
+        for (Object[] row : rows) {
+            Double slHeThong = ((Number) row[5]).doubleValue();
+            Double chenhLech = ((Number) row[7]).doubleValue();
+            Double phanTram = (slHeThong == 0) ? 0.0 : (chenhLech / slHeThong) * 100;
 
-    @Autowired
-    private InventoryTransactionRepository inventoryTransactionRepository;
+            list.add(KiemKhoChiTietResponse.builder()
+                    .maKK((String) row[0])
+                    .ngayKiem(((Timestamp) row[1]).toLocalDateTime())
+                    .maNL((String) row[2])
+                    .tenNL((String) row[3])
+                    .donVi((String) row[4])
+                    .soLuongHeThong(slHeThong)
+                    .soLuongThucTe(((Number) row[6]).doubleValue())
+                    .chenhLech(chenhLech)
+                    .phanTramSaiLech(Math.round(phanTram * 100.0) / 100.0) // Làm tròn 2 chữ số
+                    .tenChiNhanh((String) row[8])
+                    .tenNhanVien((String) row[9])
+                    .isSynced((Boolean) row[10])
+                    .build());
+        }
+        return list;
+    }
 
-    @Transactional // Báº£o Ä‘áº£m nguyÃªn táº¯c: Cháº¡y Ä‘Ãºng 100% hoáº·c Rollback há»§y bá» toÃ n bá»™
-    public KiemKho luuPhieuKiemKho(KiemKho kiemKho, List<CTKK> danhSachChiTiet) {
-        
-        // 1. LÆ¯U PHIáº¾U CHÃNH
-        KiemKho savedKiemKho = kiemKhoRepository.save(kiemKho);
-        String maCN = kiemKho.getChiNhanh().getMaCN(); // Láº¥y mÃ£ chi nhÃ¡nh Ä‘á»ƒ lÃ¡t ná»¯a biáº¿t trá»« kho á»Ÿ Ä‘Ã¢u
+    @Transactional
+    public void taoPhieuKiemKho(KiemKhoRequest request) {
+        KiemKho kk = new KiemKho();
+        kk.setMaKK("KK" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
+        kk.setNgayKiem(LocalDateTime.now());
+        kk.setIsSynced(request.getIsSynced());
 
-        // 2. LÆ¯U CHI TIáº¾T & TÃNH CHÃŠNH Lá»†CH
-        for (CTKK chiTiet : danhSachChiTiet) {
-            chiTiet.setMaKK(savedKiemKho.getMaKK());
-            
-            double heThong = chiTiet.getSoLuongHeThong() != null ? chiTiet.getSoLuongHeThong() : 0.0;
-            double thucTe = chiTiet.getSoLuongThucTe() != null ? chiTiet.getSoLuongThucTe() : 0.0;
-            double chenhLech = thucTe - heThong;
-            chiTiet.setChenhLech(chenhLech);
-            
-            ctkkRepository.save(chiTiet);
+        ChiNhanh cn = new ChiNhanh(); cn.setMaCN(request.getMaCN());
+        kk.setChiNhanh(cn);
 
-            // 3. Xá»¬ LÃ NGáº¦M: Náº¿u chÃªnh lá»‡ch khÃ¡c 0 thÃ¬ pháº£i trá»« kho / cá»™ng kho
-            if (chenhLech != 0) {
-                
-                // --- BÆ¯á»šC 3.1: ÄÃˆ LÃŠN Báº¢NG Tá»’N KHO ---
-                TonKho_ID tonKhoId = new TonKho_ID(maCN, chiTiet.getMaNL());
-                // TÃ¬m nguyÃªn liá»‡u trong kho, náº¿u chÆ°a tá»«ng cÃ³ thÃ¬ táº¡o má»›i vá»›i sá»‘ lÆ°á»£ng tá»“n = 0
-                TonKho tonKho = tonKhoRepository.findById(tonKhoId)
-                        .orElse(new TonKho(maCN, chiTiet.getMaNL(), 0.0));
-                
-                // Láº¥y Tá»“n hiá»‡n táº¡i + sá»‘ ChÃªnh lá»‡ch (náº¿u thiáº¿u lÃ  sá»‘ Ã¢m thÃ¬ nÃ³ tá»± trá»«)
-                tonKho.setSoLuongTon(tonKho.getSoLuongTon() + chenhLech);
-                tonKhoRepository.save(tonKho); // Chá»‘t sá»• sá»‘ lÆ°á»£ng má»›i
+        NhanVien nv = new NhanVien(); nv.setMaNV(request.getMaNV());
+        kk.setNhanVien(nv);
 
-                // --- BÆ¯á»šC 3.2: GHI VÃ€O Sá»” NHáº¬T KÃ GIAO Dá»ŠCH (TRANSACTION) ---
-                InventoryTransaction trans = new InventoryTransaction();
-                // Random 1 cÃ¡i ID duy nháº¥t khÃ´ng Ä‘á»¥ng hÃ ng
-                trans.setMaTrans("TR_" + UUID.randomUUID().toString().substring(0, 8)); 
-                trans.setMaCN(maCN);
-                trans.setMaNL(chiTiet.getMaNL());
-                trans.setLoaiChungTu("KIEMKHO");
-                trans.setIdChungTu(savedKiemKho.getMaKK());
-                trans.setLoaiGiaoDich(chenhLech > 0 ? 3 : 4);
-                trans.setSoLuong(Math.abs(chenhLech));
-                trans.setTrangThai(1);
-                trans.setIsSynced(false);
-                trans.setCreatedAt(LocalDateTime.now());
-                
-                inventoryTransactionRepository.save(trans); // LÆ°u váº¿t thÃ nh cÃ´ng
+        kiemKhoRepo.save(kk);
+
+        for (CTKKRequest chiTiet : request.getChiTiet()) {
+            CTKK ct = new CTKK();
+            ct.setMaKK(kk.getMaKK());
+            ct.setMaNL(chiTiet.getMaNL());
+            ct.setSoLuongHeThong(chiTiet.getSoLuongHeThong());
+            ct.setSoLuongThucTe(chiTiet.getSoLuongThucTe());
+            ct.setChenhLech(chiTiet.getChenhLech());
+            ctkkRepo.save(ct);
+
+            if (request.getIsSynced()) {
+                TonKho_ID tkId = new TonKho_ID(request.getMaCN(), chiTiet.getMaNL());
+                TonKho tk = tonKhoRepo.findById(tkId).orElse(new TonKho(request.getMaCN(), chiTiet.getMaNL(), 0.0));
+                tk.setSoLuongTon(chiTiet.getSoLuongThucTe()); 
+                tonKhoRepo.save(tk);
             }
         }
-
-        return savedKiemKho;
     }
 }

@@ -2,7 +2,6 @@ package com.phungloccoffee.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,16 +20,16 @@ public class PhienBanCongThuc {
   @Column(name = "masp", nullable = false, length = 50)
   private String maSP;
 
-  @Column(name = "ngay_hieu_luc", nullable = false)
+  @Column(name = "ngayhieuluc", nullable = false)
   private LocalDateTime ngayHieuLuc;
 
-  @Column(name = "trang_thai", nullable = false)
+  @Column(name = "trangthai", nullable = false)
   private Integer trangThai;
 
-  @Column(name = "created_at")
+  @Column(name = "createdat")
   private LocalDateTime createdAt;
 
-  @Column(name = "updated_at")
+  @Column(name = "updatedat")
   private LocalDateTime updatedAt;
 
   @PrePersist
@@ -38,7 +37,6 @@ public class PhienBanCongThuc {
     LocalDateTime now = LocalDateTime.now();
     this.createdAt = now;
     this.updatedAt = now;
-
     if (this.trangThai == null) {
       this.trangThai = 1;
     }

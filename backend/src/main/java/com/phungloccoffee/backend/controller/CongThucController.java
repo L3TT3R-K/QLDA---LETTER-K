@@ -22,7 +22,7 @@ public class CongThucController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<String> saveCongThuc(@RequestBody CongThucRequest request) {
         congThucService.saveCongThuc(request);
         return ResponseEntity.ok("Đã cập nhật công thức thành công!");

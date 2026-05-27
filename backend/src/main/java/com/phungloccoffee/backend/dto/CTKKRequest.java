@@ -1,12 +1,11 @@
 package com.phungloccoffee.backend.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class CTKKRequest {
     private String maNL;
     private Double soLuongHeThong;
     private Double soLuongThucTe;
+    private Double chenhLech;
 }

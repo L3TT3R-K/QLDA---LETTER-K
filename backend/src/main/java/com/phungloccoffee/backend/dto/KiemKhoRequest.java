@@ -1,14 +1,12 @@
 package com.phungloccoffee.backend.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 public class KiemKhoRequest {
-    private String maKK;
-    private String maNV; 
-    private String maCN; 
-    private List<CTKKRequest> chiTiet; 
+    private String maCN;
+    private String maNV;
+    private Boolean isSynced; 
+    private List<CTKKRequest> chiTiet;
 }
