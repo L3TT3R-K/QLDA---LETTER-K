@@ -64,6 +64,14 @@ public class SecurityUtils {
         return requireCurrentUserBranch();
     }
 
+    public static void requireInventoryBranchAccess(String maCN) {
+        if (canAccessAllBranches()) {
+            return;
+        }
+
+        requireSameBranch(maCN);
+    }
+
     public static String normalizeBranch(String maCN) {
         if (maCN == null) {
             return null;

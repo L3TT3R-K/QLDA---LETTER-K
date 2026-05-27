@@ -3,6 +3,7 @@ package com.phungloccoffee.backend.controller;
 import com.phungloccoffee.backend.dto.PhieuNhapRequest;
 import com.phungloccoffee.backend.dto.PhieuNhapResponse;
 import com.phungloccoffee.backend.service.PhieuNhapService;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ public class PhieuNhapController {
 
     @PostMapping
     public ResponseEntity<PhieuNhapResponse> taoPhieuNhap(@RequestBody PhieuNhapRequest request) {
+        request.setMaCN(SecurityUtils.resolveInventoryBranch(request.getMaCN()));
         return ResponseEntity.status(HttpStatus.CREATED).body(phieuNhapService.taoPhieuNhap(request));
     }
 
@@ -37,18 +39,24 @@ public class PhieuNhapController {
             @RequestParam(required = false) String maNCC,
             @RequestParam(required = false) String maCN
     ) {
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
         if (maNCC != null && !maNCC.trim().isEmpty()) {
+            if (maCNHienTai != null && !maCNHienTai.trim().isEmpty()) {
+                return phieuNhapService.getByNhaCungCapAndChiNhanh(maNCC, maCNHienTai);
+            }
             return phieuNhapService.getByNhaCungCap(maNCC);
         }
-        if (maCN != null && !maCN.trim().isEmpty()) {
-            return phieuNhapService.getByChiNhanh(maCN);
+        if (maCNHienTai != null && !maCNHienTai.trim().isEmpty()) {
+            return phieuNhapService.getByChiNhanh(maCNHienTai);
         }
         return phieuNhapService.getAll();
     }
 
     @GetMapping("/{maPN}")
     public PhieuNhapResponse getById(@PathVariable String maPN) {
-        return phieuNhapService.getById(maPN);
+        PhieuNhapResponse response = phieuNhapService.getById(maPN);
+        SecurityUtils.requireInventoryBranchAccess(response.getMaCN());
+        return response;
     }
 
     @PutMapping("/{maPN}")
@@ -56,11 +64,14 @@ public class PhieuNhapController {
             @PathVariable String maPN,
             @RequestBody PhieuNhapRequest request
     ) {
+        request.setMaCN(SecurityUtils.resolveInventoryBranch(request.getMaCN()));
+        SecurityUtils.requireInventoryBranchAccess(phieuNhapService.getById(maPN).getMaCN());
         return phieuNhapService.capNhatPhieuNhap(maPN, request);
     }
 
     @DeleteMapping("/{maPN}")
     public ResponseEntity<Void> xoaPhieuNhap(@PathVariable String maPN) {
+        SecurityUtils.requireInventoryBranchAccess(phieuNhapService.getById(maPN).getMaCN());
         phieuNhapService.xoaPhieuNhap(maPN);
         return ResponseEntity.noContent().build();
     }

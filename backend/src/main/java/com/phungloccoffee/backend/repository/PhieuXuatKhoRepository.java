@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface PhieuXuatKhoRepository extends JpaRepository<PhieuXuatKho, String> {
     List<PhieuXuatKho> findByChiNhanhMaCN(String maCN);
+    List<PhieuXuatKho> findByCreatedAtBetween(LocalDateTime tuNgay, LocalDateTime denNgay);
     List<PhieuXuatKho> findByChiNhanhMaCNAndCreatedAtBetween(String maCN, LocalDateTime tuNgay, LocalDateTime denNgay);
 }

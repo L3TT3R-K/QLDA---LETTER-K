@@ -66,6 +66,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/congthuc", "/api/congthuc/**").authenticated()
                 
                 .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/nhapkho", "/api/nhapkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/xuatkho", "/api/xuatkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
                 .requestMatchers("/api/dieuchuyenkho", "/api/dieuchuyenkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
                 
                 .anyRequest().authenticated()

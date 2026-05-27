@@ -4,6 +4,7 @@ import com.phungloccoffee.backend.dto.HaoHutXuatKhoResponse;
 import com.phungloccoffee.backend.dto.PhieuXuatKhoRequest;
 import com.phungloccoffee.backend.dto.PhieuXuatKhoResponse;
 import com.phungloccoffee.backend.service.PhieuXuatKhoService;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -30,39 +31,46 @@ public class PhieuXuatKhoController {
 
     @PostMapping
     public ResponseEntity<PhieuXuatKhoResponse> taoPhieuXuatKho(@RequestBody PhieuXuatKhoRequest request) {
+        request.setMaCN(SecurityUtils.resolveInventoryBranch(request.getMaCN()));
         return ResponseEntity.status(HttpStatus.CREATED).body(phieuXuatKhoService.taoPhieuXuatKho(request));
     }
 
     @PostMapping("/xuat-nguyen-lieu")
     public ResponseEntity<PhieuXuatKhoResponse> xuatNguyenLieu(@RequestBody PhieuXuatKhoRequest request) {
+        request.setMaCN(SecurityUtils.resolveInventoryBranch(request.getMaCN()));
         return ResponseEntity.status(HttpStatus.CREATED).body(phieuXuatKhoService.xuatNguyenLieu(request));
     }
 
     @PostMapping("/hao-hut")
     public ResponseEntity<PhieuXuatKhoResponse> ghiNhanHaoHut(@RequestBody PhieuXuatKhoRequest request) {
+        request.setMaCN(SecurityUtils.resolveInventoryBranch(request.getMaCN()));
         return ResponseEntity.status(HttpStatus.CREATED).body(phieuXuatKhoService.ghiNhanHaoHut(request));
     }
 
     @GetMapping
     public List<PhieuXuatKhoResponse> getAll(@RequestParam(required = false) String maCN) {
-        if (maCN != null && !maCN.trim().isEmpty()) {
-            return phieuXuatKhoService.getByChiNhanh(maCN);
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
+        if (maCNHienTai != null && !maCNHienTai.trim().isEmpty()) {
+            return phieuXuatKhoService.getByChiNhanh(maCNHienTai);
         }
         return phieuXuatKhoService.getAll();
     }
 
     @GetMapping("/{maPX}")
     public PhieuXuatKhoResponse getById(@PathVariable String maPX) {
-        return phieuXuatKhoService.getById(maPX);
+        PhieuXuatKhoResponse response = phieuXuatKhoService.getById(maPX);
+        SecurityUtils.requireInventoryBranchAccess(response.getMaCN());
+        return response;
     }
 
     @GetMapping("/hao-hut")
     public List<HaoHutXuatKhoResponse> thongKeHaoHut(
-            @RequestParam("maCN") String maCN,
+            @RequestParam(value = "maCN", required = false) String maCN,
             @RequestParam("tuNgay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime tuNgay,
             @RequestParam("denNgay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime denNgay
     ) {
-        return phieuXuatKhoService.thongKeHaoHut(maCN, tuNgay, denNgay);
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
+        return phieuXuatKhoService.thongKeHaoHut(maCNHienTai, tuNgay, denNgay);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

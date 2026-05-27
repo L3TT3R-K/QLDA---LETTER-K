@@ -149,6 +149,12 @@ public class PhieuNhapService {
                 .collect(Collectors.toList());
     }
 
+    public List<PhieuNhapResponse> getByNhaCungCapAndChiNhanh(String maNCC, String maCN) {
+        return phieuNhapRepository.findByNhaCungCapMaNCCAndChiNhanhMaCN(maNCC, maCN).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     public List<PhieuNhapResponse> getByChiNhanh(String maCN) {
         return phieuNhapRepository.findByChiNhanhMaCN(maCN).stream()
                 .map(this::toResponse)

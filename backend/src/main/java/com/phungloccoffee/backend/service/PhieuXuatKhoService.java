@@ -126,7 +126,9 @@ public class PhieuXuatKhoService {
     }
 
     public List<HaoHutXuatKhoResponse> thongKeHaoHut(String maCN, LocalDateTime tuNgay, LocalDateTime denNgay) {
-        List<PhieuXuatKho> phieuXuatKhoList = phieuXuatKhoRepository.findByChiNhanhMaCNAndCreatedAtBetween(maCN, tuNgay, denNgay);
+        List<PhieuXuatKho> phieuXuatKhoList = isBlank(maCN)
+                ? phieuXuatKhoRepository.findByCreatedAtBetween(tuNgay, denNgay)
+                : phieuXuatKhoRepository.findByChiNhanhMaCNAndCreatedAtBetween(maCN, tuNgay, denNgay);
         Map<String, HaoHutXuatKhoResponse> resultMap = new LinkedHashMap<>();
 
         for (PhieuXuatKho phieuXuatKho : phieuXuatKhoList) {
