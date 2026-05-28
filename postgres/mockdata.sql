@@ -35,13 +35,13 @@ INSERT INTO nhacungcap (mancc, tenncc, trangthai, createdat, updatedat) VALUES
 -- ==============================================================================
 INSERT INTO nhanvien (manv, username, passwordhash, tennv, chucvu, macn, trangthai, createdat, updatedat) VALUES
 ('NV001','admin','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Nguyễn Văn An','ADMIN',NULL, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV003','cashier_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Lê Văn Cường','NHANVIEN_BANHANG','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV005','stock_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Hoàng Văn Em','NHANVIEN_KHO','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV007','cashier_cn02','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Võ Văn Khang','NHANVIEN_BANHANG','CN02', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV008','manager_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Trần Thị Lan','QUANLY','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV009','cashier_cn03','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Phạm Văn Quyết','NHANVIEN_BANHANG','CN03', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV010','stock_cn03','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Đinh Tấn Beo','NHANVIEN_KHO','CN03', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
-('NV011','cashier_cn04','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Ngô Thu Hà','NHANVIEN_BANHANG','CN04', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
+('NV003','cashier_cn01','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Lê Văn Cường','NHANVIEN_BANHANG','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV005','stock_cn01','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Hoàng Văn Em','NHANVIEN_KHO','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV007','cashier_cn02','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Võ Văn Khang','NHANVIEN_BANHANG','CN02', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV008','manager_cn01','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Trần Thị Lan','QUANLY','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV009','cashier_cn03','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Phạm Văn Quyết','NHANVIEN_BANHANG','CN03', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV010','stock_cn03','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Đinh Tấn Beo','NHANVIEN_KHO','CN03', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV011','cashier_cn04','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Ngô Thu Hà','NHANVIEN_BANHANG','CN04', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
 -- ==============================================================================
 -- 3. SẢN PHẨM VÀ NGUYÊN LIỆU (MENU & KHO)
