@@ -18,7 +18,7 @@ public class NguyenLieuController {
     private final NguyenLieuService nguyenLieuService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NHANVIEN_KHO', 'NHANVIEN_BANHANG')")
     public ResponseEntity<List<NguyenLieuResponse>> getAll() {
         return ResponseEntity.ok(nguyenLieuService.getAllNguyenLieu());
     }

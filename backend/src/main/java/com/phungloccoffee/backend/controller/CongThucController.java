@@ -22,7 +22,7 @@ public class CongThucController {
     private final CongThucService congThucService;
 
     @GetMapping("/{maSP}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY_CHINHANH')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY', 'QUANLY_CHINHANH', 'NHANVIEN_BANHANG')")
     public ResponseEntity<CongThucResponse> getCongThucBySanPham(@PathVariable String maSP) {
         return ResponseEntity.ok(congThucService.getCongThuc(maSP));
     }

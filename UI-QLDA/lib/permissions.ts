@@ -76,7 +76,7 @@ export const appRoutes: AppRoute[] = [
     title: "Công thức",
     href: "/catalog/recipes",
     group: "catalog",
-    roles: ["ADMIN", "QUANLY"],
+    roles: ["ADMIN", "QUANLY", "NHANVIEN_BANHANG"],
   },
 
   {

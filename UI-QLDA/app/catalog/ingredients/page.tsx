@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
-import { Search, Plus, Pencil, X, Trash2, Package } from "lucide-react";
+import { Search, Plus, Pencil, X, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import api from "@/services/api";
 
 interface Ingredient {
@@ -103,6 +102,12 @@ export default function IngredientsPage() {
 
   const totalPages = Math.ceil(filteredIngredients.length / pageSize);
   const paginatedIngredients = filteredIngredients.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const activeCount = ingredients.filter((item) => item.trangThai === 1).length;
   const inactiveCount = ingredients.filter((item) => item.trangThai === 0).length;
@@ -206,14 +211,61 @@ export default function IngredientsPage() {
         <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Tìm kiếm nguyên liệu..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            <Input
+              placeholder="Tìm kiếm nguyên liệu..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-9"
+            />
           </div>
+
+          <Select
+            value={unitFilter}
+            onValueChange={(value) => {
+              setUnitFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Đơn vị" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả đơn vị</SelectItem>
+              {units.map((unit) => (
+                <SelectItem key={unit.MaDV} value={unit.MaDV}>
+                  {unit.TenDonVi}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="active">Đang sử dụng</SelectItem>
+              <SelectItem value="inactive">Ngừng sử dụng</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button onClick={handleOpenAdd} className="gap-2"><Plus className="h-4 w-4" /> Thêm nguyên liệu</Button>
         </div>
 
         {/* BẢNG DỮ LIỆU */}
         <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px]">
             <thead>
               <tr className="bg-muted">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground">Mã NL</th>
@@ -227,10 +279,10 @@ export default function IngredientsPage() {
             <tbody className="divide-y divide-border">
               {paginatedIngredients.map((item) => (
                 <tr key={item.maNL} className="hover:bg-muted/50">
-                  <td className="px-4 py-3 text-sm font-semibold text-primary">{item.maNL}</td>
-                  <td className="px-4 py-3 text-sm">{item.tenNL}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{getUnitName(item.donViCoBan)}</td>
-                  <td className="px-4 py-3 text-right text-sm">{item.tonToiThieu} {getUnitName(item.donViCoBan)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-primary">{item.maNL}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-foreground">{item.tenNL}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{getUnitName(item.donViCoBan)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm">{item.tonToiThieu} {getUnitName(item.donViCoBan)}</td>
                   <td className="px-4 py-3 text-center">
                     <Switch checked={item.trangThai === 1} onCheckedChange={() => handleToggleStatus(item)} />
                   </td>
@@ -242,8 +294,47 @@ export default function IngredientsPage() {
                   </td>
                 </tr>
               ))}
+              {paginatedIngredients.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Không có nguyên liệu phù hợp
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+            <p className="text-sm text-muted-foreground">
+              Hiển thị {filteredIngredients.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+              –{Math.min(currentPage * pageSize, filteredIngredients.length)} trong {filteredIngredients.length} nguyên liệu
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => page - 1)}>
+                Trước
+              </Button>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className={currentPage === page ? "bg-primary text-white" : ""}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage((page) => page + 1)}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -108,6 +108,42 @@ interface ApiProductSalesRow {
   TongDoanhThu?: number | string;
 }
 
+interface ApiInventoryAlertRow {
+  maCN?: string;
+  MaCN?: string;
+  maNL?: string;
+  MaNL?: string;
+  tenNL?: string;
+  TenNL?: string;
+  soLuongTon?: number | string;
+  SoLuongTon?: number | string;
+  tonToiThieu?: number | string;
+  TonToiThieu?: number | string;
+  mucDo?: string;
+  MucDo?: string;
+  loaiCanhBao?: string;
+  LoaiCanhBao?: string;
+}
+
+interface ApiRecentOrderRow {
+  maHD?: string;
+  MaHD?: string;
+  maCN?: string;
+  MaCN?: string;
+  tenCN?: string;
+  TenCN?: string;
+  maNV?: string;
+  MaNV?: string;
+  tenNV?: string;
+  TenNV?: string;
+  tongTien?: number | string;
+  TongTien?: number | string;
+  createdAt?: string;
+  CreatedAt?: string;
+  trangThai?: number | string;
+  TrangThai?: number | string;
+}
+
 interface InventoryAlert {
   MaNL: string;
   TenNL: string;
@@ -697,6 +733,40 @@ const normalizeProductSalesRow = (
   };
 };
 
+const unwrapApiData = <T,>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[];
+  if (Array.isArray(payload?.data)) return payload.data as T[];
+  return [];
+};
+
+const normalizeRecentOrderRow = (row: ApiRecentOrderRow): RecentOrder | null => {
+  const MaHD = row.MaHD || row.maHD;
+  const TenCN = row.TenCN || row.tenCN || row.MaCN || row.maCN || "";
+  const TenNV = row.TenNV || row.tenNV || row.MaNV || row.maNV || "-";
+  const TongTien = Number(row.TongTien ?? row.tongTien ?? 0);
+  const CreatedAt = row.CreatedAt || row.createdAt;
+  const TrangThai = row.TrangThai ?? row.trangThai ?? 0;
+
+  if (!MaHD || !CreatedAt || Number.isNaN(TongTien)) return null;
+
+  return {
+    MaHD,
+    TenCN,
+    TenNV,
+    TongTien,
+    ThoiGian: new Date(CreatedAt).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    TrangThai:
+      TrangThai === 1 || TrangThai === "1"
+        ? 1
+        : TrangThai === 2 || TrangThai === "2"
+          ? 2
+          : 0,
+  };
+};
+
 export default function DashboardPage() {
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
@@ -713,6 +783,12 @@ export default function DashboardPage() {
   );
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>(initialSyncLogs);
   const [apiTopProducts, setApiTopProducts] = useState<TopProduct[] | null>(
+    null,
+  );
+  const [apiInventoryAlertRows, setApiInventoryAlertRows] = useState<
+    ApiInventoryAlertRow[] | null
+  >(null);
+  const [apiRecentOrders, setApiRecentOrders] = useState<RecentOrder[] | null>(
     null,
   );
 
@@ -905,9 +981,37 @@ export default function DashboardPage() {
     );
   };
 
+  const fetchDashboardExtrasFromApi = async () => {
+    const [alertResult, recentOrderResult] = await Promise.allSettled([
+      api.get("/api/baocao/canh-bao"),
+      api.get("/api/hoadon/recent", {
+        params: {
+          limit: 5,
+        },
+      }),
+    ]);
+
+    if (alertResult.status === "fulfilled") {
+      setApiInventoryAlertRows(
+        unwrapApiData<ApiInventoryAlertRow>(alertResult.value.data).slice(0, 5),
+      );
+    }
+
+    if (recentOrderResult.status === "fulfilled") {
+      const orders = unwrapApiData<ApiRecentOrderRow>(
+        recentOrderResult.value.data,
+      )
+        .map(normalizeRecentOrderRow)
+        .filter((item): item is RecentOrder => item !== null);
+
+      setApiRecentOrders(orders);
+    }
+  };
+
   useEffect(() => {
     loadData();
     fetchRevenueFromApi();
+    fetchDashboardExtrasFromApi();
 
     window.addEventListener("storage", loadData);
 
@@ -976,6 +1080,39 @@ export default function DashboardPage() {
   };
 
   const inventoryAlerts: InventoryAlert[] = useMemo(() => {
+    if (apiInventoryAlertRows) {
+      return apiInventoryAlertRows
+        .map((row) => {
+          const MaCN = row.MaCN || row.maCN || "";
+          const MaNL = row.MaNL || row.maNL || "";
+          const ingredient = ingredients.find((item) => item.MaNL === MaNL);
+          const unitName = ingredient ? getUnitName(ingredient.DonViCoBan) : "";
+          const soLuongTon = Number(row.SoLuongTon ?? row.soLuongTon ?? 0);
+          const tonToiThieu = Number(row.TonToiThieu ?? row.tonToiThieu ?? 0);
+          const mucDo = row.MucDo || row.mucDo;
+          const loaiCanhBao = row.LoaiCanhBao || row.loaiCanhBao;
+
+          if (!MaNL || Number.isNaN(soLuongTon) || Number.isNaN(tonToiThieu)) {
+            return null;
+          }
+
+          return {
+            MaNL,
+            TenNL: row.TenNL || row.tenNL || MaNL,
+            TenCN: getBranchName(MaCN),
+            SoLuongTon: soLuongTon,
+            TonToiThieu: tonToiThieu,
+            DonVi: unitName,
+            Status:
+              mucDo === "NGHIEM_TRONG" || loaiCanhBao === "TON_AM"
+                ? "danger"
+                : "warning",
+          } satisfies InventoryAlert;
+        })
+        .filter((item): item is InventoryAlert => item !== null)
+        .slice(0, 5);
+    }
+
     return inventoryStocks
       .map((stock) => {
         const ingredient = ingredients.find((item) => item.MaNL === stock.MaNL);
@@ -997,7 +1134,7 @@ export default function DashboardPage() {
       })
       .filter((item): item is InventoryAlert => item !== null)
       .slice(0, 5);
-  }, [inventoryStocks, ingredients, branches, units]);
+  }, [apiInventoryAlertRows, inventoryStocks, ingredients, branches, units]);
 
   const topProducts: TopProduct[] = useMemo(() => {
     const completedInvoiceIds = new Set(
@@ -1028,6 +1165,8 @@ export default function DashboardPage() {
   const displayedTopProducts = apiTopProducts ?? topProducts;
 
   const recentOrders: RecentOrder[] = useMemo(() => {
+    if (apiRecentOrders) return apiRecentOrders;
+
     return [...invoices]
       .sort(
         (a, b) => new Date(b.NgayLap).getTime() - new Date(a.NgayLap).getTime(),
