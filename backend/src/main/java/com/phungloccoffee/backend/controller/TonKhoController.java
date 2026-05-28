@@ -18,16 +18,19 @@ public class TonKhoController {
     private final TonKhoRepository tonKhoRepo;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<List<TonKho>> getTonKhoCuaChiNhanhHienTai() {
-        String maCN = SecurityUtils.requireCurrentUserBranch();
+        String maCN = SecurityUtils.resolveInventoryBranch(null);
+        if (maCN == null || maCN.isBlank()) {
+            return ResponseEntity.ok(tonKhoRepo.findAll());
+        }
         return ResponseEntity.ok(tonKhoRepo.findByMaCN(maCN));
     }
 
     @GetMapping("/{maCN}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<List<TonKho>> getTonKhoByChiNhanh(@PathVariable String maCN) {
-        SecurityUtils.requireSameBranch(maCN);
-        return ResponseEntity.ok(tonKhoRepo.findByMaCN(maCN));
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
+        return ResponseEntity.ok(tonKhoRepo.findByMaCN(maCNHienTai));
     }
 }

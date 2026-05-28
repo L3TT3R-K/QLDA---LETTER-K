@@ -11,7 +11,7 @@ import com.phungloccoffee.backend.entity.CTKK_ID;
 public interface CTKKRepository extends JpaRepository<CTKK, CTKK_ID> {
     //Lấy chi tiết đếm kho của 1 mã phiếu kiểm
     List<CTKK> findByMaKK(String maKK);
-    @Query(value = "SELECT k.makk, k.ngaykiem, c.manl, n.tennl, n.donvicoban, c.soluonghethong, c.soluongthucte, c.chenhlech, cn.tencn, nv.tennv, k.issynced " +
+    @Query(value = "SELECT k.makk, k.ngaykiem, c.manl, n.tennl, n.donvicoban, c.soluonghethong, c.soluongthucte, c.chenhlech, cn.tencn, nv.tennv, k.issynced, cn.macn " +
                    "FROM ctkk c " +
                    "JOIN kiemkho k ON c.makk = k.makk " +
                    "JOIN nguyenlieu n ON c.manl = n.manl " +
@@ -20,7 +20,7 @@ public interface CTKKRepository extends JpaRepository<CTKK, CTKK_ID> {
                    "ORDER BY k.ngaykiem DESC", nativeQuery = true)
     List<Object[]> findAllChiTietKiemKho();
 
-    @Query(value = "SELECT k.makk, k.ngaykiem, c.manl, n.tennl, n.donvicoban, c.soluonghethong, c.soluongthucte, c.chenhlech, cn.tencn, nv.tennv, k.issynced " +
+    @Query(value = "SELECT k.makk, k.ngaykiem, c.manl, n.tennl, n.donvicoban, c.soluonghethong, c.soluongthucte, c.chenhlech, cn.tencn, nv.tennv, k.issynced, cn.macn " +
                    "FROM ctkk c " +
                    "JOIN kiemkho k ON c.makk = k.makk " +
                    "JOIN nguyenlieu n ON c.manl = n.manl " +

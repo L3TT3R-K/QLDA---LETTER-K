@@ -25,8 +25,9 @@ public class NhanVienService {
                 .username((String) row[1])
                 .tenNV((String) row[2])
                 .chucVu((String) row[3])
-                .tenChiNhanh((String) row[4])
-                .trangThai((Integer) row[5])
+                .maCN((String) row[4])
+                .tenChiNhanh((String) row[5])
+                .trangThai((Integer) row[6])
                 .build()
         ).toList();
     }
@@ -39,6 +40,7 @@ public class NhanVienService {
                 .username(nv.getUsername())
                 .tenNV(nv.getTenNV())
                 .chucVu(nv.getChucVu())
+                .maCN(nv.getMaCN())
                 .tenChiNhanh(nv.getMaCN()) 
                 .trangThai(nv.getTrangThai())
                 .build();

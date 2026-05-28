@@ -16,6 +16,7 @@ public class KiemKhoChiTietResponse {
     private Double soLuongThucTe;
     private Double chenhLech;
     private Double phanTramSaiLech; 
+    private String maCN;
     private String tenChiNhanh;
     private String tenNhanVien;
     private Boolean isSynced; 

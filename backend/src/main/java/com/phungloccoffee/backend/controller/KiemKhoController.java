@@ -18,13 +18,14 @@ public class KiemKhoController {
     private final KiemKhoService kiemKhoService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
-    public ResponseEntity<List<KiemKhoChiTietResponse>> getAll() {
-        return ResponseEntity.ok(kiemKhoService.getAllLichSuKiemKho());
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    public ResponseEntity<List<KiemKhoChiTietResponse>> getAll(
+            @RequestParam(value = "maCN", required = false) String maCN) {
+        return ResponseEntity.ok(kiemKhoService.getAllLichSuKiemKho(maCN));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<String> createKiemKho(@RequestBody KiemKhoRequest request) {
         kiemKhoService.taoPhieuKiemKho(request);
         return ResponseEntity.ok("Tạo phiếu kiểm kho thành công!");

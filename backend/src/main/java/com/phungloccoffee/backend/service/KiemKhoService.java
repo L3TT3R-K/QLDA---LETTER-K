@@ -26,9 +26,11 @@ public class KiemKhoService {
     private final CTKKRepository ctkkRepo;
     private final TonKhoRepository tonKhoRepo;
 
-    public List<KiemKhoChiTietResponse> getAllLichSuKiemKho() {
-        String maCN = SecurityUtils.requireCurrentUserBranch();
-        List<Object[]> rows = ctkkRepo.findAllChiTietKiemKhoByMaCN(maCN);
+    public List<KiemKhoChiTietResponse> getAllLichSuKiemKho(String maCN) {
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
+        List<Object[]> rows = maCNHienTai == null
+                ? ctkkRepo.findAllChiTietKiemKho()
+                : ctkkRepo.findAllChiTietKiemKhoByMaCN(maCNHienTai);
         List<KiemKhoChiTietResponse> list = new ArrayList<>();
 
         for (Object[] row : rows) {
@@ -46,6 +48,7 @@ public class KiemKhoService {
                     .soLuongThucTe(((Number) row[6]).doubleValue())
                     .chenhLech(chenhLech)
                     .phanTramSaiLech(Math.round(phanTram * 100.0) / 100.0) // Làm tròn 2 chữ số
+                    .maCN((String) row[11])
                     .tenChiNhanh((String) row[8])
                     .tenNhanVien((String) row[9])
                     .isSynced((Boolean) row[10])
@@ -56,8 +59,10 @@ public class KiemKhoService {
 
     @Transactional
     public void taoPhieuKiemKho(KiemKhoRequest request) {
-        String maCN = SecurityUtils.requireCurrentUserBranch();
-        SecurityUtils.requireSameBranch(request.getMaCN());
+        String maCN = SecurityUtils.resolveInventoryBranch(request.getMaCN());
+        if (maCN == null || maCN.isBlank()) {
+            throw new IllegalArgumentException("Ma chi nhanh khong duoc de trong");
+        }
 
         KiemKho kk = new KiemKho();
         kk.setMaKK("KK" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());

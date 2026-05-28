@@ -14,6 +14,7 @@ public class NhanVienResponse {
     private String username;
     private String tenNV; 
     private String chucVu;
+    private String maCN;
     private String tenChiNhanh; 
     private Integer trangThai;
 }

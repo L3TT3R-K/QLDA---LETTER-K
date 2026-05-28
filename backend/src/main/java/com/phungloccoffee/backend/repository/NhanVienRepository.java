@@ -16,7 +16,7 @@ import java.util.List;
     @Query(value = """
         SELECT 
             nv.manv, nv.username, nv.tennv, nv.chucvu, 
-            cn.tencn, nv.trangthai 
+            nv.macn, cn.tencn, nv.trangthai 
         FROM nhanvien nv
         LEFT JOIN chinhanh cn ON nv.macn = cn.macn
         """, nativeQuery = true)
