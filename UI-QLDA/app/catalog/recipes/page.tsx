@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 import api from "@/services/api"; // Import API instance
 
 // --- INTERFACES (Chuẩn hóa camelCase theo Backend DTO) ---
@@ -106,10 +108,13 @@ export default function RecipesPage() {
   const [activeRecipe, setActiveRecipe] = useState<ActiveRecipe | null>(null);
   const [editingDetails, setEditingDetails] = useState<RecipeDetail[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [recipeFilter, setRecipeFilter] = useState("all");
+  const isSalesStaff = currentUser?.chucVu === "NHANVIEN_BANHANG";
+  const canEditRecipe = currentUser !== null && !isSalesStaff;
 
   // --- HÀM LOAD DỮ LIỆU TỪ BACKEND ---
   const loadData = async () => {
@@ -153,6 +158,7 @@ export default function RecipesPage() {
   };
 
   useEffect(() => {
+    setCurrentUser(getCurrentUser());
     loadData();
   }, []);
 
@@ -217,31 +223,37 @@ export default function RecipesPage() {
 
   // --- THAO TÁC TRÊN BẢNG ---
   const addIngredient = () => {
+    if (!canEditRecipe) return;
     setEditingDetails([...editingDetails, { maNL: "", soLuong: 0 }]);
   };
 
   const removeIngredient = (index: number) => {
+    if (!canEditRecipe) return;
     setEditingDetails(editingDetails.filter((_, i) => i !== index));
   };
 
   const updateIngredient = (index: number, maNL: string) => {
+    if (!canEditRecipe) return;
     setEditingDetails(
       editingDetails.map((item, i) => (i === index ? { ...item, maNL } : item))
     );
   };
 
   const updateAmount = (index: number, soLuong: number) => {
+    if (!canEditRecipe) return;
     setEditingDetails(
       editingDetails.map((item, i) => (i === index ? { ...item, soLuong } : item))
     );
   };
 
   const handleCancel = () => {
+    if (!canEditRecipe) return;
     if (selectedProduct) selectProduct(selectedProduct); // Load lại từ server
   };
 
   // --- HÀM LƯU CÔNG THỨC LÊN BACKEND ---
   const handleSave = async () => {
+    if (!canEditRecipe) return;
     if (!selectedProduct) return;
 
     if (editingDetails.length === 0) {
@@ -407,6 +419,11 @@ export default function RecipesPage() {
                       <h2 className="text-xl font-semibold text-foreground">{selectedProduct.tenSP}</h2>
                       <div className="mt-1 flex items-center gap-3">
                         <span className="text-sm font-semibold text-primary">{formatCurrency(selectedProduct.giaHienTai)}</span>
+                        {isSalesStaff && (
+                          <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            Chỉ xem
+                          </span>
+                        )}
                         {activeRecipe?.maPB ? (
                           <span className="text-sm text-muted-foreground">
                             Đang áp dụng: <span className="font-medium text-foreground">{activeRecipe.maPB}</span>
@@ -427,7 +444,9 @@ export default function RecipesPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nguyên liệu</th>
                         <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Đơn vị</th>
                         <th className="w-40 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Định mức</th>
-                        <th className="w-16 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"></th>
+                        {canEditRecipe && (
+                          <th className="w-16 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"></th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -436,7 +455,7 @@ export default function RecipesPage() {
                         return (
                           <tr key={`${item.maNL}-${index}`} className="hover:bg-muted/50">
                             <td className="px-4 py-3">
-                              <Select value={item.maNL} onValueChange={(value) => updateIngredient(index, value)}>
+                              <Select value={item.maNL} onValueChange={(value) => updateIngredient(index, value)} disabled={!canEditRecipe}>
                                 <SelectTrigger><SelectValue placeholder="Chọn nguyên liệu" /></SelectTrigger>
                                 <SelectContent>
                                   {activeIngredients.map((ing) => (
@@ -454,26 +473,31 @@ export default function RecipesPage() {
                                 min={0}
                                 value={item.soLuong || ""}
                                 onChange={(e) => updateAmount(index, Number(e.target.value) || 0)}
+                                readOnly={!canEditRecipe}
                                 className="text-center"
                               />
                             </td>
-                            <td className="px-4 py-3 text-center">
-                              <button onClick={() => removeIngredient(index)} className="text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </td>
+                            {canEditRecipe && (
+                              <td className="px-4 py-3 text-center">
+                                <button onClick={() => removeIngredient(index)} className="text-muted-foreground hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
                       {editingDetails.length === 0 && (
-                        <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">Chưa có nguyên liệu trong công thức</td></tr>
+                        <tr><td colSpan={canEditRecipe ? 4 : 3} className="px-4 py-8 text-center text-sm text-muted-foreground">Chưa có nguyên liệu trong công thức</td></tr>
                       )}
                     </tbody>
                   </table>
 
-                  <Button variant="outline" onClick={addIngredient} className="mt-4 gap-2">
-                    <Plus className="h-4 w-4" /> Thêm nguyên liệu
-                  </Button>
+                  {canEditRecipe && (
+                    <Button variant="outline" onClick={addIngredient} className="mt-4 gap-2">
+                      <Plus className="h-4 w-4" /> Thêm nguyên liệu
+                    </Button>
+                  )}
 
                   <div className="mt-6 flex items-start gap-3 rounded-lg bg-[#CFF4FC] p-4">
                     <Info className="h-5 w-5 shrink-0 text-[#055160]" />
@@ -483,12 +507,14 @@ export default function RecipesPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 border-t border-border p-4">
-                  <Button variant="outline" onClick={handleCancel}>Hủy thay đổi</Button>
-                  <Button onClick={handleSave} className="gap-2">
-                    <Save className="h-4 w-4" /> Cập nhật công thức
-                  </Button>
-                </div>
+                {canEditRecipe && (
+                  <div className="flex justify-end gap-3 border-t border-border p-4">
+                    <Button variant="outline" onClick={handleCancel}>Hủy thay đổi</Button>
+                    <Button onClick={handleSave} className="gap-2">
+                      <Save className="h-4 w-4" /> Cập nhật công thức
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex h-full items-center justify-center"><p className="text-muted-foreground">Chọn sản phẩm để xem công thức</p></div>
