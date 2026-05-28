@@ -4,9 +4,15 @@ import com.phungloccoffee.backend.dto.CongThucRequest;
 import com.phungloccoffee.backend.dto.CongThucResponse;
 import com.phungloccoffee.backend.service.CongThucService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/congthuc")
@@ -24,7 +30,11 @@ public class CongThucController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<String> saveCongThuc(@RequestBody CongThucRequest request) {
-        congThucService.saveCongThuc(request);
-        return ResponseEntity.ok("Đã cập nhật công thức thành công!");
+        try {
+            congThucService.saveCongThuc(request);
+            return ResponseEntity.ok("Da cap nhat cong thuc thanh cong!");
+        } catch (RuntimeException exception) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
+        }
     }
 }

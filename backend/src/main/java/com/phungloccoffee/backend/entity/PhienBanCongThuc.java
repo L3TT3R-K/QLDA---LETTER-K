@@ -20,10 +20,10 @@ public class PhienBanCongThuc {
   @Column(name = "masp", nullable = false, length = 50)
   private String maSP;
 
-  @Column(name = "ngayhieuluc", nullable = false)
+  @Column(name = "ngay_hieu_luc", nullable = false)
   private LocalDateTime ngayHieuLuc;
 
-  @Column(name = "trangthai", nullable = false)
+  @Column(name = "trang_thai", nullable = false)
   private Integer trangThai;
 
   @Column(name = "createdat")
@@ -37,6 +37,9 @@ public class PhienBanCongThuc {
     LocalDateTime now = LocalDateTime.now();
     this.createdAt = now;
     this.updatedAt = now;
+    if (this.ngayHieuLuc == null) {
+      this.ngayHieuLuc = now;
+    }
     if (this.trangThai == null) {
       this.trangThai = 1;
     }

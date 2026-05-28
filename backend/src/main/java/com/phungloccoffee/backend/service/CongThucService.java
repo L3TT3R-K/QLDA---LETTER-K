@@ -8,6 +8,7 @@ import com.phungloccoffee.backend.entity.DinhMucCongThucId;
 import com.phungloccoffee.backend.entity.PhienBanCongThuc;
 import com.phungloccoffee.backend.entity.SanPham;
 import com.phungloccoffee.backend.repository.DinhMucCongThucRepository;
+import com.phungloccoffee.backend.repository.NguyenLieuRepository;
 import com.phungloccoffee.backend.repository.PhienBanCongThucRepository;
 import com.phungloccoffee.backend.repository.SanPhamRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class CongThucService {
     private final PhienBanCongThucRepository phienBanRepo;
     private final DinhMucCongThucRepository dinhMucRepo;
     private final SanPhamRepository sanPhamRepo;
+    private final NguyenLieuRepository nguyenLieuRepo;
 
     public CongThucResponse getCongThuc(String maSP) {
         SanPham sp = sanPhamRepo.findById(maSP)
@@ -62,10 +64,13 @@ public class CongThucService {
 
     @Transactional
     public void saveCongThuc(CongThucRequest request) {
-        phienBanRepo.findByMaSPAndTrangThai(request.getMaSP(), 1).ifPresent(pbCu -> {
+        validateRequest(request);
+
+        List<PhienBanCongThuc> phienBanCu = phienBanRepo.findAllByMaSPAndTrangThai(request.getMaSP(), 1);
+        for (PhienBanCongThuc pbCu : phienBanCu) {
             pbCu.setTrangThai(0);
-            phienBanRepo.save(pbCu);
-        });
+        }
+        phienBanRepo.saveAll(phienBanCu);
 
         PhienBanCongThuc pbMoi = new PhienBanCongThuc();
         pbMoi.setMaPB("PB" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
@@ -80,6 +85,45 @@ public class CongThucService {
             dm.setId(id);
             dm.setSoLuong(dto.getSoLuong());
             dinhMucRepo.save(dm);
+        }
+    }
+
+    private void validateRequest(CongThucRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Du lieu cong thuc khong hop le");
+        }
+
+        if (request.getMaSP() == null || request.getMaSP().isBlank()) {
+            throw new RuntimeException("Ma san pham khong duoc de trong");
+        }
+
+        if (!sanPhamRepo.existsById(request.getMaSP())) {
+            throw new RuntimeException("San pham khong ton tai: " + request.getMaSP());
+        }
+
+        if (request.getChiTiet() == null || request.getChiTiet().isEmpty()) {
+            throw new RuntimeException("Cong thuc phai co it nhat mot nguyen lieu");
+        }
+
+        List<String> maNguyenLieuDaCo = new ArrayList<>();
+        for (ChiTietDinhMucDTO item : request.getChiTiet()) {
+            if (item == null || item.getMaNL() == null || item.getMaNL().isBlank()) {
+                throw new RuntimeException("Ma nguyen lieu khong duoc de trong");
+            }
+
+            if (item.getSoLuong() == null || item.getSoLuong().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("So luong nguyen lieu phai lon hon 0");
+            }
+
+            if (maNguyenLieuDaCo.contains(item.getMaNL())) {
+                throw new RuntimeException("Nguyen lieu bi trung trong cong thuc: " + item.getMaNL());
+            }
+
+            if (!nguyenLieuRepo.existsById(item.getMaNL())) {
+                throw new RuntimeException("Nguyen lieu khong ton tai: " + item.getMaNL());
+            }
+
+            maNguyenLieuDaCo.add(item.getMaNL());
         }
     }
 }
