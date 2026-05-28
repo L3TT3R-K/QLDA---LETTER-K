@@ -18,12 +18,12 @@ public interface CTHDRepository extends JpaRepository<CTHD, String> {
 
     @Query(value = "SELECT c.masp AS maSP, s.tensp AS tenSP, " +
                    "SUM(c.soluong) AS tongSoLuongBan, " +
-                   "SUM(c.soluong * c.giabantaithoidiem) AS tongDoanhThu " +
+                   "SUM(c.soluong * COALESCE(c.giabantaitheodiem, c.giabantaithoidiem, 0)) AS tongDoanhThu " +
                    "FROM cthd c " +
                    "JOIN hoadon h ON c.mahd = h.mahd " +
                    "JOIN sanpham s ON c.masp = s.masp " +
-                   "WHERE h.trangthai = 'Đã thanh toán' AND h.macn = :maCN " +
-                   "AND h.created_at >= :tuNgay AND h.created_at <= :denNgay " +
+                   "WHERE h.trangthai = 1 AND h.macn = :maCN " +
+                   "AND h.createdat >= :tuNgay AND h.createdat <= :denNgay " +
                    "GROUP BY c.masp, s.tensp " +
                    "ORDER BY tongDoanhThu DESC", 
            nativeQuery = true)
