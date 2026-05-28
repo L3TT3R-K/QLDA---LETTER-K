@@ -7,12 +7,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phungloccoffee.backend.dto.ApiResponse;
 import com.phungloccoffee.backend.dto.ChiTietBillResponse;
+import com.phungloccoffee.backend.dto.DonHangGanNhatResponse;
 import com.phungloccoffee.backend.dto.HoaDonRequest;
 import com.phungloccoffee.backend.service.HoaDonService;
+import com.phungloccoffee.backend.utils.SecurityUtils;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/hoadon")
@@ -51,5 +56,17 @@ public class HoaDonController {
         phanHoi.setMessage("Lấy chi tiết hóa đơn thành công");
         phanHoi.setData(duLieu);
         return ResponseEntity.ok(phanHoi);
+    }
+
+    @GetMapping("/recent")
+    public ResponseEntity<ApiResponse<List<DonHangGanNhatResponse>>> layDonHangGanNhat(
+            @RequestParam(value = "maCN", required = false) String maCN,
+            @RequestParam(value = "limit", defaultValue = "5") int limit) {
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
+        ApiResponse<List<DonHangGanNhatResponse>> response = new ApiResponse<>();
+        response.setStatus(200);
+        response.setMessage("Lay danh sach don hang gan nhat thanh cong");
+        response.setData(hoaDonService.layDonHangGanNhat(maCNHienTai, limit));
+        return ResponseEntity.ok(response);
     }
 }

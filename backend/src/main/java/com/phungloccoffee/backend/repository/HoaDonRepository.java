@@ -1,6 +1,7 @@
 package com.phungloccoffee.backend.repository;
 
 import com.phungloccoffee.backend.dto.DoanhThuChiNhanhResponse;
+import com.phungloccoffee.backend.dto.DonHangGanNhatResponse;
 import com.phungloccoffee.backend.entity.HoaDon;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +22,24 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
                    "ORDER BY tongDoanhThu DESC", nativeQuery = true)
     List<DoanhThuChiNhanhResponse> thongKeDoanhThuTheoChiNhanh(@Param("tuNgay") LocalDateTime tuNgay, 
                                                                @Param("denNgay") LocalDateTime denNgay);
+
+    @Query(value = """
+        SELECT
+            h.mahd AS maHD,
+            h.macn AS maCN,
+            cn.tencn AS tenCN,
+            ca.manv AS maNV,
+            COALESCE(nv.tennv, ca.manv, '') AS tenNV,
+            h.tongtien AS tongTien,
+            h.createdat AS createdAt,
+            h.trangthai AS trangThai
+        FROM hoadon h
+        LEFT JOIN chinhanh cn ON h.macn = cn.macn
+        LEFT JOIN calamviec ca ON h.maca = ca.maca
+        LEFT JOIN nhanvien nv ON ca.manv = nv.manv
+        WHERE (:maCN IS NULL OR h.macn = :maCN)
+        ORDER BY h.createdat DESC NULLS LAST
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<DonHangGanNhatResponse> layDonHangGanNhat(@Param("maCN") String maCN, @Param("limit") int limit);
 }

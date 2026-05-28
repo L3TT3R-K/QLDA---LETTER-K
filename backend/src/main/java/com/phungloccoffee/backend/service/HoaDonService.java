@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.phungloccoffee.backend.dto.CTHDRequest;
 import com.phungloccoffee.backend.dto.CTHDResponse;
 import com.phungloccoffee.backend.dto.ChiTietBillResponse;
+import com.phungloccoffee.backend.dto.DonHangGanNhatResponse;
 import com.phungloccoffee.backend.dto.HoaDonRequest;
 import com.phungloccoffee.backend.entity.CTHD;
 import com.phungloccoffee.backend.entity.ChiNhanh;
@@ -96,6 +97,11 @@ public class HoaDonService {
         }
 
         return new ChiTietBillResponse(hoaDon.getMaHD(), hoaDon.getChiNhanh().getTenCN(), hoaDon.getTongTien(), hoaDon.getTrangThai(), dsMon);
+    }
+
+    public List<DonHangGanNhatResponse> layDonHangGanNhat(String maCN, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+        return hoaDonRepository.layDonHangGanNhat(maCN, safeLimit);
     }
 
     private String taoMaHoaDon(String maCN) {
