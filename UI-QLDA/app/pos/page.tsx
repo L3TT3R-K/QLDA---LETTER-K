@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ProductGrid } from "@/components/pos/product-grid";
@@ -545,10 +546,14 @@ export default function POSPage() {
       alert(`Thanh toán thành công hóa đơn ${maHD}`);
       clearOrder();
     } catch (error) {
+      const apiMessage = axios.isAxiosError<ApiResponse<unknown>>(error)
+        ? error.response?.data?.message
+        : undefined;
       const errorMessage =
-        error instanceof Error
+        apiMessage ||
+        (error instanceof Error
           ? error.message
-          : "Không thể hoàn tất thanh toán. Vui lòng thử lại.";
+          : "Không thể hoàn tất thanh toán. Vui lòng thử lại.");
 
       setCheckoutError(errorMessage);
       alert(errorMessage);

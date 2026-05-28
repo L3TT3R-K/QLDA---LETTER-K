@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
       { title: "Xuất/Hủy", href: "/inventory/export" },
       { title: "Điều chuyển", href: "/inventory/transfer" },
       { title: "Kiểm kho", href: "/inventory/audit" },
-      { title: "Lô hàng", href: "/inventory/lohang" },
+      
     ],
   },
   {
@@ -71,9 +71,8 @@ const navItems: NavItem[] = [
       { title: "Sản phẩm", href: "/catalog/products" },
       { title: "Nguyên liệu", href: "/catalog/ingredients" },
       { title: "Công thức", href: "/catalog/recipes" },
-      { title: "Nhà cung cấp", href: "/catalog/suppliers" },
-      { title: "Đơn vị", href: "/catalog/donvi" },
-      { title: "Quy đổi đơn vị", href: "/catalog/quydoidonvi" },
+      
+      
     ],
   },
   {
@@ -84,7 +83,7 @@ const navItems: NavItem[] = [
     children: [
       { title: "Chi nhánh", href: "/system/branches" },
       { title: "Nhân viên", href: "/system/employees" },
-      { title: "Ca làm việc", href: "/system/calamviec" },
+      
     ],
   },
   {

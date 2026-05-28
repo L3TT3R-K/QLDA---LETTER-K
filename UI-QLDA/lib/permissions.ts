@@ -35,12 +35,6 @@ export const appRoutes: AppRoute[] = [
     group: "pos",
     roles: ["QUANLY", "NHANVIEN_BANHANG"],
   },
-  {
-    title: "Ca làm việc",
-    href: "/system/calamviec",
-    group: "shift",
-    roles: ["ADMIN", "QUANLY"],
-  },
 
   {
     title: "Sản phẩm",
@@ -67,12 +61,6 @@ export const appRoutes: AppRoute[] = [
     roles: ["ADMIN"],
   },
   {
-    title: "Nhà cung cấp",
-    href: "/catalog/suppliers",
-    group: "catalog",
-    roles: ["ADMIN", "QUANLY"],
-  },
-  {
     title: "Công thức",
     href: "/catalog/recipes",
     group: "catalog",
@@ -82,12 +70,6 @@ export const appRoutes: AppRoute[] = [
   {
     title: "Tồn kho",
     href: "/inventory/stock",
-    group: "inventory",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
-  },
-  {
-    title: "Lô hàng",
-    href: "/inventory/lohang",
     group: "inventory",
     roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
   },
