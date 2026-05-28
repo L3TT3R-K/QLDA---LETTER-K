@@ -32,6 +32,7 @@ public class ThanhToanService {
   private static final Integer TRANG_THAI_THANH_CONG = 1;
   private static final Integer TRANG_THAI_HOP_LE = 1;
   private static final Integer LOAI_GIAO_DICH_XUAT = 2;
+  private static final double EPSILON = 0.000001;
 
   private final ThanhToanRepository thanhToanRepository;
   private final HoaDonRepository hoaDonRepository;
@@ -91,13 +92,19 @@ public class ThanhToanService {
 
         TonKho tonKho = tonKhoRepository.findByMaCNAndMaNL(maCN, maNL);
         if (tonKho == null) {
-          tonKho = new TonKho();
-          tonKho.setMaCN(maCN);
-          tonKho.setMaNL(maNL);
-          tonKho.setSoLuongTon(-luongCanTru);
-        } else {
-          tonKho.setSoLuongTon(tonKho.getSoLuongTon() - luongCanTru);
+          throw new IllegalStateException(String.format(
+              "Không đủ tồn kho nguyên liệu %s tại chi nhánh %s. Tồn hiện tại: 0, cần trừ: %.2f",
+              maNL, maCN, luongCanTru));
         }
+
+        double tonHienTai = tonKho.getSoLuongTon() == null ? 0 : tonKho.getSoLuongTon();
+        if (tonHienTai + EPSILON < luongCanTru) {
+          throw new IllegalStateException(String.format(
+              "Không đủ tồn kho nguyên liệu %s tại chi nhánh %s. Tồn hiện tại: %.2f, cần trừ: %.2f",
+              maNL, maCN, tonHienTai, luongCanTru));
+        }
+
+        tonKho.setSoLuongTon(tonHienTai - luongCanTru);
         tonKhoRepository.save(tonKho);
 
         InventoryTransaction giaoDich = new InventoryTransaction();

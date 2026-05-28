@@ -20,8 +20,16 @@ public class ThanhToanController {
 
   @PostMapping
   public ResponseEntity<ApiResponse<ThanhToanResponse>> xacNhanThanhToan(@RequestBody ThanhToanRequest request) {
-    ThanhToanResponse result = thanhToanService.thanhToan(request);
     ApiResponse<ThanhToanResponse> response = new ApiResponse<>();
+    ThanhToanResponse result;
+
+    try {
+      result = thanhToanService.thanhToan(request);
+    } catch (IllegalStateException ex) {
+      response.setStatus(400);
+      response.setMessage(ex.getMessage());
+      return ResponseEntity.badRequest().body(response);
+    }
 
     if (result.getMaTT() == null) {
       response.setStatus(400);
