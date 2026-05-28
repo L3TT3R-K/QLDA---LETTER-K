@@ -1,48 +1,77 @@
 BEGIN;
 
-INSERT INTO chinhanh (macn, tencn, diachi, trangthai) VALUES
-('CN01','Phụng Lộc Coffee - Quận 1','12 Nguyễn Huệ, Quận 1, TP.HCM', 1),
-('CN02','Phụng Lộc Coffee - Quận 3','25 Võ Văn Tần, Quận 3, TP.HCM', 1),
-('CN03','Phụng Lộc Coffee - Bình Thạnh','88 Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM', 1),
-('CN04','Phụng Lộc Coffee - Thủ Đức','45 Võ Văn Ngân, Thủ Đức, TP.HCM', 1),
-('CN05','Phụng Lộc Coffee - Gò Vấp','102 Phan Văn Trị, Gò Vấp, TP.HCM', 1),
-('CN06','Phụng Lộc Coffee - Tân Bình','70 Cộng Hòa, Tân Bình, TP.HCM', 1),
-('CN07','Phụng Lộc Coffee - Quận 7','15 Nguyễn Thị Thập, Quận 7, TP.HCM', 1),
-('CN08','Phụng Lộc Coffee - Phú Nhuận','33 Phan Đăng Lưu, Phú Nhuận, TP.HCM', 1);
+-- ==============================================================================
+-- 1. DANH MỤC CƠ BẢN (Chi nhánh, Đơn vị, Nhà cung cấp)
+-- ==============================================================================
+INSERT INTO chinhanh (macn, tencn, diachi, trangthai, createdat, updatedat) VALUES
+('CN01','Phụng Lộc Coffee - Quận 1','12 Nguyễn Huệ, Quận 1, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN02','Phụng Lộc Coffee - Quận 3','25 Võ Văn Tần, Quận 3, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN03','Phụng Lộc Coffee - Bình Thạnh','88 Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN04','Phụng Lộc Coffee - Thủ Đức','45 Võ Văn Ngân, Thủ Đức, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN05','Phụng Lộc Coffee - Gò Vấp','102 Phan Văn Trị, Gò Vấp, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN06','Phụng Lộc Coffee - Tân Bình','70 Cộng Hòa, Tân Bình, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN07','Phụng Lộc Coffee - Quận 7','15 Nguyễn Thị Thập, Quận 7, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CN08','Phụng Lộc Coffee - Phú Nhuận','33 Phan Đăng Lưu, Phú Nhuận, TP.HCM', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
-INSERT INTO donvi (madv, tendonvi) VALUES
-('GRAM','Gram'),('KG','Kilogram'),('ML','Mililít'),('LIT','Lít'),('CAI','Cái'),('HOP','Hộp'),('CHAI','Chai'),('LON','Lon'),('GOI','Gói');
+INSERT INTO donvi (madv, tendonvi, trangthai, createdat, updatedat) VALUES
+('GRAM','Gram', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('KG','Kilogram', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('ML','Mililít', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('LIT','Lít', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CAI','Cái', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('HOP','Hộp', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('CHAI','Chai', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('LON','Lon', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('GOI','Gói', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
-INSERT INTO nhacungcap (mancc, tenncc, trangthai) VALUES
-('NCC01','Công ty Cà phê Buôn Ma Thuột', 1),
-('NCC02','Công ty Sữa Việt', 1),
-('NCC03','Nhà cung cấp Topping Sài Gòn', 1),
-('NCC04','Công ty Bao bì F&B', 1);
+INSERT INTO nhacungcap (mancc, tenncc, trangthai, createdat, updatedat) VALUES
+('NCC01','Công ty Cà phê Buôn Ma Thuột', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NCC02','Công ty Sữa Việt', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NCC03','Nhà cung cấp Topping Sài Gòn', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NCC04','Công ty Bao bì F&B', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
--- Đã tích hợp Username và PasswordHash vào bảng NhanVien
-INSERT INTO nhanvien (manv, tennv, chucvu, macn, username, passwordhash, trangthai) VALUES
-('NV001','Nguyễn Văn An','ADMIN',NULL,'admin','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de', 1),
-('NV003','Lê Văn Cường','NHANVIEN_BANHANG','CN01','cashier_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 1),
-('NV005','Hoàng Văn Em','NHANVIEN_KHO','CN01','stock_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 1),
-('NV007','Võ Văn Khang','NHANVIEN_BANHANG','CN02','cashier_cn02','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 1);
+-- ==============================================================================
+-- 2. TÀI KHOẢN NHÂN VIÊN
+-- ==============================================================================
+INSERT INTO nhanvien (manv, username, passwordhash, tennv, chucvu, macn, trangthai, createdat, updatedat) VALUES
+('NV001','admin','$2a$10$QG.9XTiVePNgbBGdan2/IeXFUnObAP24c7rbS5/pLa87umZ7vB3de','Nguyễn Văn An','ADMIN',NULL, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV003','cashier_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Lê Văn Cường','NHANVIEN_BANHANG','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV005','stock_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Hoàng Văn Em','NHANVIEN_KHO','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV007','cashier_cn02','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Võ Văn Khang','NHANVIEN_BANHANG','CN02', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV008','manager_cn01','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Trần Thị Lan','QUANLY','CN01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV009','cashier_cn03','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Phạm Văn Quyết','NHANVIEN_BANHANG','CN03', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV010','stock_cn03','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Đinh Tấn Beo','NHANVIEN_KHO','CN03', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NV011','cashier_cn04','$2a$10$DowJonesDemoHashFor123456xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx','Ngô Thu Hà','NHANVIEN_BANHANG','CN04', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
-INSERT INTO sanpham (masp, tensp, giahientai, istopping, trangthai) VALUES
-('SP001','Cà phê đen đá',25000,FALSE, 1),
-('SP002','Cà phê sữa đá',30000,FALSE, 1),
-('SP003','Bạc xỉu',35000,FALSE, 1),
-('SP004','Trà đào cam sả',45000,FALSE, 1),
-('SP005','Trà sữa truyền thống',40000,FALSE, 1),
-('SP006','Matcha đá xay',55000,FALSE, 1),
-('SP007','Bánh tiramisu',45000,FALSE, 1),
-('SPT01','Trân châu đen',7000,TRUE, 1),
-('SPT02','Kem cheese',10000,TRUE, 1),
-('SPT03','Thạch cà phê',8000,TRUE, 1);
+-- ==============================================================================
+-- 3. SẢN PHẨM VÀ NGUYÊN LIỆU (MENU & KHO)
+-- ==============================================================================
+INSERT INTO sanpham (masp, tensp, giahientai, istopping, trangthai, createdat, updatedat) VALUES
+('SP001','Cà phê đen đá',25000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SP002','Cà phê sữa đá',30000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SP003','Bạc xỉu',35000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SP004','Trà đào cam sả',45000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SP005','Trà sữa truyền thống',40000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SP006','Matcha đá xay',55000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SP007','Bánh tiramisu',45000,FALSE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SPT01','Trân châu đen',7000,TRUE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SPT02','Kem cheese',10000,TRUE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('SPT03','Thạch cà phê',8000,TRUE, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
-INSERT INTO nguyenlieu (manl, tennl, donvicoban, tontoithieu, trangthai) VALUES
-('NL001','Cà phê bột','GRAM',5000, 1),('NL002','Sữa đặc','ML',3000, 1),('NL003','Sữa tươi','ML',5000, 1),
-('NL004','Đường','GRAM',3000, 1),('NL005','Đá viên','GRAM',10000, 1),('NL006','Trà đào','ML',3000, 1),
-('NL007','Cam tươi','GRAM',2000, 1),('NL008','Sả','GRAM',500, 1),('NL009','Bột matcha','GRAM',1000, 1),
-('NL010','Trân châu đen','GRAM',2000, 1),('NL011','Kem cheese','GRAM',1000, 1),('NL012','Ly nhựa','CAI',500, 1),('NL013','Ống hút','CAI',500, 1);
+INSERT INTO nguyenlieu (manl, tennl, donvicoban, tontoithieu, trangthai, createdat, updatedat) VALUES
+('NL001','Cà phê bột','GRAM',5000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL002','Sữa đặc','ML',3000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL003','Sữa tươi','ML',5000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL004','Đường','GRAM',3000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL005','Đá viên','GRAM',10000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL006','Trà đào','ML',3000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL007','Cam tươi','GRAM',2000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL008','Sả','GRAM',500, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL009','Bột matcha','GRAM',1000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL010','Trân châu đen','GRAM',2000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL011','Kem cheese','GRAM',1000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL012','Ly nhựa','CAI',500, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('NL013','Ống hút','CAI',500, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
 INSERT INTO nguyenlieu_donvi (manl, madv) VALUES
 ('NL001','GRAM'),('NL001','KG'),('NL002','ML'),('NL002','LIT'),('NL003','ML'),('NL003','LIT'),
@@ -50,13 +79,25 @@ INSERT INTO nguyenlieu_donvi (manl, madv) VALUES
 ('NL007','GRAM'),('NL007','KG'),('NL008','GRAM'),('NL008','KG'),('NL009','GRAM'),('NL009','KG'),
 ('NL010','GRAM'),('NL010','KG'),('NL011','GRAM'),('NL011','KG'),('NL012','CAI'),('NL013','CAI');
 
-INSERT INTO quydoidonvi (madv_from, madv_to, tylequydoi, trangthai) VALUES
-('KG','GRAM',1000, 1),('LIT','ML',1000, 1),('HOP','CAI',12, 1),('GOI','CAI',50, 1);
+INSERT INTO quydoidonvi (madv_from, madv_to, tylequydoi, trangthai, createdat, updatedat) VALUES
+('KG','GRAM',1000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('LIT','ML',1000, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('HOP','CAI',12, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('GOI','CAI',50, 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
-INSERT INTO phienbancongthuc (mapb, masp, ngayhieuluc, trangthai) VALUES
-('PB001','SP001','2026-01-01', 1),('PB002','SP002','2026-01-01', 1),('PB003','SP003','2026-01-01', 1),
-('PB004','SP004','2026-01-01', 1),('PB005','SP005','2026-01-01', 1),('PB006','SP006','2026-01-01', 1),
-('PB_T01','SPT01','2026-01-01', 1),('PB_T02','SPT02','2026-01-01', 1),('PB_T03','SPT03','2026-01-01', 1);
+-- ==============================================================================
+-- 4. ĐỊNH MỨC CÔNG THỨC (BOM)
+-- ==============================================================================
+INSERT INTO phienbancongthuc (mapb, masp, ngayhieuluc, trangthai, createdat, updatedat) VALUES
+('PB001','SP001','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB002','SP002','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB003','SP003','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB004','SP004','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB005','SP005','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB006','SP006','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB_T01','SPT01','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB_T02','SPT02','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00'),
+('PB_T03','SPT03','2026-01-01', 1, '2026-05-01 00:00:00', '2026-05-01 00:00:00');
 
 INSERT INTO dinhmuccongthuc (mapb, manl, soluong) VALUES
 ('PB001','NL001',20),('PB001','NL004',10),('PB001','NL005',150),('PB001','NL012',1),('PB001','NL013',1),
@@ -67,52 +108,210 @@ INSERT INTO dinhmuccongthuc (mapb, manl, soluong) VALUES
 ('PB006','NL009',15),('PB006','NL003',180),('PB006','NL004',20),('PB006','NL005',200),('PB006','NL012',1),('PB006','NL013',1),
 ('PB_T01','NL010',50),('PB_T02','NL011',40),('PB_T03','NL001',5),('PB_T03','NL004',10);
 
-INSERT INTO lohang (malo, manl, macn, ngaynhap, hsd, soluongcon) VALUES
-('LO_CN01_NL001_001','NL001','CN01','2026-05-01','2026-12-31',20000),
-('LO_CN01_NL002_001','NL002','CN01','2026-05-01','2026-08-31',12000),
-('LO_CN01_NL003_001','NL003','CN01','2026-05-01','2026-06-20',18000),
-('LO_CN01_NL004_001','NL004','CN01','2026-05-01','2027-05-01',20000),
-('LO_CN01_NL005_001','NL005','CN01','2026-05-01','2026-05-20',80000),
-('LO_CN01_NL006_001','NL006','CN01','2026-05-01','2026-09-30',15000),
-('LO_CN01_NL007_001','NL007','CN01','2026-05-12','2026-05-18',8000),
-('LO_CN01_NL008_001','NL008','CN01','2026-05-12','2026-05-25',2000),
-('LO_CN01_NL009_001','NL009','CN01','2026-05-01','2026-12-31',5000),
-('LO_CN01_NL010_001','NL010','CN01','2026-05-01','2026-08-31',10000),
-('LO_CN01_NL011_001','NL011','CN01','2026-05-01','2026-06-30',5000),
-('LO_CN01_NL012_001','NL012','CN01','2026-05-01',NULL,2000),
-('LO_CN01_NL013_001','NL013','CN01','2026-05-01',NULL,2000),
-('LO_CN02_NL001_001','NL001','CN02','2026-05-01','2026-12-31',15000),
-('LO_CN02_NL002_001','NL002','CN02','2026-05-01','2026-08-31',9000),
-('LO_CN02_NL003_001','NL003','CN02','2026-05-01','2026-06-20',12000),
-('LO_CN02_NL004_001','NL004','CN02','2026-05-01','2027-05-01',15000),
-('LO_CN02_NL005_001','NL005','CN02','2026-05-01','2026-05-20',60000),
-('LO_CN02_NL012_001','NL012','CN02','2026-05-01',NULL,1500),
-('LO_CN02_NL013_001','NL013','CN02','2026-05-01',NULL,1500);
+-- ==============================================================================
+-- 5. LÔ HÀNG VÀ TỒN KHO TỔNG
+-- ==============================================================================
+INSERT INTO lohang (malo, manl, macn, ngaynhap, hsd, soluongcon, issynced) VALUES
+('LO_CN01_NL001_001','NL001','CN01','2026-05-01','2026-12-31',20000, true),
+('LO_CN01_NL002_001','NL002','CN01','2026-05-01','2026-08-31',12000, true),
+('LO_CN01_NL003_001','NL003','CN01','2026-05-01','2026-06-20',18000, true),
+('LO_CN01_NL004_001','NL004','CN01','2026-05-01','2027-05-01',20000, true),
+('LO_CN01_NL005_001','NL005','CN01','2026-05-01','2026-05-20',80000, true),
+('LO_CN01_NL006_001','NL006','CN01','2026-05-01','2026-09-30',15000, true),
+('LO_CN01_NL007_001','NL007','CN01','2026-05-12','2026-05-18',8000, true),
+('LO_CN01_NL008_001','NL008','CN01','2026-05-12','2026-05-25',2000, true),
+('LO_CN01_NL009_001','NL009','CN01','2026-05-01','2026-12-31',5000, true),
+('LO_CN01_NL010_001','NL010','CN01','2026-05-01','2026-08-31',10000, true),
+('LO_CN01_NL011_001','NL011','CN01','2026-05-01','2026-06-30',5000, true),
+('LO_CN01_NL012_001','NL012','CN01','2026-05-01',NULL,2000, true),
+('LO_CN01_NL013_001','NL013','CN01','2026-05-01',NULL,2000, true),
+('LO_CN01_NL001_002','NL001','CN01','2026-05-13','2026-12-31',0, true), 
+('LO_CN02_NL001_001','NL001','CN02','2026-05-01','2026-12-31',15000, true),
+('LO_CN02_NL002_001','NL002','CN02','2026-05-01','2026-08-31',9000, true),
+('LO_CN02_NL003_001','NL003','CN02','2026-05-01','2026-06-20',12000, true),
+('LO_CN02_NL004_001','NL004','CN02','2026-05-01','2027-05-01',15000, true),
+('LO_CN02_NL005_001','NL005','CN02','2026-05-01','2026-05-20',60000, true),
+('LO_CN02_NL012_001','NL012','CN02','2026-05-01',NULL,1500, true),
+('LO_CN02_NL013_001','NL013','CN02','2026-05-01',NULL,1500, true),
+('LO_CN02_NL003_002','NL003','CN02','2026-05-15','2026-07-20', 50000, true),
+('LO_CN03_NL001_001','NL001','CN03','2026-05-10','2026-12-31', 25000, true),
+('LO_CN03_NL002_001','NL002','CN03','2026-05-10','2026-08-31', 15000, true),
+('LO_CN03_NL005_001','NL005','CN03','2026-05-10','2026-05-25', 90000, true),
+('LO_CN03_NL012_001','NL012','CN03','2026-05-10',NULL, 3000, true),
+('LO_CN04_NL006_001','NL006','CN04','2026-05-10','2026-09-30', 20000, true),
+('LO_CN04_NL007_001','NL007','CN04','2026-05-10','2026-05-20', 10000, true);
 
 INSERT INTO tonkho (macn, manl, soluongton)
 SELECT macn, manl, SUM(soluongcon) FROM lohang GROUP BY macn, manl;
 
-INSERT INTO calamviec (maca, manv, macn, thoigianmo, tiendauca) VALUES
-('CA001','NV003','CN01','2026-05-13 07:00:00',1000000),
-('CA002','NV007','CN02','2026-05-13 07:00:00',800000);
+-- ==============================================================================
+-- 6. GIAO DỊCH BÁN HÀNG VÀ DOANH THU 
+-- ==============================================================================
+INSERT INTO calamviec (maca, manv, macn, thoigianmo, thoigiandong, tiendauca, tiencuoica, sotienthatthoat, lydogiaitrinh, issynced, createdat) VALUES
+('CA001','NV003','CN01','2026-05-13 07:00:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-13 07:00:00'),
+('CA002','NV007','CN02','2026-05-13 07:00:00',NULL,800000,NULL,NULL,NULL,true,'2026-05-13 07:00:00'),
+('CA003','NV003','CN01','2026-05-18 07:00:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-18 07:00:00'),
+('CA004','NV007','CN02','2026-05-18 07:00:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-18 07:00:00'),
+('CA005','NV009','CN03','2026-05-19 07:30:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-19 07:30:00'),
+('CA006','NV003','CN01','2026-05-20 07:00:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-20 07:00:00'),
+('CA007','NV011','CN04','2026-05-21 08:00:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-21 08:00:00'),
+('CA008','NV007','CN02','2026-05-22 07:00:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-22 07:00:00'),
+('CA009','NV009','CN03','2026-05-23 07:30:00',NULL,1000000,NULL,NULL,NULL,true,'2026-05-23 07:30:00');
 
-INSERT INTO hoadon (mahd, maca, macn, tongtien, trangthai) VALUES
-('HD001','CA001','CN01', 74000, 1),
-('HD002','CA002','CN02', 70000, 1);
+INSERT INTO hoadon (mahd, maca, macn, tongtien, trangthai, issynced, createdat) VALUES
+('HD001','CA001','CN01', 74000,  1, true, '2026-05-13 08:15:00'),
+('HD002','CA002','CN02', 70000,  1, true, '2026-05-13 09:45:00'),
+('HD003','CA003','CN01', 125000, 1, true, '2026-05-18 08:15:00'),
+('HD004','CA003','CN01', 85000,  1, true, '2026-05-18 10:30:00'),
+('HD005','CA004','CN02', 145000, 1, true, '2026-05-18 09:45:00'),
+('HD006','CA004','CN02', 65000,  1, true, '2026-05-18 14:20:00'),
+('HD007','CA005','CN03', 210000, 1, true, '2026-05-19 11:10:00'),
+('HD008','CA005','CN03', 90000,  1, true, '2026-05-19 15:45:00'),
+('HD009','CA006','CN01', 160000, 1, true, '2026-05-20 08:05:00'),
+('HD010','CA006','CN01', 115000, 1, true, '2026-05-20 12:30:00'),
+('HD011','CA006','CN01', 75000,  1, true, '2026-05-20 19:15:00'),
+('HD012','CA007','CN04', 180000, 1, true, '2026-05-21 09:25:00'),
+('HD013','CA007','CN04', 135000, 1, true, '2026-05-21 16:50:00'),
+('HD014','CA008','CN02', 225000, 1, true, '2026-05-22 08:40:00'),
+('HD015','CA008','CN02', 95000,  1, true, '2026-05-22 13:15:00'),
+('HD016','CA009','CN03', 280000, 1, true, '2026-05-23 10:10:00'),
+('HD017','CA009','CN03', 150000, 1, true, '2026-05-23 18:30:00');
 
-INSERT INTO cthd (id, mahd, masp, soluong, giabantaithoidiem) VALUES
-('CTHD001','HD001','SP002',2,30000),
-('CTHD002','HD001','SPT01',2,7000),
-('CTHD003','HD002','SP001',1,25000),
-('CTHD004','HD002','SP004',1,45000);
+-- Chi tiết hóa đơn (Đã thêm idmonchinh = NULL và ghichu = NULL để khớp schema)
+INSERT INTO cthd (id, mahd, masp, idmonchinh, soluong, giabantaithoidiem, ghichu) VALUES
+('CTHD001','HD001','SP002',NULL,2,30000,NULL), ('CTHD002','HD001','SPT01',NULL,2,7000,NULL),
+('CTHD003','HD002','SP001',NULL,1,25000,NULL), ('CTHD004','HD002','SP004',NULL,1,45000,NULL),
+('CTHD005','HD003','SP005',NULL,2,40000,NULL), ('CTHD006','HD003','SP004',NULL,1,45000,NULL), 
+('CTHD007','HD004','SP006',NULL,1,55000,NULL), ('CTHD008','HD004','SP002',NULL,1,30000,NULL),
+('CTHD009','HD005','SP004',NULL,2,45000,NULL), ('CTHD010','HD005','SP006',NULL,1,55000,NULL),
+('CTHD011','HD006','SP001',NULL,1,25000,NULL), ('CTHD012','HD006','SP005',NULL,1,40000,NULL),
+('CTHD013','HD007','SP002',NULL,3,30000,NULL), ('CTHD014','HD007','SP005',NULL,3,40000,NULL),
+('CTHD015','HD008','SP007',NULL,2,45000,NULL),
+('CTHD016','HD009','SP005',NULL,2,40000,NULL), ('CTHD017','HD009','SPT01',NULL,2,7000,NULL), ('CTHD018','HD009','SPT02',NULL,2,10000,NULL), ('CTHD019','HD009','SP004',NULL,1,45000,NULL),
+('CTHD020','HD010','SP003',NULL,1,35000,NULL), ('CTHD021','HD010','SP005',NULL,2,40000,NULL),
+('CTHD022','HD011','SP001',NULL,3,25000,NULL),
+('CTHD023','HD012','SP006',NULL,2,55000,NULL), ('CTHD024','HD012','SPT02',NULL,2,10000,NULL), ('CTHD025','HD012','SP002',NULL,1,30000,NULL),
+('CTHD026','HD013','SP007',NULL,3,45000,NULL),
+('CTHD027','HD014','SP004',NULL,3,45000,NULL), ('CTHD028','HD014','SP002',NULL,3,30000,NULL),
+('CTHD029','HD015','SP003',NULL,1,35000,NULL), ('CTHD030','HD015','SP006',NULL,1,55000,NULL), ('CTHD031','HD015','SPT03',NULL,1,8000,NULL),
+('CTHD032','HD016','SP005',NULL,4,40000,NULL), ('CTHD033','HD016','SPT01',NULL,4,7000,NULL), ('CTHD034','HD016','SP007',NULL,2,45000,NULL),
+('CTHD035','HD017','SP006',NULL,2,55000,NULL), ('CTHD036','HD017','SP005',NULL,1,40000,NULL);
 
-INSERT INTO lohang (malo, manl, macn, ngaynhap, hsd, soluongcon) VALUES
-('LO_CN01_NL001_002','NL001','CN01','2026-05-13','2026-12-31',0);
+-- Thêm Data cho bảng Thanh toán (Khớp hóa đơn ở trên)
+INSERT INTO thanhtoan (matt, mahd, phuongthuc, sotien, trangthai, issynced, createdat) VALUES
+('TT001', 'HD001', 'TIENMAT', 74000, 1, true, '2026-05-13 08:15:00'),
+('TT002', 'HD002', 'CHUYENKHOAN', 70000, 1, true, '2026-05-13 09:45:00'),
+('TT003', 'HD003', 'TIENMAT', 125000, 1, true, '2026-05-18 08:15:00'),
+('TT004', 'HD004', 'MOMO', 85000, 1, true, '2026-05-18 10:30:00');
 
-INSERT INTO phieunhap (mapn, macn, manv, mancc, tongtien, ngaynhap, trangthai) VALUES
-('PN001','CN01','NV005','NCC01',1500000,'2026-05-13 09:00:00', 1);
+-- ==============================================================================
+-- 7. GIAO DỊCH KHO BÃI (Phiếu nhập & Kiểm kho)
+-- ==============================================================================
+INSERT INTO phieunhap (mapn, macn, manv, mancc, tongtien, ngaynhap, trangthai, issynced, createdat) VALUES
+('PN001','CN01','NV005','NCC01',1500000,'2026-05-13 09:00:00', 1, true, '2026-05-13 09:00:00'),
+('PN002','CN02','NV001','NCC02', 2500000, '2026-05-15 10:00:00', 1, true, '2026-05-15 10:00:00');
 
 INSERT INTO ctpn (mapn, malo, soluong, dongianhap, thanhtien) VALUES
-('PN001','LO_CN01_NL001_002',10000,150,1500000);
+('PN001','LO_CN01_NL001_002',10000,150,1500000),
+('PN002','LO_CN02_NL003_002', 50000, 50, 2500000);
+
+INSERT INTO kiemkho (makk, manv, macn, ngaykiem, issynced, createdat) VALUES
+('KK001','NV005','CN01','2026-05-24 20:00:00', true, '2026-05-24 20:00:00');
+
+-- Bảng ctkk không có id và lido, dùng Composite Key (makk, manl)
+INSERT INTO ctkk (makk, manl, soluonghethong, soluongthucte, chenhlech) VALUES
+('KK001','NL001', 20000, 19500, -500),
+('KK001','NL002', 12000, 11800, -200),
+('KK001','NL012', 2000, 1995, -5);
+
+
+
+
+-- ==============================================================================
+-- 1. BƠM CA LÀM VIỆC (Từ 24/05 đến 28/05 cho cả 4 chi nhánh)
+-- ==============================================================================
+INSERT INTO calamviec (maca, manv, macn, thoigianmo, tiendauca, issynced, createdat) VALUES
+('CA_24_01','NV003','CN01','2026-05-24 07:00:00',1000000,true,'2026-05-24 07:00:00'),
+('CA_24_02','NV007','CN02','2026-05-24 07:00:00',1000000,true,'2026-05-24 07:00:00'),
+('CA_25_03','NV009','CN03','2026-05-25 07:00:00',1000000,true,'2026-05-25 07:00:00'),
+('CA_25_04','NV011','CN04','2026-05-25 07:00:00',1000000,true,'2026-05-25 07:00:00'),
+('CA_26_01','NV003','CN01','2026-05-26 07:00:00',1000000,true,'2026-05-26 07:00:00'),
+('CA_26_02','NV007','CN02','2026-05-26 07:00:00',1000000,true,'2026-05-26 07:00:00'),
+('CA_27_03','NV009','CN03','2026-05-27 07:00:00',1000000,true,'2026-05-27 07:00:00'),
+('CA_27_04','NV011','CN04','2026-05-27 07:00:00',1000000,true,'2026-05-27 07:00:00'),
+('CA_28_01','NV003','CN01','2026-05-28 07:00:00',1000000,true,'2026-05-28 07:00:00'),
+('CA_28_02','NV007','CN02','2026-05-28 07:00:00',1000000,true,'2026-05-28 07:00:00');
+
+-- ==============================================================================
+-- 2. BƠM HÓA ĐƠN (Đẩy doanh thu lên cao chót vót)
+-- ==============================================================================
+INSERT INTO hoadon (mahd, maca, macn, tongtien, trangthai, issynced, createdat) VALUES
+('HD_24_01','CA_24_01','CN01', 350000, 1, true, '2026-05-24 09:15:00'),
+('HD_24_02','CA_24_02','CN02', 420000, 1, true, '2026-05-24 10:30:00'),
+('HD_24_03','CA_24_01','CN01', 180000, 1, true, '2026-05-24 14:20:00'),
+('HD_25_01','CA_25_03','CN03', 550000, 1, true, '2026-05-25 11:10:00'),
+('HD_25_02','CA_25_04','CN04', 310000, 1, true, '2026-05-25 15:45:00'),
+('HD_25_03','CA_25_03','CN03', 280000, 1, true, '2026-05-25 19:00:00'),
+('HD_26_01','CA_26_01','CN01', 620000, 1, true, '2026-05-26 08:05:00'),
+('HD_26_02','CA_26_02','CN02', 450000, 1, true, '2026-05-26 12:30:00'),
+('HD_26_03','CA_26_02','CN02', 290000, 1, true, '2026-05-26 16:15:00'),
+('HD_27_01','CA_27_03','CN03', 720000, 1, true, '2026-05-27 09:25:00'),
+('HD_27_02','CA_27_04','CN04', 380000, 1, true, '2026-05-27 13:50:00'),
+('HD_27_03','CA_27_04','CN04', 510000, 1, true, '2026-05-27 18:40:00'),
+('HD_28_01','CA_28_01','CN01', 850000, 1, true, '2026-05-28 08:10:00'),
+('HD_28_02','CA_28_02','CN02', 640000, 1, true, '2026-05-28 10:15:00');
+
+-- ==============================================================================
+-- 3. BƠM CHI TIẾT HÓA ĐƠN (Ép Cà phê sữa đá, Trà đào cam sả lên TOP 1, TOP 2)
+-- ==============================================================================
+INSERT INTO cthd (id, mahd, masp, idmonchinh, soluong, giabantaithoidiem, ghichu) VALUES
+-- HD_24_01
+('CT_24_01','HD_24_01','SP002',NULL,5,30000,NULL), ('CT_24_02','HD_24_01','SP004',NULL,4,45000,NULL), ('CT_24_03','HD_24_01','SPT01',NULL,4,7000,NULL),
+-- HD_24_02
+('CT_24_04','HD_24_02','SP005',NULL,6,40000,NULL), ('CT_24_05','HD_24_02','SP006',NULL,3,55000,NULL), ('CT_24_06','HD_24_02','SPT02',NULL,2,10000,NULL),
+-- HD_24_03
+('CT_24_07','HD_24_03','SP001',NULL,4,25000,NULL), ('CT_24_08','HD_24_03','SP005',NULL,2,40000,NULL),
+-- HD_25_01 (Trà đào bùng nổ)
+('CT_25_01','HD_25_01','SP004',NULL,8,45000,NULL), ('CT_25_02','HD_25_01','SP007',NULL,3,45000,NULL), ('CT_25_03','HD_25_01','SP006',NULL,1,55000,NULL),
+-- HD_25_02
+('CT_25_04','HD_25_02','SP002',NULL,5,30000,NULL), ('CT_25_05','HD_25_02','SP003',NULL,4,35000,NULL),
+-- HD_25_03
+('CT_25_06','HD_25_03','SP005',NULL,5,40000,NULL), ('CT_25_07','HD_25_03','SPT01',NULL,5,7000,NULL), ('CT_25_08','HD_25_03','SP004',NULL,1,45000,NULL),
+-- HD_26_01
+('CT_26_01','HD_26_01','SP002',NULL,10,30000,'Giao văn phòng'), ('CT_26_02','HD_26_01','SP004',NULL,5,45000,NULL), ('CT_26_03','HD_26_01','SP001',NULL,3,25000,NULL),
+-- HD_26_02
+('CT_26_04','HD_26_02','SP006',NULL,6,55000,NULL), ('CT_26_05','HD_26_02','SPT02',NULL,6,10000,NULL), ('CT_26_06','HD_26_02','SP007',NULL,2,45000,NULL),
+-- HD_26_03
+('CT_26_07','HD_26_03','SP005',NULL,6,40000,NULL), ('CT_26_08','HD_26_03','SP003',NULL,2,35000,NULL),
+-- HD_27_01 (Đơn siêu to)
+('CT_27_01','HD_27_01','SP004',NULL,12,45000,NULL), ('CT_27_02','HD_27_01','SP002',NULL,6,30000,NULL),
+-- HD_27_02
+('CT_27_03','HD_27_02','SP006',NULL,4,55000,NULL), ('CT_27_04','HD_27_02','SP005',NULL,4,40000,NULL),
+-- HD_27_03
+('CT_27_05','HD_27_03','SP001',NULL,8,25000,NULL), ('CT_27_06','HD_27_03','SP007',NULL,6,45000,NULL),
+-- HD_28_01 (Doanh thu mùng 28)
+('CT_28_01','HD_28_01','SP002',NULL,15,30000,'Khách quen'), ('CT_28_02','HD_28_01','SP004',NULL,8,45000,NULL),
+-- HD_28_02
+('CT_28_03','HD_28_02','SP005',NULL,10,40000,NULL), ('CT_28_04','HD_28_02','SPT01',NULL,10,7000,NULL), ('CT_28_05','HD_28_02','SP006',NULL,3,55000,NULL);
+
+-- ==============================================================================
+-- 4. BƠM GIAO DỊCH THANH TOÁN TƯƠNG ỨNG
+-- ==============================================================================
+INSERT INTO thanhtoan (matt, mahd, phuongthuc, sotien, trangthai, issynced, createdat) VALUES
+('TT_24_01', 'HD_24_01', 'MOMO', 350000, 1, true, '2026-05-24 09:15:00'),
+('TT_24_02', 'HD_24_02', 'TIENMAT', 420000, 1, true, '2026-05-24 10:30:00'),
+('TT_24_03', 'HD_24_03', 'CHUYENKHOAN', 180000, 1, true, '2026-05-24 14:20:00'),
+('TT_25_01', 'HD_25_01', 'TIENMAT', 550000, 1, true, '2026-05-25 11:10:00'),
+('TT_25_02', 'HD_25_02', 'MOMO', 310000, 1, true, '2026-05-25 15:45:00'),
+('TT_25_03', 'HD_25_03', 'CHUYENKHOAN', 280000, 1, true, '2026-05-25 19:00:00'),
+('TT_26_01', 'HD_26_01', 'TIENMAT', 620000, 1, true, '2026-05-26 08:05:00'),
+('TT_26_02', 'HD_26_02', 'MOMO', 450000, 1, true, '2026-05-26 12:30:00'),
+('TT_26_03', 'HD_26_03', 'TIENMAT', 290000, 1, true, '2026-05-26 16:15:00'),
+('TT_27_01', 'HD_27_01', 'CHUYENKHOAN', 720000, 1, true, '2026-05-27 09:25:00'),
+('TT_27_02', 'HD_27_02', 'MOMO', 380000, 1, true, '2026-05-27 13:50:00'),
+('TT_27_03', 'HD_27_03', 'TIENMAT', 510000, 1, true, '2026-05-27 18:40:00'),
+('TT_28_01', 'HD_28_01', 'MOMO', 850000, 1, true, '2026-05-28 08:10:00'),
+('TT_28_02', 'HD_28_02', 'CHUYENKHOAN', 640000, 1, true, '2026-05-28 10:15:00');
 
 COMMIT;
+
