@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth";
 import api from "@/services/api";
 
 interface ApiResponse<T> {
@@ -235,43 +236,68 @@ export default function InventoryStockPage() {
     try {
       setIsLoading(true);
 
+      const currentUser = getCurrentUser();
+      const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+      const effectiveBranchFilter =
+        isWarehouseStaff && currentUser?.maCN ? currentUser.maCN : branchFilter;
       const branchesResponse = await api.get<ApiBranch[]>("/api/chinhanh");
       const activeBranches = (branchesResponse.data || []).filter(
         (branch) => branch.trangThai === undefined || branch.trangThai === 1,
       );
+      const accessibleBranches =
+        isWarehouseStaff && currentUser?.maCN
+          ? activeBranches.filter((branch) => branch.maCN === currentUser.maCN)
+          : activeBranches;
       const branchNames = new Map(
         activeBranches.map((branch) => [branch.maCN, branch.tenCN]),
       );
-      const selectedBranches = activeBranches;
+      const selectedBranches =
+        effectiveBranchFilter === "all"
+          ? accessibleBranches
+          : accessibleBranches.filter(
+              (branch) => branch.maCN === effectiveBranchFilter,
+            );
       const selectedLossBranches =
-        branchFilter === "all"
-          ? activeBranches
-          : activeBranches.filter((branch) => branch.maCN === branchFilter);
+        effectiveBranchFilter === "all"
+          ? accessibleBranches
+          : accessibleBranches.filter(
+              (branch) => branch.maCN === effectiveBranchFilter,
+            );
 
       const [stockResults, warningResult, summaryResult, lossResults] =
         await Promise.all([
           Promise.all(
-            selectedBranches.map((branch) =>
-              api.get<ApiResponse<BaoCaoTonKhoResponse[]>>(
-                "/api/baocao/ton-kho",
-                {
-                  params: { maCN: branch.maCN },
-                },
-              ),
-            ),
+            selectedBranches.length > 0
+              ? selectedBranches.map((branch) =>
+                  api.get<ApiResponse<BaoCaoTonKhoResponse[]>>(
+                    "/api/baocao/ton-kho",
+                    {
+                      params: { maCN: branch.maCN },
+                    },
+                  ),
+                )
+              : [
+                  api.get<ApiResponse<BaoCaoTonKhoResponse[]>>(
+                    "/api/baocao/ton-kho",
+                  ),
+                ],
           ),
           api.get<ApiResponse<BaoCaoTonKhoResponse[]>>(
             "/api/baocao/canh-bao-ton-kho",
             {
               params:
-                branchFilter !== "all" ? { maCN: branchFilter } : undefined,
+                effectiveBranchFilter !== "all"
+                  ? { maCN: effectiveBranchFilter }
+                  : undefined,
             },
           ),
           api.get<ApiResponse<CanhBaoTonKhoTongHopResponse>>(
             "/api/baocao/canh-bao",
             {
               params:
-                branchFilter !== "all" ? { maCN: branchFilter } : undefined,
+                effectiveBranchFilter !== "all"
+                  ? { maCN: effectiveBranchFilter }
+                  : undefined,
             },
           ),
           Promise.all(

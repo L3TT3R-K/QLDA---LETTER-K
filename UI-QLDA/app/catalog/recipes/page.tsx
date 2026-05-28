@@ -75,6 +75,26 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 };
 
+const getApiErrorMessage = (error: unknown) => {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: unknown } }).response;
+    const data = response?.data;
+
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (typeof data === "object" && data !== null && "message" in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) {
+        return message;
+      }
+    }
+  }
+
+  return "Co loi xay ra khi luu cong thuc!";
+};
+
 export default function RecipesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -264,8 +284,9 @@ export default function RecipesPage() {
       setHasRecipeMap((prev) => ({ ...prev, [selectedProduct.maSP]: true }));
       selectProduct(selectedProduct);
     } catch (error) {
-      alert("Có lỗi xảy ra khi lưu công thức!");
+      alert(getApiErrorMessage(error));
       console.error(error);
+      return;
     }
   };
 

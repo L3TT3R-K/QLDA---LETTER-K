@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import api from "@/services/api"; // Chèn API axios vào
 
@@ -21,6 +23,7 @@ interface AuditRow {
   soLuongThucTe: number;
   chenhLech: number;
   phanTramSaiLech: number;
+  maCN?: string;
   tenChiNhanh: string;
   tenNhanVien: string;
   isSynced: boolean;
@@ -37,6 +40,9 @@ interface AuditFormItem {
 interface Branch { MaCN: string; TenCN: string; TrangThai: number; }
 interface Employee { MaNV: string; TenNV: string; MaCN: string | null; TrangThai: number; }
 interface Ingredient { MaNL: string; TenNL: string; DonViCoBan: string; }
+interface ApiBranch { maCN: string; tenCN: string; trangThai?: number | boolean; }
+interface ApiEmployee { maNV: string; tenNV: string; maCN?: string | null; trangThai?: number | boolean; }
+interface ApiIngredient { maNL: string; tenNL: string; donViCoBan?: string; tenDonVi?: string; }
 
 const statusConfig = {
   COMPLETED: { label: "Hoàn tất", className: "bg-[#D1E7DD] text-[#198754]" },
@@ -51,6 +57,29 @@ const toInputDateTime = (date: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
+
+const isActiveStatus = (value: number | boolean | undefined) => {
+  return value === undefined || value === true || value === 1;
+};
+
+const mapApiBranch = (branch: ApiBranch): Branch => ({
+  MaCN: branch.maCN,
+  TenCN: branch.tenCN,
+  TrangThai: isActiveStatus(branch.trangThai) ? 1 : 0,
+});
+
+const mapApiEmployee = (employee: ApiEmployee): Employee => ({
+  MaNV: employee.maNV,
+  TenNV: employee.tenNV,
+  MaCN: employee.maCN ?? null,
+  TrangThai: isActiveStatus(employee.trangThai) ? 1 : 0,
+});
+
+const mapApiIngredient = (ingredient: ApiIngredient): Ingredient => ({
+  MaNL: ingredient.maNL,
+  TenNL: ingredient.tenNL,
+  DonViCoBan: ingredient.donViCoBan || ingredient.tenDonVi || "",
+});
 
 export default function InventoryAuditPage() {
   const [auditRows, setAuditRows] = useState<AuditRow[]>([]);
@@ -70,12 +99,20 @@ export default function InventoryAuditPage() {
   const [auditItems, setAuditItems] = useState<AuditFormItem[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const pageSize = 10;
 
   // --- 1. GỌI API LẤY LỊCH SỬ KIỂM KHO ---
   const fetchAuditHistory = async () => {
     try {
-      const res = await api.get("/api/kiemkho");
+      const user = getCurrentUser();
+      const effectiveMaCN =
+        user?.chucVu === "NHANVIEN_KHO" && user.maCN
+          ? user.maCN
+          : branchFilter;
+      const res = await api.get("/api/kiemkho", {
+        params: effectiveMaCN !== "all" ? { maCN: effectiveMaCN } : undefined,
+      });
       setAuditRows(res.data);
     } catch (error) {
       console.error("Lỗi lấy lịch sử kiểm kho:", error);
@@ -83,18 +120,56 @@ export default function InventoryAuditPage() {
   };
 
   // --- GỌI API LẤY CÁC DANH MỤC CƠ BẢN ---
-  const loadMasterData = () => {
-    setBranches(JSON.parse(localStorage.getItem("CHINHANH") || "[]"));
-    setEmployees(JSON.parse(localStorage.getItem("NHANVIEN") || "[]"));
-    setIngredients(JSON.parse(localStorage.getItem("NGUYENLIEU") || "[]"));
+  const loadMasterData = async () => {
+    const [branchesResult, employeesResult, ingredientsResult] =
+      await Promise.allSettled([
+        api.get<ApiBranch[]>("/api/chinhanh"),
+        api.get<ApiEmployee[]>("/api/nhanvien"),
+        api.get<ApiIngredient[]>("/api/nguyenlieu"),
+      ]);
+
+    if (
+      branchesResult.status === "fulfilled" &&
+      Array.isArray(branchesResult.value.data)
+    ) {
+      setBranches(branchesResult.value.data.map(mapApiBranch));
+    }
+
+    if (
+      employeesResult.status === "fulfilled" &&
+      Array.isArray(employeesResult.value.data)
+    ) {
+      setEmployees(employeesResult.value.data.map(mapApiEmployee));
+    }
+
+    if (
+      ingredientsResult.status === "fulfilled" &&
+      Array.isArray(ingredientsResult.value.data)
+    ) {
+      setIngredients(ingredientsResult.value.data.map(mapApiIngredient));
+    }
   };
 
   useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUser(user);
     loadMasterData();
     fetchAuditHistory();
-  }, []);
+  }, [branchFilter]);
 
-  const activeBranches = branches.filter((b) => b.TrangThai === 1);
+  useEffect(() => {
+    if (currentUser?.chucVu !== "NHANVIEN_KHO" || !currentUser.maCN) return;
+
+    setBranchFilter(currentUser.maCN);
+    setSelectedBranch(currentUser.maCN);
+  }, [currentUser]);
+
+  const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+  const activeBranches = branches.filter(
+    (b) =>
+      b.TrangThai === 1 &&
+      (!isWarehouseStaff || !currentUser?.maCN || b.MaCN === currentUser.maCN),
+  );
   const activeEmployees = employees.filter((e) => e.TrangThai === 1 && (e.MaCN === selectedBranch || e.MaCN === null));
 
   // --- 2. GỌI API LẤY TỒN KHO THEO CHI NHÁNH ĐỂ LÀM PHIẾU ---
@@ -116,8 +191,14 @@ export default function InventoryAuditPage() {
 
   const handleOpenCreate = () => {
     const defaultBranch = activeBranches[0]?.MaCN || "";
+    const defaultEmployee =
+      employees.find(
+        (item) =>
+          item.TrangThai === 1 &&
+          (item.MaCN === defaultBranch || item.MaCN === null),
+      )?.MaNV || "";
     setSelectedBranch(defaultBranch);
-    setSelectedEmployee(activeEmployees[0]?.MaNV || "");
+    setSelectedEmployee(defaultEmployee);
     setAuditDate(toInputDateTime(new Date()));
     if (defaultBranch) fetchInventoryForBranch(defaultBranch);
     setIsDrawerOpen(true);
@@ -125,6 +206,12 @@ export default function InventoryAuditPage() {
 
   const handleChangeBranch = (MaCN: string) => {
     setSelectedBranch(MaCN);
+    const firstEmployee = employees.find(
+      (item) =>
+        item.TrangThai === 1 &&
+        (item.MaCN === MaCN || item.MaCN === null),
+    );
+    setSelectedEmployee(firstEmployee?.MaNV || "");
     fetchInventoryForBranch(MaCN); // Đổi chi nhánh là load lại tồn kho
   };
 
@@ -170,10 +257,10 @@ export default function InventoryAuditPage() {
   const filteredData = useMemo(() => {
     return auditRows.filter((item) => {
       const matchSearch = item.maKK.toLowerCase().includes(searchQuery.toLowerCase()) || item.tenNL.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchBranch = branchFilter === "all" || item.tenChiNhanh.includes(activeBranches.find(b => b.MaCN === branchFilter)?.TenCN || "xxx");
+      const matchBranch = branchFilter === "all" || item.maCN === branchFilter || item.tenChiNhanh.includes(activeBranches.find(b => b.MaCN === branchFilter)?.TenCN || "xxx");
       return matchSearch && matchBranch;
     });
-  }, [auditRows, searchQuery, branchFilter]);
+  }, [auditRows, searchQuery, branchFilter, activeBranches]);
 
   const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalPages = Math.ceil(filteredData.length / pageSize);
@@ -208,7 +295,7 @@ export default function InventoryAuditPage() {
           <Select value={branchFilter} onValueChange={setBranchFilter}>
             <SelectTrigger className="w-[220px]"><SelectValue placeholder="Chi nhánh" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+              {!isWarehouseStaff && <SelectItem value="all">Tất cả chi nhánh</SelectItem>}
               {activeBranches.map((b) => (<SelectItem key={b.MaCN} value={b.MaCN}>{b.TenCN}</SelectItem>))}
             </SelectContent>
           </Select>

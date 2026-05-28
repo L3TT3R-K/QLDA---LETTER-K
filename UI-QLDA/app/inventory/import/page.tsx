@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 import api from "@/services/api";
 import {
   Select,
@@ -555,10 +557,11 @@ const mapApiUnit = (unit: ApiUnit): Unit => ({
 });
 
 const buildReceiptQueryParams = (maCN: string, maNCC: string) => {
-  if (maNCC !== "all") return { maNCC };
-  if (maCN !== "all") return { maCN };
+  const params: Record<string, string> = {};
+  if (maCN !== "all") params.maCN = maCN;
+  if (maNCC !== "all") params.maNCC = maNCC;
 
-  return undefined;
+  return Object.keys(params).length > 0 ? params : undefined;
 };
 
 const downloadCsv = (
@@ -631,6 +634,7 @@ export default function ImportPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const pageSize = 10;
 
   const upsertSupplier = (supplier: Supplier) => {
@@ -662,10 +666,15 @@ export default function ImportPage() {
   ) => {
     try {
       setIsLoading(true);
+      const user = getCurrentUser();
+      const effectiveMaCN =
+        user?.chucVu === "NHANVIEN_KHO" && user.maCN
+          ? user.maCN
+          : filterMaCN;
       const receiptsResponse = await api.get<ApiImportReceipt[]>(
         "/api/nhapkho",
         {
-          params: buildReceiptQueryParams(filterMaCN, filterMaNCC),
+          params: buildReceiptQueryParams(effectiveMaCN, filterMaNCC),
         },
       );
       const [
@@ -743,6 +752,7 @@ export default function ImportPage() {
   };
 
   useEffect(() => {
+    setCurrentUser(getCurrentUser());
     loadData();
 
     const handleStorage = () => loadData();
@@ -757,6 +767,13 @@ export default function ImportPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, branchFilter, supplierFilter]);
+
+  useEffect(() => {
+    if (currentUser?.chucVu !== "NHANVIEN_KHO" || !currentUser.maCN) return;
+
+    setBranchFilter(currentUser.maCN);
+    setSelectedBranch(currentUser.maCN);
+  }, [currentUser]);
 
   useEffect(() => {
     if (sourceType !== "NHA_CUNG_CAP" || !selectedSupplier) return;
@@ -807,7 +824,12 @@ export default function ImportPage() {
     branches,
   ]);
 
-  const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
+  const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+  const activeBranches = branches.filter(
+    (branch) =>
+      branch.TrangThai === 1 &&
+      (!isWarehouseStaff || !currentUser?.maCN || branch.MaCN === currentUser.maCN),
+  );
   const activeEmployees = employees.filter(
     (employee) =>
       employee.TrangThai === 1 &&

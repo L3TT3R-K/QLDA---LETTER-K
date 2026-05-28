@@ -22,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import api from "@/services/api";
 
@@ -630,16 +632,22 @@ export default function InventoryExportPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [haoHutStats, setHaoHutStats] = useState<ApiHaoHutXuatKho[]>([]);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const pageSize = 10;
 
   const loadData = async (filterMaCN = branchFilter) => {
     try {
       setIsLoading(true);
+      const user = getCurrentUser();
+      const effectiveMaCN =
+        user?.chucVu === "NHANVIEN_KHO" && user.maCN
+          ? user.maCN
+          : filterMaCN;
 
       const receiptsResponse = await api.get<ApiExportReceipt[]>(
         "/api/xuatkho",
         {
-          params: filterMaCN !== "all" ? { maCN: filterMaCN } : undefined,
+          params: effectiveMaCN !== "all" ? { maCN: effectiveMaCN } : undefined,
         },
       );
 
@@ -656,14 +664,16 @@ export default function InventoryExportPage() {
         api.get<ApiIngredient[]>("/api/nguyenlieu"),
         api.get<ApiUnit[]>("/api/donvi"),
         api.get<ApiInventoryStock[]>("/api/inventory/stock"),
-        filterMaCN !== "all"
+        effectiveMaCN !== "all"
           ? api.get<ApiHaoHutXuatKho[]>("/api/xuatkho/hao-hut", {
               params: {
-                maCN: filterMaCN,
+                maCN: effectiveMaCN,
                 ...getMonthRangeParams(),
               },
             })
-          : Promise.resolve({ data: [] as ApiHaoHutXuatKho[] }),
+          : api.get<ApiHaoHutXuatKho[]>("/api/xuatkho/hao-hut", {
+              params: getMonthRangeParams(),
+            }),
       ]);
 
       const apiReceipts = Array.isArray(receiptsResponse.data)
@@ -743,6 +753,7 @@ export default function InventoryExportPage() {
   };
 
   useEffect(() => {
+    setCurrentUser(getCurrentUser());
     loadData();
 
     const handleStorage = () => loadData();
@@ -757,6 +768,13 @@ export default function InventoryExportPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, branchFilter, reasonFilter]);
+
+  useEffect(() => {
+    if (currentUser?.chucVu !== "NHANVIEN_KHO" || !currentUser.maCN) return;
+
+    setBranchFilter(currentUser.maCN);
+    setSelectedBranch(currentUser.maCN);
+  }, [currentUser]);
 
   useEffect(() => {
     const employee = employees.find(
@@ -779,7 +797,12 @@ export default function InventoryExportPage() {
     }
   }, [selectedBranch, selectedEmployee, employees]);
 
-  const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
+  const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+  const activeBranches = branches.filter(
+    (branch) =>
+      branch.TrangThai === 1 &&
+      (!isWarehouseStaff || !currentUser?.maCN || branch.MaCN === currentUser.maCN),
+  );
 
   const activeEmployees = employees.filter(
     (employee) =>
@@ -1095,7 +1118,7 @@ export default function InventoryExportPage() {
           <div className="rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <p className="text-sm text-muted-foreground">Hao hụt tháng này</p>
             <p className="mt-1 text-2xl font-bold text-destructive">
-              {branchFilter === "all" ? "—" : formatNumber(haoHutTotal)}
+              {formatNumber(haoHutTotal)}
             </p>
           </div>
         </div>

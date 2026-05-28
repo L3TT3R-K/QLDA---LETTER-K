@@ -27,19 +27,19 @@ export const appRoutes: AppRoute[] = [
     title: "Dashboard",
     href: "/",
     group: "dashboard",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO", "NHANVIEN_BANHANG"],
+    roles: ["ADMIN", "QUANLY"],
   },
   {
     title: "POS Bán hàng",
     href: "/pos",
     group: "pos",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_BANHANG"],
+    roles: ["QUANLY", "NHANVIEN_BANHANG"],
   },
   {
     title: "Ca làm việc",
     href: "/system/calamviec",
     group: "shift",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_BANHANG"],
+    roles: ["ADMIN", "QUANLY"],
   },
 
   {

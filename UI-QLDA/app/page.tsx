@@ -8,6 +8,7 @@ import { TopProductsChart } from "@/components/dashboard/top-products-chart";
 import { InventoryAlertsTable } from "@/components/dashboard/inventory-alerts-table";
 import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
 import { Wallet, ShoppingCart, AlertTriangle, RefreshCw } from "lucide-react";
+import api from "@/services/api";
 
 interface Branch {
   MaCN: string;
@@ -72,6 +73,39 @@ interface InventoryStock {
 interface SyncLog {
   MaLog?: string;
   TrangThai: number | string;
+}
+
+interface ApiBranch {
+  maCN?: string;
+  MaCN?: string;
+  tenCN?: string;
+  TenCN?: string;
+  diaChi?: string;
+  DiaChi?: string;
+  trangThai?: number;
+  TrangThai?: number;
+}
+
+interface ApiRevenueRow {
+  maCN?: string;
+  MaCN?: string;
+  tenCN?: string;
+  TenCN?: string;
+  tongDoanhThu?: number | string;
+  TongDoanhThu?: number | string;
+  soLuongDon?: number | string;
+  SoLuongDon?: number | string;
+}
+
+interface ApiProductSalesRow {
+  maSP?: string;
+  MaSP?: string;
+  tenSP?: string;
+  TenSP?: string;
+  tongSoLuongBan?: number | string;
+  TongSoLuongBan?: number | string;
+  tongDoanhThu?: number | string;
+  TongDoanhThu?: number | string;
 }
 
 interface InventoryAlert {
@@ -504,6 +538,25 @@ const addDays = (dateString: string, days: number) => {
   return date.toISOString().slice(0, 10);
 };
 
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getLastSevenDateKeys = () => {
+  const today = new Date();
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index - 6);
+
+    return toDateKey(date);
+  });
+};
+
 const isCompletedInvoice = (invoice: Invoice) => {
   return (
     invoice.TrangThai === 1 ||
@@ -598,6 +651,52 @@ const normalizeInvoiceDetail = (detail: any): InvoiceDetail | null => {
   };
 };
 
+const normalizeApiBranch = (branch: ApiBranch): Branch | null => {
+  const MaCN = branch.MaCN || branch.maCN;
+  const TenCN = branch.TenCN || branch.tenCN;
+
+  if (!MaCN || !TenCN) return null;
+
+  return {
+    MaCN,
+    TenCN,
+    DiaChi: branch.DiaChi || branch.diaChi,
+    TrangThai: Number(branch.TrangThai ?? branch.trangThai ?? 1),
+  };
+};
+
+const normalizeRevenueRow = (row: ApiRevenueRow, date: string): Invoice | null => {
+  const MaCN = row.MaCN || row.maCN;
+  const TongTien = Number(row.TongDoanhThu ?? row.tongDoanhThu ?? 0);
+
+  if (!MaCN || Number.isNaN(TongTien)) return null;
+
+  return {
+    MaHD: `DT-${date}-${MaCN}`,
+    MaCN,
+    MaNV: "API",
+    NgayLap: `${date}T12:00:00`,
+    TongTien,
+    TrangThai: 1,
+  };
+};
+
+const normalizeProductSalesRow = (
+  row: ApiProductSalesRow,
+): (TopProduct & { MaSP: string }) | null => {
+  const MaSP = row.MaSP || row.maSP;
+  const TenSP = row.TenSP || row.tenSP;
+  const SoLuong = Number(row.TongSoLuongBan ?? row.tongSoLuongBan ?? 0);
+
+  if (!MaSP || !TenSP || Number.isNaN(SoLuong)) return null;
+
+  return {
+    MaSP,
+    TenSP,
+    SoLuong,
+  };
+};
+
 export default function DashboardPage() {
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
@@ -613,6 +712,9 @@ export default function DashboardPage() {
     initialInventoryStocks,
   );
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>(initialSyncLogs);
+  const [apiTopProducts, setApiTopProducts] = useState<TopProduct[] | null>(
+    null,
+  );
 
   const loadData = () => {
     const storedBranches = getFromStorage<Branch>(
@@ -705,8 +807,107 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchRevenueFromApi = async () => {
+    const dateKeys = getLastSevenDateKeys();
+    const firstDate = dateKeys[0];
+    const lastDate = dateKeys.at(-1)!;
+
+    const [branchesResult, ...revenueResults] = await Promise.allSettled([
+      api.get<ApiBranch[]>("/api/chinhanh"),
+      ...dateKeys.map((date) =>
+        api.get<ApiRevenueRow[]>("/api/baocao/doanhthu-chinhanh", {
+          params: {
+            tuNgay: `${date}T00:00:00`,
+            denNgay: `${date}T23:59:59`,
+          },
+        }),
+      ),
+    ]);
+
+    let reportBranches = branches;
+
+    if (
+      branchesResult.status === "fulfilled" &&
+      Array.isArray(branchesResult.value.data)
+    ) {
+      const apiBranches = branchesResult.value.data
+        .map(normalizeApiBranch)
+        .filter((item): item is Branch => item !== null);
+
+      if (apiBranches.length > 0) {
+        reportBranches = apiBranches;
+        setBranches(apiBranches);
+      }
+    }
+
+    const successfulRevenueResults = revenueResults.filter(
+      (result) => result.status === "fulfilled",
+    );
+
+    if (successfulRevenueResults.length === 0) {
+      console.error("Không tải được dữ liệu doanh thu từ backend");
+      return;
+    }
+
+    const revenueInvoices = revenueResults.flatMap((result, index) => {
+      if (result.status !== "fulfilled" || !Array.isArray(result.value.data)) {
+        return [];
+      }
+
+      return result.value.data
+        .map((row) => normalizeRevenueRow(row, dateKeys[index]))
+        .filter((item): item is Invoice => item !== null);
+    });
+
+    setInvoices(revenueInvoices);
+
+    const activeReportBranches = reportBranches.filter(
+      (branch) => branch.TrangThai === 1,
+    );
+
+    const productResults = await Promise.allSettled(
+      activeReportBranches.map((branch) =>
+        api.get<ApiProductSalesRow[]>("/api/baocao/doanhthu-sanpham", {
+          params: {
+            maCN: branch.MaCN,
+            tuNgay: `${firstDate}T00:00:00`,
+            denNgay: `${lastDate}T23:59:59`,
+          },
+        }),
+      ),
+    );
+
+    const productMap = new Map<string, TopProduct & { MaSP: string }>();
+
+    productResults.forEach((result) => {
+      if (result.status !== "fulfilled" || !Array.isArray(result.value.data)) {
+        return;
+      }
+
+      result.value.data.forEach((row) => {
+        const product = normalizeProductSalesRow(row);
+        if (!product) return;
+
+        const current = productMap.get(product.MaSP);
+
+        productMap.set(product.MaSP, {
+          MaSP: product.MaSP,
+          TenSP: product.TenSP,
+          SoLuong: (current?.SoLuong || 0) + product.SoLuong,
+        });
+      });
+    });
+
+    setApiTopProducts(
+      Array.from(productMap.values())
+        .sort((a, b) => b.SoLuong - a.SoLuong)
+        .slice(0, 5),
+    );
+  };
+
   useEffect(() => {
     loadData();
+    fetchRevenueFromApi();
 
     window.addEventListener("storage", loadData);
 
@@ -824,6 +1025,8 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [products, invoiceDetails, invoices]);
 
+  const displayedTopProducts = apiTopProducts ?? topProducts;
+
   const recentOrders: RecentOrder[] = useMemo(() => {
     return [...invoices]
       .sort(
@@ -917,7 +1120,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="lg:col-span-2">
-            <TopProductsChart data={topProducts} />
+            <TopProductsChart data={displayedTopProducts} />
           </div>
         </div>
 
