@@ -4,8 +4,11 @@ import com.phungloccoffee.backend.dto.NguyenLieuResponse;
 import com.phungloccoffee.backend.entity.DonVi;
 import com.phungloccoffee.backend.entity.NguyenLieu;
 import com.phungloccoffee.backend.repository.NguyenLieuRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +20,12 @@ public class NguyenLieuService {
 
     @Autowired 
     private NguyenLieuRepository repository;
+
+    private void requireAdminAccess() {
+        if (!SecurityUtils.canAccessAllBranches()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ Admin mới có quyền thao tác danh mục Nguyên Liệu");
+        }
+    }
 
     public List<NguyenLieuResponse> getAllNguyenLieu() {
         List<Object[]> rows = repository.findAllCustom();
@@ -36,6 +45,7 @@ public class NguyenLieuService {
     }
 
     public NguyenLieu createNguyenLieu(NguyenLieuResponse dto) {
+        requireAdminAccess();
         NguyenLieu nl = new NguyenLieu();
         nl.setMaNL("NL" + UUID.randomUUID().toString().substring(0, 5).toUpperCase());
         nl.setTenNL(dto.getTenNL());
@@ -50,6 +60,7 @@ public class NguyenLieuService {
     }
 
     public NguyenLieu updateNguyenLieu(String maNL, NguyenLieuResponse dto) {
+        requireAdminAccess();
         Optional<NguyenLieu> optional = repository.findById(maNL);
         if (optional.isPresent()) {
             NguyenLieu existing = optional.get();
@@ -67,6 +78,7 @@ public class NguyenLieuService {
     }
 
     public void deleteNguyenLieu(String maNL) {
+        requireAdminAccess();
         repository.findById(maNL).ifPresent(nl -> {
             nl.setTrangThai(0); 
             repository.save(nl);
