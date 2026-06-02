@@ -4,9 +4,12 @@ import com.phungloccoffee.backend.dto.ChiNhanhRequest;
 import com.phungloccoffee.backend.entity.ChiNhanh;
 import com.phungloccoffee.backend.service.ChiNhanhService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chinhanh")
@@ -17,22 +20,32 @@ public class ChiNhanhController {
     private final ChiNhanhService chiNhanhService;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<ChiNhanh> getAll() { return chiNhanhService.getAll(); }
 
     @GetMapping("/{maCN}")
+    @PreAuthorize("isAuthenticated()")
     public ChiNhanh getById(@PathVariable String maCN) { return chiNhanhService.getById(maCN); }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ChiNhanh create(@RequestBody ChiNhanhRequest request) { return chiNhanhService.create(request); }
 
     @PutMapping("/{maCN}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ChiNhanh update(@PathVariable String maCN, @RequestBody ChiNhanhRequest request) { 
         return chiNhanhService.update(maCN, request); 
     }
 
     @DeleteMapping("/{maCN}")
+    @PreAuthorize("hasRole('ADMIN')")
     public String delete(@PathVariable String maCN) {
         chiNhanhService.delete(maCN);
         return "Đã ngưng hoạt động chi nhánh: " + maCN;
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException exception) {
+        return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
     }
 }

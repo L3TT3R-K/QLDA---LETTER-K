@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import api from "@/services/api";
 
 interface Branch {
   MaCN: string;
@@ -34,99 +36,19 @@ interface Branch {
   UpdatedAt?: string;
 }
 
-const storageKey = "CHINHANH";
+interface ApiBranch {
+  maCN: string;
+  tenCN: string;
+  diaChi: string;
+  trangThai?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-const initialBranches: Branch[] = [
-  {
-    MaCN: "CN01",
-    TenCN: "Phụng Lộc Coffee - Quận 1",
-    DiaChi: "12 Nguyễn Huệ, Quận 1, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN02",
-    TenCN: "Phụng Lộc Coffee - Quận 3",
-    DiaChi: "25 Võ Văn Tần, Quận 3, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN03",
-    TenCN: "Phụng Lộc Coffee - Bình Thạnh",
-    DiaChi: "88 Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN04",
-    TenCN: "Phụng Lộc Coffee - Thủ Đức",
-    DiaChi: "45 Võ Văn Ngân, Thủ Đức, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN05",
-    TenCN: "Phụng Lộc Coffee - Gò Vấp",
-    DiaChi: "102 Phan Văn Trị, Gò Vấp, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN06",
-    TenCN: "Phụng Lộc Coffee - Tân Bình",
-    DiaChi: "70 Cộng Hòa, Tân Bình, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN07",
-    TenCN: "Phụng Lộc Coffee - Quận 7",
-    DiaChi: "15 Nguyễn Thị Thập, Quận 7, TP.HCM",
-    TrangThai: 1,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-  {
-    MaCN: "CN08",
-    TenCN: "Phụng Lộc Coffee - Phú Nhuận",
-    DiaChi: "33 Phan Đăng Lưu, Phú Nhuận, TP.HCM",
-    TrangThai: 0,
-    CreatedAt: "2026-05-23T00:00:00",
-    UpdatedAt: "2026-05-23T00:00:00",
-  },
-];
-
-const getFromStorage = <T,>(key: string, fallback: T[]): T[] => {
-  if (typeof window === "undefined") return fallback;
-
-  const data = localStorage.getItem(key);
-
-  if (!data) return fallback;
-
-  try {
-    const parsed = JSON.parse(data);
-
-    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const saveToStorage = <T,>(key: string, data: T[]) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
-const normalizeBranch = (branch: Partial<Branch>): Branch | null => {
-  const MaCN = branch.MaCN;
-  const TenCN = branch.TenCN;
-  const DiaChi = branch.DiaChi;
+const normalizeBranch = (branch: ApiBranch): Branch | null => {
+  const MaCN = branch.maCN;
+  const TenCN = branch.tenCN;
+  const DiaChi = branch.diaChi;
 
   if (!MaCN || !TenCN || !DiaChi) return null;
 
@@ -134,9 +56,9 @@ const normalizeBranch = (branch: Partial<Branch>): Branch | null => {
     MaCN,
     TenCN,
     DiaChi,
-    TrangThai: Number(branch.TrangThai ?? 1),
-    CreatedAt: branch.CreatedAt,
-    UpdatedAt: branch.UpdatedAt,
+    TrangThai: Number(branch.trangThai ?? 1),
+    CreatedAt: branch.createdAt,
+    UpdatedAt: branch.updatedAt,
   };
 };
 
@@ -153,7 +75,10 @@ const getNextBranchCode = (branches: Branch[]) => {
 };
 
 export default function BranchesPage() {
-  const [branches, setBranches] = useState<Branch[]>(initialBranches);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -170,21 +95,37 @@ export default function BranchesPage() {
   const pageSize = 10;
 
   useEffect(() => {
-    const storedBranches = getFromStorage<Partial<Branch>>(storageKey, []);
+    void loadBranches();
+  }, []);
 
-    if (storedBranches.length > 0) {
-      const normalizedBranches = storedBranches
+  const getApiErrorMessage = (error: unknown) => {
+    if (!axios.isAxiosError(error)) return "Có lỗi xảy ra. Vui lòng thử lại.";
+
+    const data = error.response?.data;
+
+    if (typeof data === "string") return data;
+    if (data && typeof data.message === "string") return data.message;
+
+    return "Không thể kết nối đến hệ thống. Vui lòng thử lại.";
+  };
+
+  const loadBranches = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await api.get<ApiBranch[]>("/api/chinhanh");
+      const normalizedBranches = (Array.isArray(response.data) ? response.data : [])
         .map(normalizeBranch)
         .filter((item): item is Branch => item !== null);
 
-      if (normalizedBranches.length > 0) {
-        setBranches(normalizedBranches);
-        return;
-      }
+      setBranches(normalizedBranches);
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error));
+    } finally {
+      setIsLoading(false);
     }
-
-    saveToStorage(storageKey, initialBranches);
-  }, []);
+  };
 
   const filteredBranches = useMemo(() => {
     return branches.filter((branch) => {
@@ -246,12 +187,7 @@ export default function BranchesPage() {
     setIsDrawerOpen(true);
   };
 
-  const persistBranches = (updatedBranches: Branch[]) => {
-    setBranches(updatedBranches);
-    saveToStorage(storageKey, updatedBranches);
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     const tenCN = formData.TenCN.trim();
     const diaChi = formData.DiaChi.trim();
 
@@ -274,71 +210,63 @@ export default function BranchesPage() {
       return;
     }
 
-    const now = new Date().toISOString();
+    setIsSaving(true);
 
-    if (editingItem) {
-      const updatedBranches = branches.map((branch) =>
-        branch.MaCN === editingItem.MaCN
-          ? {
-              ...branch,
-              TenCN: tenCN,
-              DiaChi: diaChi,
-              TrangThai: formData.TrangThai,
-              UpdatedAt: now,
-            }
-          : branch,
-      );
+    try {
+      if (editingItem) {
+        await api.put(`/api/chinhanh/${editingItem.MaCN}`, {
+          maCN: editingItem.MaCN,
+          tenCN,
+          diaChi,
+          trangThai: formData.TrangThai,
+        });
+      } else {
+        await api.post("/api/chinhanh", {
+          maCN: getNextBranchCode(branches),
+          tenCN,
+          diaChi,
+          trangThai: formData.TrangThai,
+        });
+        setCurrentPage(1);
+      }
 
-      persistBranches(updatedBranches);
-    } else {
-      const newBranch: Branch = {
-        MaCN: getNextBranchCode(branches),
-        TenCN: tenCN,
-        DiaChi: diaChi,
-        TrangThai: formData.TrangThai,
-        CreatedAt: now,
-        UpdatedAt: now,
-      };
-
-      persistBranches([...branches, newBranch]);
-      setCurrentPage(1);
+      await loadBranches();
+      handleCloseDrawer();
+    } catch (error) {
+      alert(getApiErrorMessage(error));
+    } finally {
+      setIsSaving(false);
     }
-
-    handleCloseDrawer();
   };
 
-  const handleToggleStatus = (MaCN: string) => {
-    const updatedBranches = branches.map((branch) =>
-      branch.MaCN === MaCN
-        ? {
-            ...branch,
-            TrangThai: branch.TrangThai === 1 ? 0 : 1,
-            UpdatedAt: new Date().toISOString(),
-          }
-        : branch,
-    );
+  const handleToggleStatus = async (branch: Branch) => {
+    try {
+      await api.put(`/api/chinhanh/${branch.MaCN}`, {
+        maCN: branch.MaCN,
+        tenCN: branch.TenCN,
+        diaChi: branch.DiaChi,
+        trangThai: branch.TrangThai === 1 ? 0 : 1,
+      });
 
-    persistBranches(updatedBranches);
+      await loadBranches();
+    } catch (error) {
+      alert(getApiErrorMessage(error));
+    }
   };
 
-  const handleDelete = (MaCN: string) => {
+  const handleDelete = async (MaCN: string) => {
     const isConfirmed = confirm(
       "Bạn có chắc muốn ngưng hoạt động chi nhánh này không?",
     );
 
     if (!isConfirmed) return;
 
-    const updatedBranches = branches.map((branch) =>
-      branch.MaCN === MaCN
-        ? {
-            ...branch,
-            TrangThai: 0,
-            UpdatedAt: new Date().toISOString(),
-          }
-        : branch,
-    );
-
-    persistBranches(updatedBranches);
+    try {
+      await api.delete(`/api/chinhanh/${MaCN}`);
+      await loadBranches();
+    } catch (error) {
+      alert(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -418,6 +346,18 @@ export default function BranchesPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
+          {errorMessage && (
+            <div className="col-span-2 rounded-lg bg-[#F8D7DA] p-4 text-sm text-[#842029] shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              {errorMessage}
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="col-span-2 rounded-lg bg-card p-6 text-center text-sm text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              Đang tải danh sách chi nhánh...
+            </div>
+          )}
+
           {paginatedBranches.map((branch) => (
             <div
               key={branch.MaCN}
@@ -474,7 +414,7 @@ export default function BranchesPage() {
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={branch.TrangThai === 1}
-                      onCheckedChange={() => handleToggleStatus(branch.MaCN)}
+                      onCheckedChange={() => handleToggleStatus(branch)}
                     />
 
                     <span className="text-xs">
@@ -486,7 +426,7 @@ export default function BranchesPage() {
             </div>
           ))}
 
-          {paginatedBranches.length === 0 && (
+          {!isLoading && !errorMessage && paginatedBranches.length === 0 && (
             <div className="col-span-2 rounded-lg bg-card p-6 text-center text-sm text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
               Không có chi nhánh phù hợp
             </div>
@@ -635,8 +575,8 @@ export default function BranchesPage() {
                 Hủy
               </Button>
 
-              <Button className="flex-1" onClick={handleSave}>
-                Lưu
+              <Button className="flex-1" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Đang lưu..." : "Lưu"}
               </Button>
             </div>
           </div>
