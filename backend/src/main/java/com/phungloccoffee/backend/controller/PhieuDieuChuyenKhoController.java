@@ -4,6 +4,7 @@ import com.phungloccoffee.backend.dto.CapNhatTrangThaiDieuChuyenRequest;
 import com.phungloccoffee.backend.dto.PhieuDieuChuyenKhoRequest;
 import com.phungloccoffee.backend.dto.PhieuDieuChuyenKhoResponse;
 import com.phungloccoffee.backend.service.PhieuDieuChuyenKhoService;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ public class PhieuDieuChuyenKhoController {
 
     @PostMapping
     public ResponseEntity<PhieuDieuChuyenKhoResponse> taoPhieuDieuChuyen(@RequestBody PhieuDieuChuyenKhoRequest request) {
+        request.setMaCNXuat(SecurityUtils.resolveInventoryBranch(request.getMaCNXuat()));
         return ResponseEntity.status(HttpStatus.CREATED).body(phieuDieuChuyenKhoService.taoPhieuDieuChuyen(request));
     }
 
@@ -36,8 +38,12 @@ public class PhieuDieuChuyenKhoController {
             @RequestParam(required = false) String maKho,
             @RequestParam(required = false) String trangThai
     ) {
+        if (!SecurityUtils.canAccessAllBranches()) {
+            String maCN = SecurityUtils.requireCurrentUserBranch();
+            return filterByTrangThai(phieuDieuChuyenKhoService.getByKho(maCN), trangThai);
+        }
         if (maKho != null && !maKho.trim().isEmpty()) {
-            return phieuDieuChuyenKhoService.getByKho(maKho);
+            return filterByTrangThai(phieuDieuChuyenKhoService.getByKho(maKho), trangThai);
         }
         if (trangThai != null && !trangThai.trim().isEmpty()) {
             return phieuDieuChuyenKhoService.getByTrangThai(trangThai);
@@ -47,7 +53,9 @@ public class PhieuDieuChuyenKhoController {
 
     @GetMapping("/{maPDC}")
     public PhieuDieuChuyenKhoResponse getById(@PathVariable String maPDC) {
-        return phieuDieuChuyenKhoService.getById(maPDC);
+        PhieuDieuChuyenKhoResponse response = phieuDieuChuyenKhoService.getById(maPDC);
+        requireTransferAccess(response);
+        return response;
     }
 
     @PostMapping("/{maPDC}/gui")
@@ -55,6 +63,7 @@ public class PhieuDieuChuyenKhoController {
             @PathVariable String maPDC,
             @RequestBody CapNhatTrangThaiDieuChuyenRequest request
     ) {
+        requireSourceBranchAccess(phieuDieuChuyenKhoService.getById(maPDC));
         return phieuDieuChuyenKhoService.guiPhieu(maPDC, request);
     }
 
@@ -63,6 +72,7 @@ public class PhieuDieuChuyenKhoController {
             @PathVariable String maPDC,
             @RequestBody CapNhatTrangThaiDieuChuyenRequest request
     ) {
+        requireDestinationBranchAccess(phieuDieuChuyenKhoService.getById(maPDC));
         return phieuDieuChuyenKhoService.nhanPhieu(maPDC, request);
     }
 
@@ -71,7 +81,41 @@ public class PhieuDieuChuyenKhoController {
             @PathVariable String maPDC,
             @RequestBody(required = false) CapNhatTrangThaiDieuChuyenRequest request
     ) {
+        requireSourceBranchAccess(phieuDieuChuyenKhoService.getById(maPDC));
         return phieuDieuChuyenKhoService.huyPhieu(maPDC, request);
+    }
+
+    private List<PhieuDieuChuyenKhoResponse> filterByTrangThai(
+            List<PhieuDieuChuyenKhoResponse> receipts,
+            String trangThai
+    ) {
+        if (trangThai == null || trangThai.trim().isEmpty()) {
+            return receipts;
+        }
+        List<String> matchingIds = phieuDieuChuyenKhoService.getByTrangThai(trangThai).stream()
+                .map(PhieuDieuChuyenKhoResponse::getMaPC)
+                .toList();
+        return receipts.stream()
+                .filter(receipt -> matchingIds.contains(receipt.getMaPC()))
+                .toList();
+    }
+
+    private void requireTransferAccess(PhieuDieuChuyenKhoResponse response) {
+        if (SecurityUtils.canAccessAllBranches()) {
+            return;
+        }
+        String maCN = SecurityUtils.requireCurrentUserBranch();
+        if (!maCN.equals(response.getMaCNXuat()) && !maCN.equals(response.getMaCNNhap())) {
+            SecurityUtils.requireInventoryBranchAccess(response.getMaCNXuat());
+        }
+    }
+
+    private void requireSourceBranchAccess(PhieuDieuChuyenKhoResponse response) {
+        SecurityUtils.requireInventoryBranchAccess(response.getMaCNXuat());
+    }
+
+    private void requireDestinationBranchAccess(PhieuDieuChuyenKhoResponse response) {
+        SecurityUtils.requireInventoryBranchAccess(response.getMaCNNhap());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

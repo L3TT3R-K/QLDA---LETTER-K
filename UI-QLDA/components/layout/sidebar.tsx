@@ -97,6 +97,7 @@ const navItems: NavItem[] = [
 const roleLabels: Record<string, string> = {
   ADMIN: "Quản trị viên",
   QUANLY: "Quản lý",
+  QUANLY_CHINHANH: "Quản lý chi nhánh",
   NHANVIEN_KHO: "Nhân viên kho",
   NHANVIEN_BANHANG: "Nhân viên bán hàng",
 };

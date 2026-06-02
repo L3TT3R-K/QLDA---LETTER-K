@@ -158,17 +158,23 @@ export default function InventoryAuditPage() {
   }, [branchFilter]);
 
   useEffect(() => {
-    if (currentUser?.chucVu !== "NHANVIEN_KHO" || !currentUser.maCN) return;
+    if (
+      (currentUser?.chucVu !== "NHANVIEN_KHO" &&
+        currentUser?.chucVu !== "QUANLY_CHINHANH") ||
+      !currentUser.maCN
+    ) return;
 
     setBranchFilter(currentUser.maCN);
     setSelectedBranch(currentUser.maCN);
   }, [currentUser]);
 
-  const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+  const isBranchRestricted =
+    currentUser?.chucVu === "NHANVIEN_KHO" ||
+    currentUser?.chucVu === "QUANLY_CHINHANH";
   const activeBranches = branches.filter(
     (b) =>
       b.TrangThai === 1 &&
-      (!isWarehouseStaff || !currentUser?.maCN || b.MaCN === currentUser.maCN),
+      (!isBranchRestricted || !currentUser?.maCN || b.MaCN === currentUser.maCN),
   );
   const activeEmployees = employees.filter((e) => e.TrangThai === 1 && (e.MaCN === selectedBranch || e.MaCN === null));
 
@@ -295,7 +301,7 @@ export default function InventoryAuditPage() {
           <Select value={branchFilter} onValueChange={setBranchFilter}>
             <SelectTrigger className="w-[220px]"><SelectValue placeholder="Chi nhánh" /></SelectTrigger>
             <SelectContent>
-              {!isWarehouseStaff && <SelectItem value="all">Tất cả chi nhánh</SelectItem>}
+              {!isBranchRestricted && <SelectItem value="all">Tất cả chi nhánh</SelectItem>}
               {activeBranches.map((b) => (<SelectItem key={b.MaCN} value={b.MaCN}>{b.TenCN}</SelectItem>))}
             </SelectContent>
           </Select>

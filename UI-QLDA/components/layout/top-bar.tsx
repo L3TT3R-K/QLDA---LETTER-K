@@ -43,6 +43,9 @@ const getRoleLabel = (role?: string) => {
     case "QUANLY":
       return "Quản lý";
 
+    case "QUANLY_CHINHANH":
+      return "Quan ly chi nhanh";
+
     case "NHANVIEN_KHO":
       return "Nhân viên kho";
 

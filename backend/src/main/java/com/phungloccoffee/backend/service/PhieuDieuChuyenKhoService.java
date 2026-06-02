@@ -22,6 +22,7 @@ import com.phungloccoffee.backend.repository.LoHangRepository;
 import com.phungloccoffee.backend.repository.NhanVienRepository;
 import com.phungloccoffee.backend.repository.PhieuDieuChuyenKhoRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,10 @@ public class PhieuDieuChuyenKhoService {
 
     @Transactional
     public PhieuDieuChuyenKhoResponse taoPhieuDieuChuyen(PhieuDieuChuyenKhoRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Du lieu phieu chuyen khong duoc de trong");
+        }
+        request.setMaNVTao(getCurrentNhanVien().getMaNV());
         validateCreateRequest(request);
 
         String maPC = normalizeMaPC(request.getMaPC());
@@ -66,8 +71,7 @@ public class PhieuDieuChuyenKhoService {
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh xuat: " + request.getMaCNXuat()));
         chiNhanhRepository.findById(request.getMaCNNhap())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh nhap: " + request.getMaCNNhap()));
-        NhanVien nhanVien = nhanVienRepository.findById(request.getMaNVTao())
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien: " + request.getMaNVTao()));
+        NhanVien nhanVien = getCurrentNhanVien();
 
         PhieuDieuChuyenKho phieu = new PhieuDieuChuyenKho();
         phieu.setMaPC(maPC);
@@ -364,6 +368,12 @@ public class PhieuDieuChuyenKhoService {
 
     private Integer parseTrangThai(Integer trangThai) {
         return trangThai;
+    }
+
+    private NhanVien getCurrentNhanVien() {
+        String username = SecurityUtils.requireCurrentUsername();
+        return nhanVienRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien dang nhap: " + username));
     }
 
     private Integer parseTrangThai(String trangThai) {

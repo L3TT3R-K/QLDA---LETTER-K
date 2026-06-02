@@ -614,8 +614,8 @@ export default function InventoryExportPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const [selectedBranch, setSelectedBranch] = useState("CN01");
-  const [selectedEmployee, setSelectedEmployee] = useState("NV005");
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedReason, setSelectedReason] = useState<ExportReason>("USE");
   const [exportDate, setExportDate] = useState(toInputDateTime(new Date()));
   const [note, setNote] = useState("");
@@ -770,7 +770,14 @@ export default function InventoryExportPage() {
   }, [searchQuery, branchFilter, reasonFilter]);
 
   useEffect(() => {
-    if (currentUser?.chucVu !== "NHANVIEN_KHO" || !currentUser.maCN) return;
+    if (currentUser?.maNV) {
+      setSelectedEmployee(currentUser.maNV);
+    }
+    if (
+      (currentUser?.chucVu !== "NHANVIEN_KHO" &&
+        currentUser?.chucVu !== "QUANLY_CHINHANH") ||
+      !currentUser.maCN
+    ) return;
 
     setBranchFilter(currentUser.maCN);
     setSelectedBranch(currentUser.maCN);
@@ -797,11 +804,13 @@ export default function InventoryExportPage() {
     }
   }, [selectedBranch, selectedEmployee, employees]);
 
-  const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+  const isBranchRestricted =
+    currentUser?.chucVu === "NHANVIEN_KHO" ||
+    currentUser?.chucVu === "QUANLY_CHINHANH";
   const activeBranches = branches.filter(
     (branch) =>
       branch.TrangThai === 1 &&
-      (!isWarehouseStaff || !currentUser?.maCN || branch.MaCN === currentUser.maCN),
+      (!isBranchRestricted || !currentUser?.maCN || branch.MaCN === currentUser.maCN),
   );
 
   const activeEmployees = employees.filter(
@@ -845,14 +854,16 @@ export default function InventoryExportPage() {
   };
 
   const resetForm = () => {
-    const firstBranch = activeBranches[0]?.MaCN || "CN01";
+    const firstBranch = currentUser?.maCN || activeBranches[0]?.MaCN || "";
 
     const firstEmployee =
+      currentUser?.maNV ||
       employees.find(
         (item) =>
           item.TrangThai === 1 &&
           (item.MaCN === firstBranch || item.MaCN === null),
-      )?.MaNV || "NV005";
+      )?.MaNV ||
+      "";
 
     setSelectedBranch(firstBranch);
     setSelectedEmployee(firstEmployee);
@@ -1399,6 +1410,7 @@ export default function InventoryExportPage() {
                   <Select
                     value={selectedBranch}
                     onValueChange={setSelectedBranch}
+                    disabled={isBranchRestricted}
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Chọn chi nhánh" />
@@ -1420,6 +1432,7 @@ export default function InventoryExportPage() {
                   <Select
                     value={selectedEmployee}
                     onValueChange={setSelectedEmployee}
+                    disabled
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Chọn nhân viên" />

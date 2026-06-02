@@ -23,6 +23,7 @@ import com.phungloccoffee.backend.repository.NguyenLieuRepository;
 import com.phungloccoffee.backend.repository.NhanVienRepository;
 import com.phungloccoffee.backend.repository.PhieuXuatKhoRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +74,10 @@ public class PhieuXuatKhoService {
     }
 
     private PhieuXuatKhoResponse taoPhieuXuatKhoInternal(PhieuXuatKhoRequest request, String forcedLyDo, boolean batBuocHaoHut) {
+        if (request == null) {
+            throw new IllegalArgumentException("Du lieu phieu xuat khong duoc de trong");
+        }
+        request.setMaNV(getCurrentNhanVien().getMaNV());
         validateRequest(request);
 
         String lyDo = forcedLyDo != null ? forcedLyDo : normalizeLyDo(request.getLyDo());
@@ -87,8 +92,7 @@ public class PhieuXuatKhoService {
 
         ChiNhanh chiNhanh = chiNhanhRepository.findById(request.getMaCN())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh: " + request.getMaCN()));
-        NhanVien nhanVien = nhanVienRepository.findById(request.getMaNV())
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien: " + request.getMaNV()));
+        NhanVien nhanVien = getCurrentNhanVien();
 
         PhieuXuatKho phieuXuatKho = new PhieuXuatKho();
         phieuXuatKho.setMaPX(maPX);
@@ -181,6 +185,12 @@ public class PhieuXuatKhoService {
                 throw new IllegalArgumentException("So luong xuat phai lon hon 0");
             }
         }
+    }
+
+    private NhanVien getCurrentNhanVien() {
+        String username = SecurityUtils.requireCurrentUsername();
+        return nhanVienRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien dang nhap: " + username));
     }
 
     private void xuatChiTiet(PhieuXuatKho phieuXuatKho, ChiNhanh chiNhanh, CTPhieuXuatKhoRequest chiTietRequest) {

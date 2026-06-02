@@ -1,4 +1,4 @@
-export type UserRole = "ADMIN" | "QUANLY" | "NHANVIEN_KHO" | "NHANVIEN_BANHANG";
+export type UserRole = "ADMIN" | "QUANLY" | "QUANLY_CHINHANH" | "NHANVIEN_KHO" | "NHANVIEN_BANHANG";
 
 export interface AuthUser {
   token?: string;
@@ -71,31 +71,31 @@ export const appRoutes: AppRoute[] = [
     title: "Tồn kho",
     href: "/inventory/stock",
     group: "inventory",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
+    roles: ["ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO"],
   },
   {
     title: "Nhập kho",
     href: "/inventory/import",
     group: "inventory",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
+    roles: ["ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO"],
   },
   {
     title: "Xuất kho",
     href: "/inventory/export",
     group: "inventory",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
+    roles: ["ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO"],
   },
   {
     title: "Điều chuyển kho",
     href: "/inventory/transfer",
     group: "inventory",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
+    roles: ["ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO"],
   },
   {
     title: "Kiểm kho",
     href: "/inventory/audit",
     group: "inventory",
-    roles: ["ADMIN", "QUANLY", "NHANVIEN_KHO"],
+    roles: ["ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO"],
   },
 
   {
@@ -149,6 +149,9 @@ export const getDefaultRouteByRole = (role: UserRole) => {
       return "/";
 
     case "NHANVIEN_KHO":
+      return "/inventory/stock";
+
+    case "QUANLY_CHINHANH":
       return "/inventory/stock";
 
     case "NHANVIEN_BANHANG":

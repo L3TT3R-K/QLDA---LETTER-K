@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 import api from "@/services/api";
 
 type TransferStatus = "DRAFT" | "SENT" | "RECEIVED" | "CANCELLED";
@@ -661,9 +663,9 @@ export default function InventoryTransferPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const [fromBranch, setFromBranch] = useState("CN01");
-  const [toBranch, setToBranch] = useState("CN02");
-  const [selectedEmployee, setSelectedEmployee] = useState("NV005");
+  const [fromBranch, setFromBranch] = useState("");
+  const [toBranch, setToBranch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [transferDate, setTransferDate] = useState(toInputDateTime(new Date()));
   const [note, setNote] = useState("");
 
@@ -679,6 +681,7 @@ export default function InventoryTransferPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionMaPC, setActionMaPC] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const pageSize = 10;
 
   const loadData = async (
@@ -782,6 +785,7 @@ export default function InventoryTransferPage() {
   };
 
   useEffect(() => {
+    setCurrentUser(getCurrentUser());
     loadData();
 
     const handleStorage = () => loadData();
@@ -796,6 +800,20 @@ export default function InventoryTransferPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, branchFilter, statusFilter]);
+
+  useEffect(() => {
+    if (currentUser?.maNV) {
+      setSelectedEmployee(currentUser.maNV);
+    }
+    if (
+      (currentUser?.chucVu !== "NHANVIEN_KHO" &&
+        currentUser?.chucVu !== "QUANLY_CHINHANH") ||
+      !currentUser.maCN
+    ) return;
+
+    setBranchFilter(currentUser.maCN);
+    setFromBranch(currentUser.maCN);
+  }, [currentUser]);
 
   useEffect(() => {
     const employee = employees.find(
@@ -819,6 +837,13 @@ export default function InventoryTransferPage() {
   }, [fromBranch, selectedEmployee, employees]);
 
   const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
+  const isBranchRestricted =
+    currentUser?.chucVu === "NHANVIEN_KHO" ||
+    currentUser?.chucVu === "QUANLY_CHINHANH";
+  const activeSourceBranches = activeBranches.filter(
+    (branch) =>
+      !isBranchRestricted || !currentUser?.maCN || branch.MaCN === currentUser.maCN,
+  );
 
   const activeEmployees = employees.filter(
     (employee) =>
@@ -861,17 +886,20 @@ export default function InventoryTransferPage() {
   };
 
   const resetForm = () => {
-    const defaultFrom = activeBranches[0]?.MaCN || "CN01";
+    const defaultFrom =
+      currentUser?.maCN || activeSourceBranches[0]?.MaCN || "";
     const defaultTo =
       activeBranches.find((branch) => branch.MaCN !== defaultFrom)?.MaCN ||
-      "CN02";
+      "";
 
     const firstEmployee =
+      currentUser?.maNV ||
       employees.find(
         (item) =>
           item.TrangThai === 1 &&
           (item.MaCN === defaultFrom || item.MaCN === null),
-      )?.MaNV || "NV005";
+      )?.MaNV ||
+      "";
 
     setFromBranch(defaultFrom);
     setToBranch(defaultTo);
@@ -1345,6 +1373,10 @@ export default function InventoryTransferPage() {
               <tbody className="divide-y divide-border">
                 {paginatedData.map((item, index) => {
                   const status = getTransferStatusInfo(item.TrangThai);
+                  const canManageOutgoing =
+                    !isBranchRestricted || currentUser?.maCN === item.MaCNXuat;
+                  const canReceive =
+                    !isBranchRestricted || currentUser?.maCN === item.MaCNNhap;
 
                   return (
                     <tr
@@ -1405,7 +1437,7 @@ export default function InventoryTransferPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
-                          {item.TrangThai === "DRAFT" && (
+                          {item.TrangThai === "DRAFT" && canManageOutgoing && (
                             <>
                               <Button
                                 variant="outline"
@@ -1430,7 +1462,7 @@ export default function InventoryTransferPage() {
                             </>
                           )}
 
-                          {item.TrangThai === "SENT" && (
+                          {item.TrangThai === "SENT" && canReceive && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -1556,13 +1588,17 @@ export default function InventoryTransferPage() {
                 <div>
                   <Label>Chi nhánh xuất *</Label>
 
-                  <Select value={fromBranch} onValueChange={setFromBranch}>
+                  <Select
+                    value={fromBranch}
+                    onValueChange={setFromBranch}
+                    disabled={isBranchRestricted}
+                  >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Chọn chi nhánh xuất" />
                     </SelectTrigger>
 
                     <SelectContent>
-                      {activeBranches.map((branch) => (
+                      {activeSourceBranches.map((branch) => (
                         <SelectItem key={branch.MaCN} value={branch.MaCN}>
                           {branch.TenCN}
                         </SelectItem>
@@ -1595,6 +1631,7 @@ export default function InventoryTransferPage() {
                   <Select
                     value={selectedEmployee}
                     onValueChange={setSelectedEmployee}
+                    disabled
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Chọn nhân viên" />

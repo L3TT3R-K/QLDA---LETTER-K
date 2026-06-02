@@ -44,7 +44,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
                 
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasAnyRole("ADMIN", "QUANLY")
+                .requestMatchers(HttpMethod.GET, "/api/nhanvien", "/api/nhanvien/**")
+                    .hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasRole("ADMIN")
                 .requestMatchers(
                     "/api/baocao/ton-kho",
                     "/api/baocao/canh-bao-ton-kho",
@@ -65,10 +67,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/nguyenlieu", "/api/nguyenlieu/**").authenticated()
                 .requestMatchers("/api/congthuc", "/api/congthuc/**").authenticated()
                 
-                .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
-                .requestMatchers("/api/nhapkho", "/api/nhapkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
-                .requestMatchers("/api/xuatkho", "/api/xuatkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
-                .requestMatchers("/api/dieuchuyenkho", "/api/dieuchuyenkho/**").hasAnyRole("ADMIN", "QUANLY", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/nhapkho", "/api/nhapkho/**").hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/xuatkho", "/api/xuatkho/**").hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
+                .requestMatchers("/api/dieuchuyenkho", "/api/dieuchuyenkho/**").hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
                 
                 .anyRequest().authenticated()
             );

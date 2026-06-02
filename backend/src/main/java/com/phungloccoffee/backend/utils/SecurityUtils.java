@@ -17,6 +17,17 @@ public class SecurityUtils {
         return null;
     }
 
+    public static String requireCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
+            UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+            if (principal.getUsername() != null && !principal.getUsername().isBlank()) {
+                return principal.getUsername();
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Khong xac dinh duoc nguoi dung dang nhap");
+    }
+
     public static String requireCurrentUserBranch() {
         String maCN = getCurrentUserBranch();
         if (maCN == null || maCN.isBlank()) {

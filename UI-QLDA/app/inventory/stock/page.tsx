@@ -237,15 +237,17 @@ export default function InventoryStockPage() {
       setIsLoading(true);
 
       const currentUser = getCurrentUser();
-      const isWarehouseStaff = currentUser?.chucVu === "NHANVIEN_KHO";
+      const isBranchRestricted =
+        currentUser?.chucVu === "NHANVIEN_KHO" ||
+        currentUser?.chucVu === "QUANLY_CHINHANH";
       const effectiveBranchFilter =
-        isWarehouseStaff && currentUser?.maCN ? currentUser.maCN : branchFilter;
+        isBranchRestricted && currentUser?.maCN ? currentUser.maCN : branchFilter;
       const branchesResponse = await api.get<ApiBranch[]>("/api/chinhanh");
       const activeBranches = (branchesResponse.data || []).filter(
         (branch) => branch.trangThai === undefined || branch.trangThai === 1,
       );
       const accessibleBranches =
-        isWarehouseStaff && currentUser?.maCN
+        isBranchRestricted && currentUser?.maCN
           ? activeBranches.filter((branch) => branch.maCN === currentUser.maCN)
           : activeBranches;
       const branchNames = new Map(

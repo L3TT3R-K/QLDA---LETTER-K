@@ -23,6 +23,7 @@ import com.phungloccoffee.backend.repository.NhaCungCapRepository;
 import com.phungloccoffee.backend.repository.NhanVienRepository;
 import com.phungloccoffee.backend.repository.PhieuNhapRepository;
 import com.phungloccoffee.backend.repository.TonKhoRepository;
+import com.phungloccoffee.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +58,10 @@ public class PhieuNhapService {
 
     @Transactional
     public PhieuNhapResponse taoPhieuNhap(PhieuNhapRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Du lieu phieu nhap khong duoc de trong");
+        }
+        request.setMaNV(getCurrentNhanVien().getMaNV());
         validateRequest(request);
 
         String maPN = normalizeMaPN(request.getMaPN());
@@ -76,8 +81,7 @@ public class PhieuNhapService {
         }
         ChiNhanh chiNhanh = chiNhanhRepository.findById(request.getMaCN())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay chi nhanh: " + request.getMaCN()));
-        NhanVien nhanVien = nhanVienRepository.findById(request.getMaNV())
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien: " + request.getMaNV()));
+        NhanVien nhanVien = getCurrentNhanVien();
 
         PhieuNhap phieuNhap = new PhieuNhap();
         phieuNhap.setMaPN(maPN);
@@ -258,6 +262,12 @@ public class PhieuNhapService {
                 throw new IllegalArgumentException("Don gia khong duoc am");
             }
         }
+    }
+
+    private NhanVien getCurrentNhanVien() {
+        String username = SecurityUtils.requireCurrentUsername();
+        return nhanVienRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhan vien dang nhap: " + username));
     }
 
     private double nhapTuNhaCungCap(PhieuNhap phieuNhap, ChiNhanh chiNhanh, CTPhieuNhapRequest chiTietRequest) {

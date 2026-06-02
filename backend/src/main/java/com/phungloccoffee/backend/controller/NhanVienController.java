@@ -24,14 +24,14 @@ public class NhanVienController {
 
     // Lấy danh sách dùng DTO (An toàn, không lộ Password)
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY', 'QUANLY_CHINHANH', 'NHANVIEN_KHO', 'KHO')")
     public ResponseEntity<List<NhanVienResponse>> getAll() {
         return ResponseEntity.ok(nhanVienService.getAllNhanVien());
     }
 
     // Lấy chi tiết 1 nhân viên dùng DTO
     @GetMapping("/{maNV}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY', 'QUANLY_CHINHANH', 'NHANVIEN_KHO', 'KHO')")
     public ResponseEntity<NhanVienResponse> getById(@PathVariable String maNV) {
         return ResponseEntity.ok(nhanVienService.getEmployeeById(maNV));
     }
@@ -73,4 +73,4 @@ public class NhanVienController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-}   
+}
