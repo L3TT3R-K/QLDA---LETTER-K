@@ -446,22 +446,6 @@ const toInputDateTime = (date: Date) => {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 };
 
-const getNextCode = (
-  prefix: string,
-  existingCodes: Array<string | undefined | null>,
-) => {
-  const maxNumber = existingCodes.reduce((max, code) => {
-    if (!code) return max;
-    if (!String(code).startsWith(prefix)) return max;
-
-    const number = Number(String(code).replace(prefix, ""));
-
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 0);
-
-  return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
-};
-
 const mapApiReceipt = (receipt: ApiImportReceipt): ImportReceipt => ({
   MaPN: receipt.maPN,
   LoaiNguon: receipt.loaiNguon,
@@ -881,13 +865,6 @@ export default function ImportPage() {
     0,
   );
 
-  const nextReceiptCode = useMemo(() => {
-    return getNextCode(
-      "PN",
-      receipts.map((receipt) => receipt.MaPN),
-    );
-  }, [receipts]);
-
   const resetForm = () => {
     const defaultBranch = currentUser?.maCN || activeBranches[0]?.MaCN || "";
 
@@ -1117,23 +1094,7 @@ export default function ImportPage() {
       return;
     }
 
-    const receiptCode =
-      editingReceiptMaPN ||
-      getNextCode(
-        "PN",
-        receipts.map((receipt) => receipt.MaPN),
-      );
-
-    const firstBatchNumber = batches.reduce((max, batch) => {
-      if (!batch.MaLo.startsWith("LO")) return max;
-
-      const number = Number(batch.MaLo.replace("LO", ""));
-
-      return Number.isNaN(number) ? max : Math.max(max, number);
-    }, 0);
-
     const payload = {
-      maPN: receiptCode,
       loaiNguon: sourceType,
       maNCC: sourceType === "NHA_CUNG_CAP" ? selectedSupplier : undefined,
       maKhoNguon:
@@ -1142,8 +1103,7 @@ export default function ImportPage() {
       maNV: selectedEmployee,
       ngayNhap: importDate,
       ghiChu: note.trim(),
-      chiTiet: importItems.map((item, index) => ({
-        maLo: `LO${String(firstBatchNumber + index + 1).padStart(3, "0")}`,
+      chiTiet: importItems.map((item) => ({
         maNL: item.MaNL,
         soLuong: item.SoLuong,
         donGiaNhap: item.DonGiaNhap,
@@ -1608,7 +1568,7 @@ export default function ImportPage() {
                   <Label>Mã phiếu</Label>
 
                   <Input
-                    value={editingReceiptMaPN || nextReceiptCode}
+                    value={editingReceiptMaPN || "Tự động tạo khi lưu"}
                     disabled
                     className="mt-1.5"
                   />

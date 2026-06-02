@@ -451,22 +451,6 @@ const toInputDateTime = (date: Date) => {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 };
 
-const getNextCode = (
-  prefix: string,
-  existingCodes: Array<string | undefined | null>,
-) => {
-  const maxNumber = existingCodes.reduce((max, code) => {
-    if (!code) return max;
-    if (!String(code).startsWith(prefix)) return max;
-
-    const number = Number(String(code).replace(prefix, ""));
-
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 0);
-
-  return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
-};
-
 const mergeInventoryStocks = (stocks: InventoryStock[]) => {
   const stockMap = new Map<string, InventoryStock>();
 
@@ -823,13 +807,6 @@ export default function InventoryExportPage() {
     (ingredient) => ingredient.TrangThai === 1,
   );
 
-  const nextReceiptCode = useMemo(() => {
-    return getNextCode(
-      "PX",
-      receipts.map((receipt) => receipt.MaPX),
-    );
-  }, [receipts]);
-
   const getBranchName = (MaCN: string) => {
     return branches.find((branch) => branch.MaCN === MaCN)?.TenCN || MaCN;
   };
@@ -966,13 +943,7 @@ export default function InventoryExportPage() {
       return;
     }
 
-    const receiptCode = getNextCode(
-      "PX",
-      receipts.map((receipt) => receipt.MaPX),
-    );
-
     const payload = {
-      maPX: receiptCode,
       maCN: selectedBranch,
       maNV: selectedEmployee,
       lyDo: toBackendExportReason(selectedReason),
@@ -984,11 +955,11 @@ export default function InventoryExportPage() {
 
     try {
       setIsSubmitting(true);
-      await api.post<ApiExportReceipt>(
+      const response = await api.post<ApiExportReceipt>(
         getCreateExportEndpoint(selectedReason),
         payload,
       );
-      await api.get<ApiExportReceipt>(`/api/xuatkho/${receiptCode}`);
+      await api.get<ApiExportReceipt>(`/api/xuatkho/${response.data.maPX}`);
       await loadData();
 
       alert("Tạo phiếu xuất thành công và backend đã cập nhật tồn kho");
@@ -1387,7 +1358,7 @@ export default function InventoryExportPage() {
                   <Label>Mã phiếu</Label>
 
                   <Input
-                    value={nextReceiptCode}
+                    value="Tự động tạo khi lưu"
                     disabled
                     className="mt-1.5 bg-muted"
                   />

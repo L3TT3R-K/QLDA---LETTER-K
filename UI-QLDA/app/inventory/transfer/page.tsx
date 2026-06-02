@@ -161,7 +161,6 @@ const transferApi = {
   list: (params?: { maKho?: string; trangThai?: string }) =>
     api.get<ApiTransferReceipt[]>("/api/dieuchuyenkho", { params }),
   create: (payload: {
-    maPC: string;
     maCNXuat: string;
     maCNNhap: string;
     maNVTao: string;
@@ -511,22 +510,6 @@ const toInputDateTime = (date: Date) => {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 };
 
-const getNextCode = (
-  prefix: string,
-  existingCodes: Array<string | undefined | null>,
-) => {
-  const maxNumber = existingCodes.reduce((max, code) => {
-    if (!code) return max;
-    if (!String(code).startsWith(prefix)) return max;
-
-    const number = Number(String(code).replace(prefix, ""));
-
-    return Number.isNaN(number) ? max : Math.max(max, number);
-  }, 0);
-
-  return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
-};
-
 const mergeInventoryStocks = (stocks: InventoryStock[]) => {
   const stockMap = new Map<string, InventoryStock>();
 
@@ -855,13 +838,6 @@ export default function InventoryTransferPage() {
     (ingredient) => ingredient.TrangThai === 1,
   );
 
-  const nextReceiptCode = useMemo(() => {
-    return getNextCode(
-      "PC",
-      receipts.map((receipt) => receipt.MaPC),
-    );
-  }, [receipts]);
-
   const getBranchName = (MaCN: string) => {
     return branches.find((branch) => branch.MaCN === MaCN)?.TenCN || MaCN;
   };
@@ -1058,13 +1034,7 @@ export default function InventoryTransferPage() {
       return;
     }
 
-    const receiptCode = getNextCode(
-      "PC",
-      receipts.map((receipt) => receipt.MaPC),
-    );
-
     const payload = {
-      maPC: receiptCode,
       maCNXuat: fromBranch,
       maCNNhap: toBranch,
       maNVTao: selectedEmployee,
@@ -1076,8 +1046,8 @@ export default function InventoryTransferPage() {
 
     try {
       setIsSubmitting(true);
-      await transferApi.create(payload);
-      await transferApi.getById(receiptCode);
+      const response = await transferApi.create(payload);
+      await transferApi.getById(response.data.maPC);
       await loadData();
 
       alert("Tạo phiếu điều chuyển thành công");
@@ -1568,7 +1538,7 @@ export default function InventoryTransferPage() {
                   <Label>Mã phiếu</Label>
 
                   <Input
-                    value={nextReceiptCode}
+                    value="Tự động tạo khi lưu"
                     disabled
                     className="mt-1.5 bg-muted"
                   />
