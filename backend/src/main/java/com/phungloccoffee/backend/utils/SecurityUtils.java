@@ -62,7 +62,7 @@ public class SecurityUtils {
     }
 
     public static boolean canAccessAllBranches() {
-        return hasAnyAuthority("ADMIN", "ROLE_ADMIN", "QUANLY", "ROLE_QUANLY");
+        return hasAnyAuthority("ADMIN", "ROLE_ADMIN");
     }
 
     public static String resolveInventoryBranch(String maCN) {
