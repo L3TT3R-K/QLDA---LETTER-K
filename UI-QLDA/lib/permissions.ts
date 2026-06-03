@@ -30,6 +30,12 @@ export const appRoutes: AppRoute[] = [
     roles: ["ADMIN", "QUANLY"],
   },
   {
+    title: "Dashboard",
+    href: "/manager",
+    group: "dashboard",
+    roles: ["QUANLY_CHINHANH"],
+  },
+  {
     title: "POS Bán hàng",
     href: "/pos",
     group: "pos",
@@ -108,7 +114,7 @@ export const appRoutes: AppRoute[] = [
     title: "Nhân viên",
     href: "/system/employees",
     group: "system",
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "QUANLY_CHINHANH"],
   },
 
   {
@@ -152,7 +158,7 @@ export const getDefaultRouteByRole = (role: UserRole) => {
       return "/inventory/stock";
 
     case "QUANLY_CHINHANH":
-      return "/inventory/stock";
+      return "/manager";
 
     case "NHANVIEN_BANHANG":
       return "/pos";

@@ -9,6 +9,8 @@ import { InventoryAlertsTable } from "@/components/dashboard/inventory-alerts-ta
 import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
 import { Wallet, ShoppingCart, AlertTriangle, RefreshCw } from "lucide-react";
 import api from "@/services/api";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 
 interface Branch {
   MaCN: string;
@@ -767,7 +769,26 @@ const normalizeRecentOrderRow = (row: ApiRecentOrderRow): RecentOrder | null => 
   };
 };
 
-export default function DashboardPage() {
+interface DashboardPageProps {
+  forceBranchScope?: boolean;
+}
+
+const shouldScopeToUserBranch = (
+  user: AuthUser | null,
+  forceBranchScope?: boolean,
+) => {
+  return Boolean(
+    user?.maCN &&
+      (forceBranchScope ||
+        user.chucVu === "QUANLY_CHINHANH" ||
+        user.chucVu === "NHANVIEN_KHO" ||
+        user.chucVu === "NHANVIEN_BANHANG"),
+  );
+};
+
+export default function DashboardPage({
+  forceBranchScope = false,
+}: DashboardPageProps = {}) {
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -792,7 +813,24 @@ export default function DashboardPage() {
     null,
   );
 
+  const getScopedBranchCode = () => {
+    const user = getCurrentUser();
+
+    return shouldScopeToUserBranch(user, forceBranchScope) ? user?.maCN || null : null;
+  };
+
+  const scopeBranches = (items: Branch[], scopedBranchCode: string | null) => {
+    if (!scopedBranchCode) return items;
+
+    return items.filter((branch) => branch.MaCN === scopedBranchCode);
+  };
+
   const loadData = () => {
+    const user = getCurrentUser();
+    const scopedBranchCode = shouldScopeToUserBranch(user, forceBranchScope)
+      ? user?.maCN || null
+      : null;
+
     const storedBranches = getFromStorage<Branch>(
       branchStorageKey,
       initialBranches,
@@ -829,18 +867,28 @@ export default function DashboardPage() {
       .map(normalizeInvoiceDetail)
       .filter((item): item is InvoiceDetail => item !== null);
 
-    setBranches(storedBranches);
+    setBranches(scopeBranches(storedBranches, scopedBranchCode));
     setEmployees(storedEmployees);
     setProducts(storedProducts);
+    const nextInvoices =
+      normalizedInvoices.length > 0 ? normalizedInvoices : initialInvoices;
+    const nextInventory = mergeInventoryStocks(storedInventory);
+
     setInvoices(
-      normalizedInvoices.length > 0 ? normalizedInvoices : initialInvoices,
+      scopedBranchCode
+        ? nextInvoices.filter((invoice) => invoice.MaCN === scopedBranchCode)
+        : nextInvoices,
     );
     setInvoiceDetails(
       normalizedDetails.length > 0 ? normalizedDetails : initialInvoiceDetails,
     );
     setIngredients(storedIngredients);
     setUnits(storedUnits);
-    setInventoryStocks(mergeInventoryStocks(storedInventory));
+    setInventoryStocks(
+      scopedBranchCode
+        ? nextInventory.filter((stock) => stock.MaCN === scopedBranchCode)
+        : nextInventory,
+    );
     setSyncLogs(storedSyncLogs);
 
     if (!localStorage.getItem(branchStorageKey)) {
@@ -884,6 +932,7 @@ export default function DashboardPage() {
   };
 
   const fetchRevenueFromApi = async () => {
+    const scopedBranchCode = getScopedBranchCode();
     const dateKeys = getLastSevenDateKeys();
     const firstDate = dateKeys[0];
     const lastDate = dateKeys.at(-1)!;
@@ -893,6 +942,7 @@ export default function DashboardPage() {
       ...dateKeys.map((date) =>
         api.get<ApiRevenueRow[]>("/api/baocao/doanhthu-chinhanh", {
           params: {
+            ...(scopedBranchCode ? { maCN: scopedBranchCode } : {}),
             tuNgay: `${date}T00:00:00`,
             denNgay: `${date}T23:59:59`,
           },
@@ -911,8 +961,8 @@ export default function DashboardPage() {
         .filter((item): item is Branch => item !== null);
 
       if (apiBranches.length > 0) {
-        reportBranches = apiBranches;
-        setBranches(apiBranches);
+        reportBranches = scopeBranches(apiBranches, scopedBranchCode);
+        setBranches(reportBranches);
       }
     }
 
@@ -935,7 +985,11 @@ export default function DashboardPage() {
         .filter((item): item is Invoice => item !== null);
     });
 
-    setInvoices(revenueInvoices);
+    setInvoices(
+      scopedBranchCode
+        ? revenueInvoices.filter((invoice) => invoice.MaCN === scopedBranchCode)
+        : revenueInvoices,
+    );
 
     const activeReportBranches = reportBranches.filter(
       (branch) => branch.TrangThai === 1,
@@ -982,10 +1036,14 @@ export default function DashboardPage() {
   };
 
   const fetchDashboardExtrasFromApi = async () => {
+    const scopedBranchCode = getScopedBranchCode();
     const [alertResult, recentOrderResult] = await Promise.allSettled([
-      api.get("/api/baocao/canh-bao"),
+      api.get("/api/baocao/canh-bao", {
+        params: scopedBranchCode ? { maCN: scopedBranchCode } : {},
+      }),
       api.get("/api/hoadon/recent", {
         params: {
+          ...(scopedBranchCode ? { maCN: scopedBranchCode } : {}),
           limit: 5,
         },
       }),
@@ -993,7 +1051,9 @@ export default function DashboardPage() {
 
     if (alertResult.status === "fulfilled") {
       setApiInventoryAlertRows(
-        unwrapApiData<ApiInventoryAlertRow>(alertResult.value.data).slice(0, 5),
+        unwrapApiData<ApiInventoryAlertRow>(alertResult.value.data)
+          .filter((row) => !scopedBranchCode || (row.MaCN || row.maCN) === scopedBranchCode)
+          .slice(0, 5),
       );
     }
 

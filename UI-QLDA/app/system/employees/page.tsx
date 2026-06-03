@@ -18,12 +18,15 @@ import { cn } from "@/lib/utils";
 
 
 import api from "@/services/api";
+import { getCurrentUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/permissions";
 
 interface Employee {
   maNV: string;
   username: string;
   tenNV: string;
   chucVu: string;
+  maCN?: string | null;
   tenChiNhanh: string | null; 
   trangThai: number;
 }
@@ -64,7 +67,12 @@ const getRoleLabel = (role: string) => {
   return roleOptions.find((item) => item.value === role)?.label || role;
 };
 
+const employeeRoleOptions = roleOptions.filter(
+  (role) => !["ADMIN", "QUANLY_CHINHANH", "KETOAN"].includes(role.value),
+);
+
 export default function EmployeesPage() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
 
@@ -87,6 +95,9 @@ export default function EmployeesPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const isBranchManager = currentUser?.chucVu === "QUANLY_CHINHANH";
+  const scopedBranchCode = isBranchManager ? currentUser?.maCN || null : null;
+  const visibleRoleOptions = isBranchManager ? employeeRoleOptions : roleOptions;
 
   const fetchEmployees = async () => {
     try {
@@ -98,20 +109,33 @@ export default function EmployeesPage() {
   };
 
   useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUser(user);
     fetchEmployees(); // Chạy ngay khi mở trang
 
     // Tạm giữ logic load Chi nhánh từ LocalStorage vì chưa có API Chi nhánh
     if (typeof window !== "undefined") {
       const data = localStorage.getItem(branchStorageKey);
       if (data) {
-        setBranches(JSON.parse(data));
+        const storedBranches = JSON.parse(data) as Branch[];
+        setBranches(
+          user?.chucVu === "QUANLY_CHINHANH" && user.maCN
+            ? storedBranches.filter((branch) => branch.MaCN === user.maCN)
+            : storedBranches,
+        );
       } else {
         localStorage.setItem(branchStorageKey, JSON.stringify(initialBranches));
+        setBranches(
+          user?.chucVu === "QUANLY_CHINHANH" && user.maCN
+            ? initialBranches.filter((branch) => branch.MaCN === user.maCN)
+            : initialBranches,
+        );
       }
     }
   }, []);
 
   const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
+  const getDefaultBranchCode = () => scopedBranchCode || activeBranches[0]?.MaCN || "CN01";
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -123,8 +147,12 @@ export default function EmployeesPage() {
       const matchesRole = roleFilter === "all" || employee.chucVu === roleFilter;
 
       // So khớp tên chi nhánh từ Backend với Filter
-      const targetBranch = branches.find((b) => b.MaCN === branchFilter);
-      const matchesBranch = branchFilter === "all" || employee.tenChiNhanh === targetBranch?.TenCN;
+      const employeeBranchCode =
+        employee.maCN ||
+        branches.find((branch) => branch.TenCN === employee.tenChiNhanh)?.MaCN;
+      const matchesBranch = scopedBranchCode
+        ? employeeBranchCode === scopedBranchCode
+        : branchFilter === "all" || employeeBranchCode === branchFilter;
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -133,7 +161,7 @@ export default function EmployeesPage() {
 
       return matchesSearch && matchesRole && matchesBranch && matchesStatus;
     });
-  }, [employees, branches, searchQuery, roleFilter, branchFilter, statusFilter]);
+  }, [employees, branches, searchQuery, roleFilter, branchFilter, statusFilter, scopedBranchCode]);
 
   const totalPages = Math.ceil(filteredEmployees.length / pageSize);
   const paginatedEmployees = filteredEmployees.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -148,7 +176,7 @@ export default function EmployeesPage() {
       PasswordHash: "",
       TenNV: "",
       ChucVu: "NHANVIEN_BANHANG",
-      MaCN: "CN01",
+      MaCN: getDefaultBranchCode(),
       TrangThai: 1,
     });
   };
@@ -168,14 +196,19 @@ export default function EmployeesPage() {
   const handleOpenEdit = async (employee: Employee) => {
     setEditingItem(employee);
     // Để có MaCN chuẩn cho việc Edit, ta cần map ngược từ Tên Chi Nhánh
-    const branch = branches.find((b) => b.TenCN === employee.tenChiNhanh);
+    const branch = branches.find(
+      (b) => b.MaCN === employee.maCN || b.TenCN === employee.tenChiNhanh,
+    );
     
     setFormData({
       Username: employee.username,
       PasswordHash: "", // Bỏ trống, Backend xử lý giữ nguyên Pass nếu rỗng
       TenNV: employee.tenNV,
-      ChucVu: employee.chucVu,
-      MaCN: branch ? branch.MaCN : "ALL",
+      ChucVu:
+        isBranchManager && !employeeRoleOptions.some((role) => role.value === employee.chucVu)
+          ? "NHANVIEN_BANHANG"
+          : employee.chucVu,
+      MaCN: scopedBranchCode || (branch ? branch.MaCN : "ALL"),
       TrangThai: employee.trangThai,
     });
     setIsDrawerOpen(true);
@@ -197,7 +230,7 @@ export default function EmployeesPage() {
     }
 
     const isSystemRole = formData.ChucVu === "ADMIN" || formData.ChucVu === "KETOAN";
-    const finalMaCN = isSystemRole ? null : formData.MaCN;
+    const finalMaCN = scopedBranchCode || (isSystemRole ? null : formData.MaCN);
 
     // Chuẩn bị gói dữ liệu gửi cho Spring Boot
     const payload = {
@@ -236,7 +269,7 @@ export default function EmployeesPage() {
         username: emp.username,
         tenNV: emp.tenNV,
         chucVu: emp.chucVu,
-        maCN: emp.tenChiNhanh, // Service getById đang map MaCN vào trường này
+        maCN: scopedBranchCode || emp.maCN || emp.tenChiNhanh,
         trangThai: currentStatus === 1 ? 0 : 1,
       };
 
@@ -309,12 +342,13 @@ export default function EmployeesPage() {
             <SelectTrigger className="w-[190px]"><SelectValue placeholder="Chức vụ" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả chức vụ</SelectItem>
-              {roleOptions.map((role) => (
+              {visibleRoleOptions.map((role) => (
                 <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
+          {!isBranchManager && (
           <Select value={branchFilter} onValueChange={(v) => { setBranchFilter(v); setCurrentPage(1); }}>
             <SelectTrigger className="w-[220px]"><SelectValue placeholder="Chi nhánh" /></SelectTrigger>
             <SelectContent>
@@ -324,6 +358,7 @@ export default function EmployeesPage() {
               ))}
             </SelectContent>
           </Select>
+          )}
 
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
@@ -481,7 +516,7 @@ export default function EmployeesPage() {
                 >
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Chọn chức vụ" /></SelectTrigger>
                   <SelectContent>
-                    {roleOptions.map((role) => (
+                    {visibleRoleOptions.map((role) => (
                       <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -492,7 +527,7 @@ export default function EmployeesPage() {
                 <Select
                   value={formData.MaCN}
                   onValueChange={(value) => setFormData({ ...formData, MaCN: value })}
-                  disabled={formData.ChucVu === "ADMIN" || formData.ChucVu === "KETOAN"}
+                  disabled={isBranchManager || formData.ChucVu === "ADMIN" || formData.ChucVu === "KETOAN"}
                 >
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Chọn chi nhánh" /></SelectTrigger>
                   <SelectContent>
