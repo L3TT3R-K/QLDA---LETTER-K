@@ -25,15 +25,23 @@ import com.phungloccoffee.backend.repository.ChiNhanhRepository;
 import com.phungloccoffee.backend.repository.HoaDonRepository;
 import com.phungloccoffee.backend.repository.SanPhamRepository;
 
+
+import com.phungloccoffee.backend.utils.SecurityUtils;
+
 @Service
 public class HoaDonService {
     @Autowired private HoaDonRepository hoaDonRepository;
     @Autowired private CTHDRepository cthdRepository;
     @Autowired private SanPhamRepository sanPhamRepository;
     @Autowired private ChiNhanhRepository chiNhanhRepository;
+    @Autowired private TruKhoService truKhoService;
 
     @Transactional
     public ChiTietBillResponse taoHoaDon(HoaDonRequest request) {
+        if (!SecurityUtils.canAccessAllBranches()) {
+            request.setMaCN(SecurityUtils.requireCurrentUserBranch());
+        }
+
         String maHD = taoMaHoaDon(request.getMaCN());
         ChiNhanh chiNhanh = chiNhanhRepository.findById(request.getMaCN()).orElse(null);
 
@@ -45,7 +53,6 @@ public class HoaDonService {
         hoaDon.setIsSynced(false);
         hoaDon.setCreatedAt(LocalDateTime.now());
         
-        // Láº¥y giáº£m giÃ¡ tá»« request, náº¿u khÃ´ng cÃ³ thÃ¬ máº·c Ä‘á»‹nh lÃ  0
         BigDecimal giamGia = request.getGiamGia() != null ? request.getGiamGia() : BigDecimal.ZERO;
         hoaDon.setGiamGia(giamGia);
 
@@ -61,7 +68,6 @@ public class HoaDonService {
             BigDecimal thanhTien = sp.getGiaHienTai().multiply(BigDecimal.valueOf(item.getSoLuong()));
             tongTienChuaGiam = tongTienChuaGiam.add(thanhTien);
 
-            // Táº¡o thá»±c thá»ƒ Ä‘á»ƒ lÆ°u DB
             CTHD cthd = new CTHD();
             cthd.setId(maHD + "_" + stt++);
             cthd.setHoaDon(hoaDon);
@@ -71,15 +77,16 @@ public class HoaDonService {
             cthd.setGhiChu(item.getGhiChu());
             listCTHD.add(cthd);
 
-            // Táº¡o dá»¯ liá»‡u tráº£ vá» cho Bill
             listResponse.add(new CTHDResponse(sp.getTenSP(), item.getSoLuong(), sp.getGiaHienTai(), thanhTien, item.getGhiChu()));
         }
 
-        // TÃ­nh tá»•ng tiá»n cuá»‘i cÃ¹ng = Tá»•ng mÃ³n - Giáº£m giÃ¡
         hoaDon.setTongTien(tongTienChuaGiam.subtract(giamGia));
 
         hoaDonRepository.save(hoaDon);
         cthdRepository.saveAll(listCTHD);
+
+
+        truKhoService.truNguyenLieuTheoHoaDon(maHD);
 
         return new ChiTietBillResponse(maHD, chiNhanh != null ? chiNhanh.getTenCN() : "", hoaDon.getTongTien(), hoaDon.getTrangThai(), listResponse);
     }
@@ -87,6 +94,13 @@ public class HoaDonService {
     public ChiTietBillResponse getChiTietHoaDon(String maHD) {
         HoaDon hoaDon = hoaDonRepository.findById(maHD).orElse(null);
         if (hoaDon == null) return null;
+
+        if (!SecurityUtils.canAccessAllBranches()) {
+             String myBranch = SecurityUtils.requireCurrentUserBranch();
+             if (!myBranch.equals(hoaDon.getChiNhanh().getMaCN())) {
+                  throw new RuntimeException("Không có quyền xem chi tiết hóa đơn của chi nhánh khác");
+             }
+        }
 
         List<CTHD> listCTHD = cthdRepository.findByHoaDon(hoaDon);
         List<CTHDResponse> dsMon = new ArrayList<>();
@@ -100,8 +114,9 @@ public class HoaDonService {
     }
 
     public List<DonHangGanNhatResponse> layDonHangGanNhat(String maCN, int limit) {
+        String maCNHopLe = SecurityUtils.resolveInventoryBranch(maCN);
         int safeLimit = Math.max(1, Math.min(limit, 20));
-        return hoaDonRepository.layDonHangGanNhat(maCN, safeLimit);
+        return hoaDonRepository.layDonHangGanNhat(maCNHopLe, safeLimit);
     }
 
     private String taoMaHoaDon(String maCN) {

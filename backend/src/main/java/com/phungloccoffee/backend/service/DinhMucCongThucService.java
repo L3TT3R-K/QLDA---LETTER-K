@@ -19,8 +19,8 @@ public class DinhMucCongThucService {
 
     private final DinhMucCongThucRepository dinhMucCongThucRepository;
     private final PhienBanCongThucRepository phienBanCongThucRepository;
-    private final NguyenLieuRepository nguyenLieuRepository; // Inject để check tồn tại
-    private final AuditLogService auditLogService; // Gắn thêm AuditLog
+    private final NguyenLieuRepository nguyenLieuRepository; 
+    private final AuditLogService auditLogService; 
 
     public List<DinhMucCongThuc> getAll() {
         return dinhMucCongThucRepository.findAll();

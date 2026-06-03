@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface CaLamViecRepository extends JpaRepository<CaLamViec, String> {
+    List<CaLamViec> findByMaCN(String maCN);
     List<CaLamViec> findByMaCNAndThoiGianDongIsNull(String maCN);
 }

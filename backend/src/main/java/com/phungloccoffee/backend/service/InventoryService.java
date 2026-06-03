@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -15,15 +14,29 @@ public class InventoryService {
 
     private final TonKhoRepository tonKhoRepository;
 
-    public List<TonKhoResponse> getDanhSachTonKho() {
-        String maCN = SecurityUtils.requireCurrentUserBranch();
-        List<Object[]> results = tonKhoRepository.layDanhSachTonKhoTheoChiNhanh(maCN);
+    public List<TonKhoResponse> getDanhSachTonKho(String maCNRequest) {
+        boolean isAdmin = SecurityUtils.canAccessAllBranches();
+        String myBranch = SecurityUtils.getCurrentUserBranch();
+
+        List<Object[]> results;
+
+        if (isAdmin) {
+            if (maCNRequest == null || maCNRequest.isBlank() || "all".equalsIgnoreCase(maCNRequest) || "null".equalsIgnoreCase(maCNRequest)) {
+                results = tonKhoRepository.layDanhSachTonKho(); 
+            } else {
+                results = tonKhoRepository.layDanhSachTonKhoTheoChiNhanh(maCNRequest);
+            }
+        } else {
+            if (myBranch == null || myBranch.isBlank() || "null".equalsIgnoreCase(myBranch)) {
+                throw new RuntimeException("Lỗi nghiêm trọng: Tài khoản của bạn chưa được cấp mã chi nhánh trong hệ thống!");
+            }
+            results = tonKhoRepository.layDanhSachTonKhoTheoChiNhanh(myBranch);
+        }
+
         return results.stream().map(row -> {
-            // Lưu ý: Thứ tự row[index] phải khớp chính xác với câu SELECT trong Repository
             Double hienTai = ((Number) row[5]).doubleValue(); 
             Double toiThieu = ((Number) row[6]).doubleValue();
             
-            // Xử lý logic trạng thái màu sắc cho UI
             String stt = "Bình thường";
             if (hienTai <= 0) stt = "Hết hàng";
             else if (hienTai <= toiThieu) stt = "Nguy hiểm";
