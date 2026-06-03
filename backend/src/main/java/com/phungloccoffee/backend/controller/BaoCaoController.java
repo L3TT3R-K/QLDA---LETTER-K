@@ -28,9 +28,11 @@ public class BaoCaoController {
 
     @GetMapping("/doanhthu-chinhanh")
     public ResponseEntity<?> getDoanhThuChiNhanh(
+            @RequestParam(value = "maCN", required = false) String maCN,
             @RequestParam("tuNgay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime tuNgay,
             @RequestParam("denNgay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime denNgay) {
-        return ResponseEntity.ok(baoCaoService.layDoanhThuChiNhanh(tuNgay, denNgay));
+        String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
+        return ResponseEntity.ok(baoCaoService.layDoanhThuChiNhanh(maCNHienTai, tuNgay, denNgay));
     }
 
     @GetMapping("/doanhthu-sanpham")

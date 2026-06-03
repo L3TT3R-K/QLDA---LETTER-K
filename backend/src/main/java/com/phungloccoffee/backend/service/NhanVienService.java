@@ -21,6 +21,15 @@ public class NhanVienService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
+    private boolean isPrivilegedRole(String chucVu) {
+        return chucVu != null && (
+                chucVu.contains("ADMIN")
+                        || "QUANLY".equals(chucVu)
+                        || "QUANLY_CHINHANH".equals(chucVu)
+                        || "KETOAN".equals(chucVu)
+        );
+    }
+
     public List<NhanVienResponse> getAllNhanVien() {
         String maCN = SecurityUtils.getCurrentUserBranch(); 
         
@@ -70,7 +79,7 @@ public class NhanVienService {
         
         if (!SecurityUtils.canAccessAllBranches()) {
              request.setMaCN(SecurityUtils.requireCurrentUserBranch());
-             if (request.getChucVu().contains("ADMIN")) {
+             if (isPrivilegedRole(request.getChucVu())) {
                  throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Quản lý không được phép tạo tài khoản Admin");
              }
         }
@@ -97,7 +106,7 @@ public class NhanVienService {
         NhanVien nv = getById(maNV); 
 
 
-        if (!SecurityUtils.canAccessAllBranches() && (nv.getChucVu().contains("ADMIN") || request.getChucVu().contains("ADMIN"))) {
+        if (!SecurityUtils.canAccessAllBranches() && (isPrivilegedRole(nv.getChucVu()) || isPrivilegedRole(request.getChucVu()))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không được phép sửa thông tin hoặc thăng cấp lên Admin");
         }
 
@@ -129,7 +138,7 @@ public class NhanVienService {
     public void delete(String maNV) {
         NhanVien nv = getById(maNV); 
         
-        if (!SecurityUtils.canAccessAllBranches() && nv.getChucVu().contains("ADMIN")) {
+        if (!SecurityUtils.canAccessAllBranches() && isPrivilegedRole(nv.getChucVu())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không được phép xóa tài khoản Admin");
         }
         

@@ -33,8 +33,8 @@ public class ChiNhanhController {
 
     @PutMapping("/{maCN}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ChiNhanh update(@PathVariable String maCN, @RequestBody ChiNhanhRequest request) { 
-        return chiNhanhService.update(maCN, request); 
+    public ChiNhanh update(@PathVariable String maCN, @RequestBody ChiNhanhRequest request) {
+        return chiNhanhService.update(maCN, request);
     }
 
     @DeleteMapping("/{maCN}")
