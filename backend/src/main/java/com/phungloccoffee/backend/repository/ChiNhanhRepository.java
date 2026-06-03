@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface ChiNhanhRepository extends JpaRepository<ChiNhanh, String> {
     List<ChiNhanh> findByTrangThai(Integer trangThai);
+    boolean existsByTenCNIgnoreCase(String tenCN);
+    boolean existsByTenCNIgnoreCaseAndMaCNNot(String tenCN, String maCN);
 }

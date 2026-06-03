@@ -47,6 +47,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/nhanvien", "/api/nhanvien/**")
                     .hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
                 .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/chinhanh", "/api/chinhanh/**").authenticated()
+                .requestMatchers("/api/chinhanh", "/api/chinhanh/**").hasRole("ADMIN")
                 .requestMatchers(
                     "/api/baocao/ton-kho",
                     "/api/baocao/canh-bao-ton-kho",
