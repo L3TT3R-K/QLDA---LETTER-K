@@ -23,6 +23,17 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     List<DoanhThuChiNhanhResponse> thongKeDoanhThuTheoChiNhanh(@Param("tuNgay") LocalDateTime tuNgay, 
                                                                @Param("denNgay") LocalDateTime denNgay);
 
+    @Query(value = "SELECT c.macn AS maCN, c.tencn AS tenCN, COUNT(h.mahd) AS soLuongDon, SUM(h.tongtien) AS tongDoanhThu " +
+                   "FROM hoadon h " +
+                   "JOIN chinhanh c ON h.macn = c.macn " +
+                   "WHERE h.createdat >= :tuNgay AND h.createdat <= :denNgay AND h.trangthai = 1 AND h.macn = :maCN " +
+                   "GROUP BY c.macn, c.tencn " +
+                   "ORDER BY tongDoanhThu DESC", nativeQuery = true)
+    List<DoanhThuChiNhanhResponse> thongKeDoanhThuTheoChiNhanh(
+            @Param("maCN") String maCN,
+            @Param("tuNgay") LocalDateTime tuNgay,
+            @Param("denNgay") LocalDateTime denNgay);
+
     @Query(value = """
         SELECT
             h.mahd AS maHD,

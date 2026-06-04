@@ -16,7 +16,7 @@ import java.util.List;
 public class ChiNhanhService {
 
     private final ChiNhanhRepository chiNhanhRepository;
-    private final AuditLogService auditLogService; 
+    private final AuditLogService auditLogService;
 
     // Chặn quyền
     private void requireAdminAccess() {
@@ -35,7 +35,7 @@ public class ChiNhanhService {
     }
 
     public ChiNhanh create(ChiNhanhRequest request) {
-        // GỘP CODE: Vừa chặn quyền (của cậu), vừa validate dữ liệu (của đồng đội)
+        // Gộp code: vừa chặn quyền, vừa validate dữ liệu.
         requireAdminAccess();
         validateRequest(request, true);
 
@@ -59,7 +59,7 @@ public class ChiNhanhService {
     }
 
     public ChiNhanh update(String maCN, ChiNhanhRequest request) {
-        // GỘP CODE: Vừa chặn quyền, vừa validate dữ liệu
+        // Gộp code: vừa chặn quyền, vừa validate dữ liệu.
         requireAdminAccess();
         validateRequest(request, false);
 
@@ -67,7 +67,7 @@ public class ChiNhanhService {
         if (chiNhanhRepository.existsByTenCNIgnoreCaseAndMaCNNot(request.getTenCN().trim(), maCN)) {
             throw new IllegalArgumentException("Tên chi nhánh đã tồn tại!");
         }
-        
+
         ChiNhanh oldData = ChiNhanh.builder()
                 .maCN(cn.getMaCN()).tenCN(cn.getTenCN())
                 .diaChi(cn.getDiaChi()).trangThai(cn.getTrangThai()).build();
@@ -82,18 +82,18 @@ public class ChiNhanhService {
     }
 
     public void delete(String maCN) {
-        requireAdminAccess(); // Hàm delete cậu đã làm chuẩn rồi, giữ nguyên
+        requireAdminAccess();
         ChiNhanh cn = getById(maCN);
         ChiNhanh oldData = ChiNhanh.builder()
                 .maCN(cn.getMaCN()).tenCN(cn.getTenCN())
                 .diaChi(cn.getDiaChi()).trangThai(cn.getTrangThai()).build();
 
-        cn.setTrangThai(0); 
+        cn.setTrangThai(0);
         ChiNhanh saved = chiNhanhRepository.save(cn);
         auditLogService.ghiLog(null, "CHINHANH", maCN, "DELETE (SOFT)", oldData, saved);
     }
 
-    // Các hàm validate của đồng đội được giữ nguyên vẹn
+    // Các hàm validate dữ liệu chi nhánh.
     private void validateRequest(ChiNhanhRequest request, boolean requireMaCN) {
         if (request == null || (requireMaCN && isBlank(request.getMaCN())) || isBlank(request.getTenCN()) || isBlank(request.getDiaChi())) {
             throw new IllegalArgumentException("Vui lòng nhập đầy đủ mã, tên và địa chỉ chi nhánh.");

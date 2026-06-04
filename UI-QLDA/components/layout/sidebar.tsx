@@ -153,18 +153,23 @@ export function Sidebar() {
     return children.filter((child) => canShow(child.href));
   };
 
+  const dashboardHref = user?.chucVu === "QUANLY_CHINHANH" ? "/manager" : "/";
+
   const filteredNavItems = navItems
     .map((item) => {
+      const normalizedItem =
+        item.group === "dashboard" ? { ...item, href: dashboardHref } : item;
+
       if (item.children) {
-        const visibleChildren = getVisibleChildren(item.children);
+        const visibleChildren = getVisibleChildren(normalizedItem.children);
 
         return {
-          ...item,
+          ...normalizedItem,
           children: visibleChildren,
         };
       }
 
-      return item;
+      return normalizedItem;
     })
     .filter((item) => {
       if (item.children) {

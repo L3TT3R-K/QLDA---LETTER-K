@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/nhanvien", "/api/nhanvien/**")
                     .hasAnyRole("ADMIN", "QUANLY", "QUANLY_CHINHANH", "NHANVIEN_KHO", "KHO")
-                .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasRole("ADMIN")
+                .requestMatchers("/api/nhanvien", "/api/nhanvien/**").hasAnyRole("ADMIN", "QUANLY_CHINHANH")
                 .requestMatchers(HttpMethod.GET, "/api/chinhanh", "/api/chinhanh/**").authenticated()
                 .requestMatchers("/api/chinhanh", "/api/chinhanh/**").hasRole("ADMIN")
                 .requestMatchers(
@@ -54,7 +54,9 @@ public class SecurityConfig {
                     "/api/baocao/canh-bao-ton-kho",
                     "/api/baocao/canh-bao",
                     "/api/baocao/giao-dich-dong-bo-loi",
-                    "/api/baocao/hao-hut"
+                    "/api/baocao/hao-hut",
+                    "/api/baocao/doanhthu-chinhanh",
+                    "/api/baocao/doanhthu-sanpham"
                 ).hasAnyAuthority(
                     "ADMIN", "ROLE_ADMIN",
                     "QUANLY", "ROLE_QUANLY",

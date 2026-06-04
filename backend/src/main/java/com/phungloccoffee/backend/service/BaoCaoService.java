@@ -37,8 +37,12 @@ public class BaoCaoService {
     @Autowired private CTKKRepository ctkkRepository;
     @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
 
-    public List<DoanhThuChiNhanhResponse> layDoanhThuChiNhanh(LocalDateTime tuNgay, LocalDateTime denNgay) {
-        return hoaDonRepository.thongKeDoanhThuTheoChiNhanh(tuNgay, denNgay);
+    public List<DoanhThuChiNhanhResponse> layDoanhThuChiNhanh(String maCN, LocalDateTime tuNgay, LocalDateTime denNgay) {
+        if (isBlank(maCN)) {
+            return hoaDonRepository.thongKeDoanhThuTheoChiNhanh(tuNgay, denNgay);
+        }
+
+        return hoaDonRepository.thongKeDoanhThuTheoChiNhanh(maCN, tuNgay, denNgay);
     }
 
     public List<DoanhThuSanPhamResponse> layDoanhThuSanPham(String maCN, LocalDateTime tuNgay, LocalDateTime denNgay) {

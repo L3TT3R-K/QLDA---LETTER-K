@@ -38,7 +38,7 @@ public class NhanVienController {
 
     // Thêm mới nhân viên
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY_CHINHANH')")
     public ResponseEntity<?> create(@RequestBody NhanVienRequest request) {
         try {
             // Service đã bao gồm logic check trùng mã và mã hoá password
@@ -52,7 +52,7 @@ public class NhanVienController {
 
     // Cập nhật nhân viên
     @PutMapping("/{maNV}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QUANLY_CHINHANH')")
     public ResponseEntity<?> update(@PathVariable String maNV, @RequestBody NhanVienRequest request) {
         try {
             NhanVien updated = nhanVienService.update(maNV, request);
