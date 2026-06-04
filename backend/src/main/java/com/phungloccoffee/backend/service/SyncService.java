@@ -52,7 +52,6 @@ public class SyncService {
             hoaDon.setMaCa(hdDto.getMaCa());
             hoaDon.setChiNhanh(chiNhanh);
             hoaDon.setTongTien(hdDto.getTongTien() != null ? hdDto.getTongTien() : BigDecimal.ZERO);
-            hoaDon.setGiamGia(hdDto.getGiamGia() != null ? hdDto.getGiamGia() : BigDecimal.ZERO);
             hoaDon.setTrangThai(1); 
             hoaDon.setIsSynced(true); 
             

@@ -20,10 +20,10 @@ public class PhienBanCongThuc {
   @Column(name = "masp", nullable = false, length = 50)
   private String maSP;
 
-  @Column(name = "ngay_hieu_luc", nullable = false)
+  @Column(name = "ngayhieuluc", nullable = false)
   private LocalDateTime ngayHieuLuc;
 
-  @Column(name = "trang_thai", nullable = false)
+  @Column(name = "trangthai", nullable = false)
   private Integer trangThai;
 
   @Column(name = "createdat")

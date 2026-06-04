@@ -25,7 +25,6 @@ import com.phungloccoffee.backend.repository.ChiNhanhRepository;
 import com.phungloccoffee.backend.repository.HoaDonRepository;
 import com.phungloccoffee.backend.repository.SanPhamRepository;
 
-
 import com.phungloccoffee.backend.utils.SecurityUtils;
 
 @Service
@@ -54,9 +53,8 @@ public class HoaDonService {
         hoaDon.setCreatedAt(LocalDateTime.now());
         
         BigDecimal giamGia = request.getGiamGia() != null ? request.getGiamGia() : BigDecimal.ZERO;
-        hoaDon.setGiamGia(giamGia);
-
         BigDecimal tongTienChuaGiam = BigDecimal.ZERO;
+        
         List<CTHD> listCTHD = new ArrayList<>();
         List<CTHDResponse> listResponse = new ArrayList<>();
 
@@ -84,7 +82,6 @@ public class HoaDonService {
 
         hoaDonRepository.save(hoaDon);
         cthdRepository.saveAll(listCTHD);
-
 
         truKhoService.truNguyenLieuTheoHoaDon(maHD);
 

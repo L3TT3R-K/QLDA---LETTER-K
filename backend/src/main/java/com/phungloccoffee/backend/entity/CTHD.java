@@ -15,12 +15,10 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "cthd")
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class CTHD {
 
     @Id
@@ -38,7 +36,7 @@ public class CTHD {
     @Column(name = "soluong")
     private Integer soLuong;
 
-    @Column(name = "giabantaitheodiem")
+    @Column(name = "giabantaithoidiem") 
     private BigDecimal giaBanTaiThoiDiem;
 
     @Column(name = "ghichu", length = 255)

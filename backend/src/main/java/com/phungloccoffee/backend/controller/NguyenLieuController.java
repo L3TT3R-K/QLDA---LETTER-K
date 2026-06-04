@@ -18,19 +18,19 @@ public class NguyenLieuController {
     private final NguyenLieuService nguyenLieuService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'NHANVIEN_KHO', 'NHANVIEN_BANHANG')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO', 'NHANVIEN_BANHANG', 'ROLE_NHANVIEN_BANHANG')")
     public ResponseEntity<List<NguyenLieuResponse>> getAll() {
         return ResponseEntity.ok(nguyenLieuService.getAllNguyenLieu());
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<NguyenLieu> create(@RequestBody NguyenLieuResponse request) {
         return ResponseEntity.ok(nguyenLieuService.createNguyenLieu(request));
     }
 
     @PutMapping("/{maNL}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<NguyenLieu> update(@PathVariable String maNL, @RequestBody NguyenLieuResponse request) {
         NguyenLieu updated = nguyenLieuService.updateNguyenLieu(maNL, request);
         if (updated != null) {
@@ -40,7 +40,7 @@ public class NguyenLieuController {
     }
 
     @DeleteMapping("/{maNL}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NHANVIEN_KHO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'NHANVIEN_KHO', 'ROLE_NHANVIEN_KHO')")
     public ResponseEntity<String> delete(@PathVariable String maNL) {
         nguyenLieuService.deleteNguyenLieu(maNL);
         return ResponseEntity.ok("Đã ngưng sử dụng nguyên liệu");

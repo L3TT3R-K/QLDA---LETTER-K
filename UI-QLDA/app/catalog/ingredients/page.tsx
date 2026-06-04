@@ -48,6 +48,9 @@ export default function IngredientsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Ingredient | null>(null);
+  
+  // STATE MỚI: Lưu trữ quyền của user hiện tại
+  const [userRole, setUserRole] = useState<string>("");
 
   const [formData, setFormData] = useState({
     tenNL: "",
@@ -76,6 +79,21 @@ export default function IngredientsPage() {
         setUnits(JSON.parse(data));
       } else {
         localStorage.setItem(unitStorageKey, JSON.stringify(initialUnits));
+      }
+
+      // LOGIC MỚI: Tự động lấy Role (chức vụ) của người đăng nhập từ localStorage
+      const storedUser = localStorage.getItem("user") || localStorage.getItem("userInfo");
+      if (storedUser) {
+        try {
+          const userObj = JSON.parse(storedUser);
+          // Lấy đúng trường dữ liệu team bạn đang lưu (role, chucVu, hoặc Role)
+          setUserRole(userObj.role || userObj.chucVu || userObj.Role || "");
+        } catch (e) {
+          setUserRole("");
+        }
+      } else {
+        // Dự phòng nếu team lưu thẳng chuỗi string ở ngoài
+        setUserRole(localStorage.getItem("role") || localStorage.getItem("chucVu") || "");
       }
     }
   }, []);
@@ -259,7 +277,12 @@ export default function IngredientsPage() {
             </SelectContent>
           </Select>
 
-          <Button onClick={handleOpenAdd} className="gap-2"><Plus className="h-4 w-4" /> Thêm nguyên liệu</Button>
+          {/* LOGIC MỚI: Chỉ Admin mới thấy nút Thêm nguyên liệu */}
+          {userRole === "ADMIN" && (
+            <Button onClick={handleOpenAdd} className="gap-2">
+              <Plus className="h-4 w-4" /> Thêm nguyên liệu
+            </Button>
+          )}
         </div>
 
         {/* BẢNG DỮ LIỆU */}
@@ -283,14 +306,26 @@ export default function IngredientsPage() {
                   <td className="px-4 py-3 text-sm font-medium text-foreground">{item.tenNL}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{getUnitName(item.donViCoBan)}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm">{item.tonToiThieu} {getUnitName(item.donViCoBan)}</td>
+                  
+                  {/* LOGIC MỚI: Khoá nút Switch nếu không phải Admin */}
                   <td className="px-4 py-3 text-center">
-                    <Switch checked={item.trangThai === 1} onCheckedChange={() => handleToggleStatus(item)} />
+                    <Switch 
+                      checked={item.trangThai === 1} 
+                      onCheckedChange={() => handleToggleStatus(item)} 
+                      disabled={userRole !== "ADMIN"}
+                    />
                   </td>
+                  
+                  {/* LOGIC MỚI: Ẩn nút Sửa/Xóa nếu không phải Admin */}
                   <td className="px-4 py-3 text-center">
-                    <div className="flex justify-center gap-2">
-                      <button onClick={() => handleOpenEdit(item)} className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
-                      <button onClick={() => handleDelete(item.maNL)} className="text-muted-foreground hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
-                    </div>
+                    {userRole === "ADMIN" ? (
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => handleOpenEdit(item)} className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
+                        <button onClick={() => handleDelete(item.maNL)} className="text-muted-foreground hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Chỉ xem</span>
+                    )}
                   </td>
                 </tr>
               ))}

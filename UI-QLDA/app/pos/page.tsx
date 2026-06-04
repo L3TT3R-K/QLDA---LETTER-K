@@ -214,7 +214,48 @@ export default function POSPage() {
   const apiError = checkoutError ?? shiftContextError ?? productError;
 
   useEffect(() => {
-    const handleOnlineStatus = () => setIsOffline(!navigator.onLine);
+    const syncOfflineOrders = async () => {
+      const offlineOrders = JSON.parse(localStorage.getItem("OFFLINE_BILLS") || "[]");
+      if (offlineOrders.length === 0) return;
+
+      alert(`Phát hiện ${offlineOrders.length} hóa đơn offline. Đang đồng bộ lên hệ thống...`);
+      let syncedCount = 0;
+      const failedOrders = [];
+
+      for (const order of offlineOrders) {
+        try {
+          const taoHoaDonRes = await api.post("/api/hoadon", order.hoaDonRequest);
+          const maHD = taoHoaDonRes.data?.data?.maHD;
+          const soTienThanhToan = Number(taoHoaDonRes.data?.data?.tongTien);
+
+          if (maHD && !Number.isNaN(soTienThanhToan)) {
+            await api.post("/api/thanhtoan", {
+              maHD,
+              phuongThuc: mapPaymentMethod(order.paymentMethod),
+              soTien: soTienThanhToan,
+            });
+            syncedCount++;
+          } else {
+            failedOrders.push(order);
+          }
+        } catch (err) {
+          console.error("Đồng bộ lỗi:", err);
+          failedOrders.push(order); 
+        }
+      }
+
+      localStorage.setItem("OFFLINE_BILLS", JSON.stringify(failedOrders));
+      if (syncedCount > 0) alert(`Đã đồng bộ thành công ${syncedCount} hóa đơn!`);
+    };
+
+    const handleOnlineStatus = () => {
+      const isOnline = navigator.onLine;
+      setIsOffline(!isOnline);
+      
+      if (isOnline) {
+        syncOfflineOrders();
+      }
+    };
 
     handleOnlineStatus();
     window.addEventListener("online", handleOnlineStatus);
@@ -492,21 +533,37 @@ export default function POSPage() {
       return;
     }
 
+    const hoaDonRequest: HoaDonRequest = {
+      maCN: currentBranch,
+      maCa: currentShift,
+      giamGia: finalDiscount,
+      danhSachMon: orderItems.map((item) => ({
+        maSP: item.MaSP,
+        soLuong: item.SoLuong,
+        ghiChu: item.GhiChu,
+      })),
+    };
+
+    // --- LOGIC OFFLINE MỚI THÊM VÀO ---
+    if (!navigator.onLine) {
+      const offlineOrders = JSON.parse(localStorage.getItem("OFFLINE_BILLS") || "[]");
+      offlineOrders.push({
+        hoaDonRequest,
+        paymentMethod,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem("OFFLINE_BILLS", JSON.stringify(offlineOrders));
+      
+      alert("Đang Offline! Hóa đơn đã được lưu tạm, sẽ tự động đồng bộ khi có mạng.");
+      clearOrder();
+      return; // Dừng tại đây, không gọi API nữa
+    }
+    // ---------------------------------
+
     setIsSubmittingCheckout(true);
     setCheckoutError(null);
 
     try {
-      const hoaDonRequest: HoaDonRequest = {
-        maCN: currentBranch,
-        maCa: currentShift,
-        giamGia: finalDiscount,
-        danhSachMon: orderItems.map((item) => ({
-          maSP: item.MaSP,
-          soLuong: item.SoLuong,
-          ghiChu: item.GhiChu,
-        })),
-      };
-
       const taoHoaDonRes = await api.post<ApiResponse<ChiTietHoaDonResponse>>(
         "/api/hoadon",
         hoaDonRequest,
@@ -561,7 +618,7 @@ export default function POSPage() {
       setIsSubmittingCheckout(false);
     }
   };
-
+  
   return (
     <MainLayout title="POS Bán hàng" breadcrumb="Trang chủ / POS Bán hàng">
       {isOffline && (

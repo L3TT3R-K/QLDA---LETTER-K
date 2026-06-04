@@ -39,11 +39,9 @@ const branchStorageKey = "CHINHANH";
 
 const roleOptions = [
   { value: "ADMIN", label: "Quản trị viên" },
-  { value: "QUANLY_CHINHANH", label: "Quản lý chi nhánh" },
+  { value: "QUANLY", label: "Quản lý" },
   { value: "NHANVIEN_BANHANG", label: "Nhân viên bán hàng" },
-  { value: "PHA_CHE", label: "Pha chế" },
   { value: "NHANVIEN_KHO", label: "Nhân viên kho" },
-  { value: "KETOAN", label: "Kế toán" },
 ];
 
 const initialBranches: Branch[] = [
@@ -97,20 +95,26 @@ export default function EmployeesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchEmployees(); // Chạy ngay khi mở trang
-
-    // Tạm giữ logic load Chi nhánh từ LocalStorage vì chưa có API Chi nhánh
-    if (typeof window !== "undefined") {
-      const data = localStorage.getItem(branchStorageKey);
-      if (data) {
-        setBranches(JSON.parse(data));
-      } else {
-        localStorage.setItem(branchStorageKey, JSON.stringify(initialBranches));
-      }
+  const fetchBranches = async () => {
+    try {
+      const response = await api.get("/api/chinhanh");
+      // Map lại dữ liệu từ Backend (maCN, tenCN) sang format Frontend đang dùng (MaCN, TenCN)
+      const branchData = response.data.map((item: any) => ({
+        MaCN: item.maCN || item.MaCN,
+        TenCN: item.tenCN || item.TenCN,
+        TrangThai: item.trangThai !== undefined ? item.trangThai : item.TrangThai
+      }));
+      setBranches(branchData);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách chi nhánh:", error);
     }
-  }, []);
+  };
 
+  useEffect(() => {
+    fetchEmployees();
+    fetchBranches(); // Gọi API lấy chi nhánh thật từ Database
+  }, []);
+  
   const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
 
   const filteredEmployees = useMemo(() => {
@@ -196,7 +200,7 @@ export default function EmployeesPage() {
       return;
     }
 
-    const isSystemRole = formData.ChucVu === "ADMIN" || formData.ChucVu === "KETOAN";
+    const isSystemRole = formData.ChucVu === "ADMIN";
     const finalMaCN = isSystemRole ? null : formData.MaCN;
 
     // Chuẩn bị gói dữ liệu gửi cho Spring Boot
@@ -471,7 +475,7 @@ export default function EmployeesPage() {
                 <Select
                   value={formData.ChucVu}
                   onValueChange={(value) => {
-                    const isSystemRole = value === "ADMIN" || value === "KETOAN";
+                    const isSystemRole = value === "ADMIN";
                     setFormData({
                       ...formData,
                       ChucVu: value,
@@ -492,11 +496,11 @@ export default function EmployeesPage() {
                 <Select
                   value={formData.MaCN}
                   onValueChange={(value) => setFormData({ ...formData, MaCN: value })}
-                  disabled={formData.ChucVu === "ADMIN" || formData.ChucVu === "KETOAN"}
+                  disabled={formData.ChucVu === "ADMIN"}
                 >
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Chọn chi nhánh" /></SelectTrigger>
                   <SelectContent>
-                    {(formData.ChucVu === "ADMIN" || formData.ChucVu === "KETOAN") && (
+                    {(formData.ChucVu === "ADMIN") && (
                       <SelectItem value="ALL">Toàn hệ thống</SelectItem>
                     )}
                     {activeBranches.map((branch) => (

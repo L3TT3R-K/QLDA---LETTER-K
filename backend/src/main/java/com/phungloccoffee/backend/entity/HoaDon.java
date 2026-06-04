@@ -18,12 +18,10 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "hoadon")
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class HoaDon {
 
     @Id
@@ -40,16 +38,13 @@ public class HoaDon {
     @Column(name = "tongtien")
     private BigDecimal tongTien;
 
-    @Column(name = "giamgia")
-    private BigDecimal giamGia;
-
-    @CreationTimestamp
-    @Column(name = "createdat", updatable = false)
-    private LocalDateTime createdAt;
-
     @Column(name = "trangthai")
     private Integer trangThai;
 
     @Column(name = "issynced")
     private Boolean isSynced;
+
+    @CreationTimestamp
+    @Column(name = "createdat", updatable = false)
+    private LocalDateTime createdAt;
 }

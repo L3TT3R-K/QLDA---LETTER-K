@@ -155,18 +155,37 @@ export default function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // 1. LẤY DANH SÁCH CHI NHÁNH TỪ LOCAL (Để làm bộ lọc)
-  const loadBranches = () => {
-    const storedBranches = JSON.parse(localStorage.getItem(branchStorageKey) || "[]") as Branch[];
-    const formatted = storedBranches.map((b, index) => ({
-      MaCN: b.MaCN,
-      TenCN: b.TenCN,
-      ShortName: b.TenCN.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", ""),
-      ChiTieu: targetByBranch[b.MaCN] || 80000000,
-      MauBieuDo: chartColors[index % chartColors.length],
-      TrangThai: Number(b.TrangThai ?? 1),
-    }));
-    setBranches(formatted);
+  const loadBranches = async () => {
+    try {
+      const res = await api.get("/api/chinhanh"); 
+      const activeBranches = res.data;
+      
+      const formatted = activeBranches.map((b: any, index: number) => ({
+        MaCN: b.maCN,
+        TenCN: b.tenCN,
+        ShortName: b.tenCN.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", ""),
+        ChiTieu: targetByBranch[b.maCN] || 80000000,
+        MauBieuDo: chartColors[index % chartColors.length],
+        TrangThai: Number(b.trangThai ?? 1),
+      }));
+      
+      setBranches(formatted);
+      
+      localStorage.setItem(branchStorageKey, JSON.stringify(activeBranches));
+      
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách chi nhánh từ API:", error);
+      const storedBranches = JSON.parse(localStorage.getItem(branchStorageKey) || "[]") as Branch[];
+      const formatted = storedBranches.map((b, index) => ({
+        MaCN: b.MaCN,
+        TenCN: b.TenCN,
+        ShortName: b.TenCN.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", ""),
+        ChiTieu: targetByBranch[b.MaCN] || 80000000,
+        MauBieuDo: chartColors[index % chartColors.length],
+        TrangThai: Number(b.TrangThai ?? 1),
+      }));
+      setBranches(formatted);
+    }
   };
 
   // 2. GỌI API BÁO CÁO TỪ SPRING BOOT
