@@ -34,6 +34,7 @@ public class HoaDonService {
     @Autowired private SanPhamRepository sanPhamRepository;
     @Autowired private ChiNhanhRepository chiNhanhRepository;
     @Autowired private TruKhoService truKhoService;
+    @Autowired private AuditLogService auditLogService;
 
     @Transactional
     public ChiTietBillResponse taoHoaDon(HoaDonRequest request) {
@@ -84,6 +85,8 @@ public class HoaDonService {
         cthdRepository.saveAll(listCTHD);
 
         truKhoService.truNguyenLieuTheoHoaDon(maHD);
+
+        auditLogService.ghiLog(null, "HOADON", maHD, "TẠO MỚI", null, hoaDon);
 
         return new ChiTietBillResponse(maHD, chiNhanh != null ? chiNhanh.getTenCN() : "", hoaDon.getTongTien(), hoaDon.getTrangThai(), listResponse);
     }

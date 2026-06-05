@@ -55,6 +55,7 @@ public class PhieuNhapService {
     @Autowired private LoHangRepository loHangRepository;
     @Autowired private TonKhoRepository tonKhoRepository;
     @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
+    @Autowired private AuditLogService auditLogService; 
 
     @Transactional
     public PhieuNhapResponse taoPhieuNhap(PhieuNhapRequest request) {
@@ -104,7 +105,11 @@ public class PhieuNhapService {
         }
 
         savedPhieuNhap.setTongTien(toBigDecimal(tongTien));
-        return toResponse(phieuNhapRepository.save(savedPhieuNhap));
+        PhieuNhap finalSaved = phieuNhapRepository.save(savedPhieuNhap);
+
+        auditLogService.ghiLog(null, "PHIEUNHAP", finalSaved.getMaPN(), "TẠO MỚI", null, finalSaved);
+
+        return toResponse(finalSaved);
     }
 
     @Transactional
@@ -122,6 +127,9 @@ public class PhieuNhapService {
         validateRequest(request);
         hoanTacVaXoaPhieuNhap(existing);
         phieuNhapRepository.flush();
+
+        auditLogService.ghiLog(null, "PHIEUNHAP", maPN, "CẬP NHẬT", "Đã hoàn tác phiếu cũ", request);
+
         return taoPhieuNhap(request);
     }
 
@@ -133,6 +141,8 @@ public class PhieuNhapService {
         PhieuNhap existing = phieuNhapRepository.findById(maPN)
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phieu nhap: " + maPN));
         hoanTacVaXoaPhieuNhap(existing);
+
+        auditLogService.ghiLog(null, "PHIEUNHAP", maPN, "XÓA", existing, null);
     }
 
     public List<PhieuNhapResponse> getAll() {

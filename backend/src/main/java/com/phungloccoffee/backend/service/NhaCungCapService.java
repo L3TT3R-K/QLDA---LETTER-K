@@ -17,6 +17,7 @@ public class NhaCungCapService {
     private static final Integer NGUNG_HOAT_DONG = 0;
 
     @Autowired private NhaCungCapRepository repository;
+    @Autowired private AuditLogService auditLogService; 
 
     public List<NhaCungCapResponse> getAllNCC(String trangThai, boolean includeInactive) {
         return repository.findAll().stream()
@@ -46,7 +47,10 @@ public class NhaCungCapService {
         }
         validate(ncc);
         ncc.setTrangThai(ncc.getTrangThai() == null ? HOAT_DONG : ncc.getTrangThai());
-        return toResponse(repository.save(ncc));
+        
+        NhaCungCap saved = repository.save(ncc);
+        auditLogService.ghiLog(null, "NHACUNGCAP", saved.getMaNCC(), "TẠO MỚI", null, saved);
+        return toResponse(saved);
     }
 
     public NhaCungCapResponse updateNCC(String maNCC, NhaCungCap details) {
@@ -66,14 +70,18 @@ public class NhaCungCapService {
             existing.setTrangThai(details.getTrangThai());
         }
         validate(existing);
-        return toResponse(repository.save(existing));
+        
+        NhaCungCap saved = repository.save(existing);
+        auditLogService.ghiLog(null, "NHACUNGCAP", maNCC, "CẬP NHẬT", null, saved);
+        return toResponse(saved);
     }
 
     public boolean deleteNCC(String maNCC) {
         Optional<NhaCungCap> optional = repository.findById(maNCC);
         optional.ifPresent(ncc -> {
             ncc.setTrangThai(NGUNG_HOAT_DONG);
-            repository.save(ncc);
+            NhaCungCap saved = repository.save(ncc);
+            auditLogService.ghiLog(null, "NHACUNGCAP", maNCC, "XÓA", null, saved);
         });
         return optional.isPresent();
     }

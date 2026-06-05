@@ -41,6 +41,7 @@ public class ThanhToanService {
   private final DinhMucCongThucRepository dinhMucCongThucRepository;
   private final TonKhoRepository tonKhoRepository;
   private final InventoryTransactionRepository inventoryTransactionRepository;
+  private final AuditLogService auditLogService; 
 
   @Transactional
   public ThanhToanResponse thanhToan(ThanhToanRequest request) {
@@ -64,6 +65,9 @@ public class ThanhToanService {
     hoaDonRepository.save(hoaDon);
 
     truKhoTheoHoaDon(hoaDon);
+
+    auditLogService.ghiLog(null, "THANHTOAN", maTT, "THÊM MỚI", null, thanhToan);
+
     return new ThanhToanResponse(maTT, hoaDon.getMaHD(), request.getSoTien(), request.getPhuongThuc(),
         "Thanh toan va tu dong tru kho thanh cong");
   }

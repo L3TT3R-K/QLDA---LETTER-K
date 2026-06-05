@@ -25,7 +25,7 @@ public class KiemKhoService {
     private final KiemKhoRepository kiemKhoRepo;
     private final CTKKRepository ctkkRepo;
     private final TonKhoRepository tonKhoRepo;
-
+    private final AuditLogService auditLogService; 
     public List<KiemKhoChiTietResponse> getAllLichSuKiemKho(String maCN) {
         String maCNHienTai = SecurityUtils.resolveInventoryBranch(maCN);
         List<Object[]> rows = maCNHienTai == null
@@ -47,7 +47,7 @@ public class KiemKhoService {
                     .soLuongHeThong(slHeThong)
                     .soLuongThucTe(((Number) row[6]).doubleValue())
                     .chenhLech(chenhLech)
-                    .phanTramSaiLech(Math.round(phanTram * 100.0) / 100.0) // Làm tròn 2 chữ số
+                    .phanTramSaiLech(Math.round(phanTram * 100.0) / 100.0) 
                     .maCN((String) row[11])
                     .tenChiNhanh((String) row[8])
                     .tenNhanVien((String) row[9])
@@ -93,5 +93,6 @@ public class KiemKhoService {
                 tonKhoRepo.save(tk);
             }
         }
+        auditLogService.ghiLog(null, "KIEMKHO", kk.getMaKK(), "TẠO MỚI", null, kk);
     }
 }

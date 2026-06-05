@@ -23,6 +23,7 @@ public class PhienBanCongThucService {
 
   private final PhienBanCongThucRepository phienBanCongThucRepository;
   private final SanPhamRepository sanPhamRepository;
+  private final AuditLogService auditLogService; 
 
   private void requireAdminAccess() {
       if (!SecurityUtils.canAccessAllBranches()) {
@@ -74,7 +75,9 @@ public class PhienBanCongThucService {
         .trangThai(trangThai)
         .build();
 
-    return phienBanCongThucRepository.save(phienBan);
+    PhienBanCongThuc saved = phienBanCongThucRepository.save(phienBan);
+    auditLogService.ghiLog(null, "CONGTHUC", saved.getMaPB(), "TẠO MỚI", null, saved);
+    return saved;
   }
 
   @Transactional
@@ -93,7 +96,9 @@ public class PhienBanCongThucService {
     phienBan.setNgayHieuLuc(request.getNgayHieuLuc() == null ? phienBan.getNgayHieuLuc() : request.getNgayHieuLuc());
     phienBan.setTrangThai(trangThai);
 
-    return phienBanCongThucRepository.save(phienBan);
+    PhienBanCongThuc saved = phienBanCongThucRepository.save(phienBan);
+    auditLogService.ghiLog(null, "CONGTHUC", maPB, "CẬP NHẬT", null, saved);
+    return saved;
   }
 
   public void delete(String maPB) {
@@ -101,7 +106,8 @@ public class PhienBanCongThucService {
 
     PhienBanCongThuc phienBan = getById(maPB);
     phienBan.setTrangThai(NGUNG_HOAT_DONG);
-    phienBanCongThucRepository.save(phienBan);
+    PhienBanCongThuc saved = phienBanCongThucRepository.save(phienBan);
+    auditLogService.ghiLog(null, "CONGTHUC", maPB, "XÓA", null, saved);
   }
 
   private void validateSanPham(String maSP) {

@@ -57,6 +57,7 @@ public class PhieuXuatKhoService {
     @Autowired private LoHangRepository loHangRepository;
     @Autowired private TonKhoRepository tonKhoRepository;
     @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
+    @Autowired private AuditLogService auditLogService; 
 
     @Transactional
     public PhieuXuatKhoResponse taoPhieuXuatKho(PhieuXuatKhoRequest request) {
@@ -107,6 +108,9 @@ public class PhieuXuatKhoService {
         for (CTPhieuXuatKhoRequest chiTietRequest : request.getChiTiet()) {
             xuatChiTiet(savedPhieuXuatKho, chiNhanh, chiTietRequest);
         }
+
+        // Ghi log tạo phiếu xuất kho
+        auditLogService.ghiLog(null, "PHIEUXUAT", savedPhieuXuatKho.getMaPX(), "TẠO MỚI", null, savedPhieuXuatKho);
 
         return toResponse(savedPhieuXuatKho);
     }

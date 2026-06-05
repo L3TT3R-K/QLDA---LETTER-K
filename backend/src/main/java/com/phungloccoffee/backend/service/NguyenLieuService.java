@@ -20,6 +20,9 @@ public class NguyenLieuService {
 
     @Autowired 
     private NguyenLieuRepository repository;
+    
+    @Autowired 
+    private AuditLogService auditLogService; 
 
     private void requireAdminAccess() {
         if (!SecurityUtils.canAccessAllBranches()) {
@@ -56,7 +59,9 @@ public class NguyenLieuService {
         dv.setMaDV(dto.getDonViCoBan()); 
         nl.setDonViCoBan(dv);
         
-        return repository.save(nl);
+        NguyenLieu saved = repository.save(nl);
+        auditLogService.ghiLog(null, "NGUYENLIEU", saved.getMaNL(), "TẠO MỚI", null, saved);
+        return saved;
     }
 
     public NguyenLieu updateNguyenLieu(String maNL, NguyenLieuResponse dto) {
@@ -72,7 +77,9 @@ public class NguyenLieuService {
             dv.setMaDV(dto.getDonViCoBan());
             existing.setDonViCoBan(dv);
             
-            return repository.save(existing);
+            NguyenLieu saved = repository.save(existing);
+            auditLogService.ghiLog(null, "NGUYENLIEU", maNL, "CẬP NHẬT", null, saved);
+            return saved;
         }
         return null;
     }
@@ -81,7 +88,8 @@ public class NguyenLieuService {
         requireAdminAccess();
         repository.findById(maNL).ifPresent(nl -> {
             nl.setTrangThai(0); 
-            repository.save(nl);
+            NguyenLieu saved = repository.save(nl);
+            auditLogService.ghiLog(null, "NGUYENLIEU", maNL, "XÓA", null, saved);
         });
     }
 }

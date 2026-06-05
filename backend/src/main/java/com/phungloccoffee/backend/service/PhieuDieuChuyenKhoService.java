@@ -53,6 +53,7 @@ public class PhieuDieuChuyenKhoService {
     @Autowired private LoHangRepository loHangRepository;
     @Autowired private TonKhoRepository tonKhoRepository;
     @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
+    @Autowired private AuditLogService auditLogService; 
 
     @Transactional
     public PhieuDieuChuyenKhoResponse taoPhieuDieuChuyen(PhieuDieuChuyenKhoRequest request) {
@@ -87,6 +88,8 @@ public class PhieuDieuChuyenKhoService {
             taoChiTietChuyen(savedPhieu, chiNhanhXuat, chiTietRequest);
         }
 
+        auditLogService.ghiLog(null, "PHIEUDIEUCHUYEN", savedPhieu.getMaPC(), "TẠO MỚI", null, savedPhieu);
+
         return toResponse(savedPhieu);
     }
 
@@ -107,7 +110,11 @@ public class PhieuDieuChuyenKhoService {
         }
 
         phieu.setTrangThai(DANG_CHUYEN);
-        return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
+        PhieuDieuChuyenKho savedPhieu = phieuDieuChuyenKhoRepository.save(phieu);
+
+        auditLogService.ghiLog(null, "PHIEUDIEUCHUYEN", phieu.getMaPC(), "CẬP NHẬT (GỬI)", "Trạng thái cũ: TAO_PHIEU", savedPhieu);
+
+        return toResponse(savedPhieu);
     }
 
     @Transactional
@@ -129,7 +136,11 @@ public class PhieuDieuChuyenKhoService {
         }
 
         phieu.setTrangThai(DA_NHAN);
-        return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
+        PhieuDieuChuyenKho savedPhieu = phieuDieuChuyenKhoRepository.save(phieu);
+
+        auditLogService.ghiLog(null, "PHIEUDIEUCHUYEN", phieu.getMaPC(), "CẬP NHẬT (NHẬN)", "Trạng thái cũ: DANG_CHUYEN", savedPhieu);
+
+        return toResponse(savedPhieu);
     }
 
     @Transactional
@@ -139,7 +150,11 @@ public class PhieuDieuChuyenKhoService {
             throw new IllegalArgumentException("Chi co phieu Tao phieu moi duoc huy");
         }
         phieu.setTrangThai(DA_HUY);
-        return toResponse(phieuDieuChuyenKhoRepository.save(phieu));
+        PhieuDieuChuyenKho savedPhieu = phieuDieuChuyenKhoRepository.save(phieu);
+
+        auditLogService.ghiLog(null, "PHIEUDIEUCHUYEN", phieu.getMaPC(), "HỦY", "Trạng thái cũ: TAO_PHIEU", savedPhieu);
+
+        return toResponse(savedPhieu);
     }
 
     public List<PhieuDieuChuyenKhoResponse> getAll() {

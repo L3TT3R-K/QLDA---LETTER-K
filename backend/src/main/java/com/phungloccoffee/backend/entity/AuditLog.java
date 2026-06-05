@@ -34,7 +34,6 @@
         @Column(name = "hanhdong", length = 20)
         private String hanhDong;
 
-        // ép kiểu JSONB cho PostgreSQL
         @JdbcTypeCode(SqlTypes.JSON)
         @Column(name = "dulieucu", columnDefinition = "jsonb")
         private String duLieuCu;
