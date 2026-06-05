@@ -1,4 +1,9 @@
-export type UserRole = "ADMIN" | "QUANLY" | "QUANLY_CHINHANH" | "NHANVIEN_KHO" | "NHANVIEN_BANHANG";
+export type UserRole =
+  | "ADMIN"
+  | "QUANLY"
+  | "QUANLY_CHINHANH"
+  | "NHANVIEN_KHO"
+  | "NHANVIEN_BANHANG";
 
 export interface AuthUser {
   token?: string;
@@ -18,7 +23,8 @@ export interface AppRoute {
     | "inventory"
     | "system"
     | "report"
-    | "shift";
+    | "shift"
+    | "logs";
   roles: UserRole[];
 }
 
@@ -110,17 +116,23 @@ export const appRoutes: AppRoute[] = [
     group: "system",
     roles: ["ADMIN"],
   },
+
   {
     title: "Nhân viên",
     href: "/system/employees",
     group: "system",
     roles: ["ADMIN", "QUANLY_CHINHANH"],
   },
-
   {
     title: "Báo cáo",
     href: "/reports",
     group: "report",
+    roles: ["ADMIN", "QUANLY"],
+  },
+  {
+    title: "Nhật ký hệ thống",
+    href: "/logs",
+    group: "logs",
     roles: ["ADMIN", "QUANLY"],
   },
 ];

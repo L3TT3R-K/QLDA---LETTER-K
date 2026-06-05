@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import {
   Download,
   FileText,
@@ -75,17 +76,31 @@ interface ApiReportResponse {
 const branchStorageKey = "CHINHANH";
 
 const chartColors = [
-  "#2C6E49", "#E76F51", "#277DA1", "#F4A261",
-  "#8B5CF6", "#198754", "#DC3545", "#6C757D",
+  "#2C6E49",
+  "#E76F51",
+  "#277DA1",
+  "#F4A261",
+  "#8B5CF6",
+  "#198754",
+  "#DC3545",
+  "#6C757D",
 ];
 
 // Dữ liệu giả lập cho các chỉ số không có trong DB
 const previousPeriodByBranch: Record<string, number> = {
-  CN01: 23000000, CN02: 20000000, CN03: 16000000, CN04: 12000000, CN05: 9000000,
+  CN01: 23000000,
+  CN02: 20000000,
+  CN03: 16000000,
+  CN04: 12000000,
+  CN05: 9000000,
 };
 
 const targetByBranch: Record<string, number> = {
-  CN01: 130000000, CN02: 110000000, CN03: 95000000, CN04: 85000000, CN05: 75000000,
+  CN01: 130000000,
+  CN02: 110000000,
+  CN03: 95000000,
+  CN04: 85000000,
+  CN05: 75000000,
 };
 
 const formatCurrency = (value: number) => {
@@ -93,7 +108,8 @@ const formatCurrency = (value: number) => {
 };
 
 const formatCompact = (value: number) => {
-  if (value >= 1_000_000_000) return `${Number((value / 1_000_000_000).toFixed(1))} tỷ`;
+  if (value >= 1_000_000_000)
+    return `${Number((value / 1_000_000_000).toFixed(1))} tỷ`;
   if (value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(1))} tr`;
   return new Intl.NumberFormat("vi-VN").format(value);
 };
@@ -122,15 +138,21 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       <div className="mt-3 space-y-2">
         <div className="flex items-center justify-between gap-6">
           <span className="text-muted-foreground">Doanh thu</span>
-          <span className="font-semibold text-foreground">{formatCurrency(Number(row.DoanhThu || 0))}</span>
+          <span className="font-semibold text-foreground">
+            {formatCurrency(Number(row.DoanhThu || 0))}
+          </span>
         </div>
         <div className="flex items-center justify-between gap-6">
           <span className="text-muted-foreground">Số đơn</span>
-          <span className="font-medium text-foreground">{Number(row.SoDon || 0).toLocaleString("vi-VN")}</span>
+          <span className="font-medium text-foreground">
+            {Number(row.SoDon || 0).toLocaleString("vi-VN")}
+          </span>
         </div>
         <div className="flex items-center justify-between gap-6">
           <span className="text-muted-foreground">Đạt chỉ tiêu</span>
-          <span className="font-medium text-foreground">{Number(row.TyLeDatChiTieu || 0)}%</span>
+          <span className="font-medium text-foreground">
+            {Number(row.TyLeDatChiTieu || 0)}%
+          </span>
         </div>
       </div>
     </div>
@@ -157,29 +179,35 @@ export default function ReportsPage() {
 
   const loadBranches = async () => {
     try {
-      const res = await api.get("/api/chinhanh"); 
+      const res = await api.get("/api/chinhanh");
       const activeBranches = res.data;
-      
+
       const formatted = activeBranches.map((b: any, index: number) => ({
         MaCN: b.maCN,
         TenCN: b.tenCN,
-        ShortName: b.tenCN.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", ""),
+        ShortName: b.tenCN
+          .replace("Phụng Lộc Coffee - ", "")
+          .replace("Chi nhánh ", ""),
         ChiTieu: targetByBranch[b.maCN] || 80000000,
         MauBieuDo: chartColors[index % chartColors.length],
         TrangThai: Number(b.trangThai ?? 1),
       }));
-      
+
       setBranches(formatted);
-      
+
       localStorage.setItem(branchStorageKey, JSON.stringify(activeBranches));
-      
     } catch (error) {
       console.error("Lỗi khi tải danh sách chi nhánh từ API:", error);
-      const storedBranches = JSON.parse(localStorage.getItem(branchStorageKey) || "[]") as Branch[];
+      const storedBranches = JSON.parse(
+        localStorage.getItem(branchStorageKey) || "[]",
+      ) as Branch[];
       const formatted = storedBranches.map((b, index) => ({
         MaCN: b.MaCN,
         TenCN: b.TenCN,
-        ShortName: b.TenCN.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", ""),
+        ShortName: b.TenCN.replace("Phụng Lộc Coffee - ", "").replace(
+          "Chi nhánh ",
+          "",
+        ),
         ChiTieu: targetByBranch[b.MaCN] || 80000000,
         MauBieuDo: chartColors[index % chartColors.length],
         TrangThai: Number(b.TrangThai ?? 1),
@@ -198,14 +226,16 @@ export default function ReportsPage() {
       const res = await api.get("/api/baocao/doanhthu-chinhanh", {
         params: {
           tuNgay: `${dateFrom}T00:00:00`,
-          denNgay: `${dateTo}T23:59:59`
-        }
+          denNgay: `${dateTo}T23:59:59`,
+        },
       });
       setApiData(res.data);
     } catch (error) {
       console.error("Lỗi khi tải báo cáo:", error);
       setApiData([]); // Xóa data nếu lỗi
-      setReportError("Không tải được dữ liệu báo cáo. Vui lòng kiểm tra kết nối backend.");
+      setReportError(
+        "Không tải được dữ liệu báo cáo. Vui lòng kiểm tra kết nối backend.",
+      );
     } finally {
       setIsLoadingReport(false);
     }
@@ -220,22 +250,41 @@ export default function ReportsPage() {
     setCurrentPage(1);
   }, [dateFrom, dateTo]); // Tự động gọi API khi Ngày thay đổi
 
-  const activeBranches = useMemo(() => branches.filter((b) => b.TrangThai === 1), [branches]);
-  const selectedBranches = useMemo(() => branchFilter === "all" ? activeBranches : branches.filter((b) => b.MaCN === branchFilter), [branches, activeBranches, branchFilter]);
+  const activeBranches = useMemo(
+    () => branches.filter((b) => b.TrangThai === 1),
+    [branches],
+  );
+  const selectedBranches = useMemo(
+    () =>
+      branchFilter === "all"
+        ? activeBranches
+        : branches.filter((b) => b.MaCN === branchFilter),
+    [branches, activeBranches, branchFilter],
+  );
 
   // 3. MERGE API DATA VỚI BRANCH ĐỂ TẠO RA DỮ LIỆU BẢNG ĐẦY ĐỦ
   const branchReportData: BranchReportRow[] = useMemo(() => {
     return selectedBranches.map((branch) => {
       // Tìm xem chi nhánh này có doanh thu trả về từ API không
-      const apiRow = apiData.find(d => d.maCN === branch.MaCN);
-      
+      const apiRow = apiData.find((d) => d.maCN === branch.MaCN);
+
       const DoanhThu = apiRow ? apiRow.tongDoanhThu : 0;
       const SoDon = apiRow ? apiRow.soLuongDon : 0;
       const TrungBinhDon = SoDon > 0 ? Math.round(DoanhThu / SoDon) : 0;
-      
+
       const previousRevenue = previousPeriodByBranch[branch.MaCN] || 0;
-      const SoKyTruoc = previousRevenue > 0 ? Number((((DoanhThu - previousRevenue) / previousRevenue) * 100).toFixed(1)) : 0;
-      const TyLeDatChiTieu = branch.ChiTieu > 0 ? Math.min(Math.round((DoanhThu / branch.ChiTieu) * 100), 100) : 0;
+      const SoKyTruoc =
+        previousRevenue > 0
+          ? Number(
+              (((DoanhThu - previousRevenue) / previousRevenue) * 100).toFixed(
+                1,
+              ),
+            )
+          : 0;
+      const TyLeDatChiTieu =
+        branch.ChiTieu > 0
+          ? Math.min(Math.round((DoanhThu / branch.ChiTieu) * 100), 100)
+          : 0;
 
       return {
         MaCN: branch.MaCN,
@@ -245,7 +294,7 @@ export default function ReportsPage() {
         TrungBinhDon,
         SoKyTruoc,
         TyLeDatChiTieu,
-        MauBieuDo: branch.MauBieuDo
+        MauBieuDo: branch.MauBieuDo,
       };
     });
   }, [apiData, selectedBranches]);
@@ -253,22 +302,32 @@ export default function ReportsPage() {
   // CÁC CHỈ SỐ TỔNG
   const totalRevenue = branchReportData.reduce((sum, b) => sum + b.DoanhThu, 0);
   const totalOrders = branchReportData.reduce((sum, b) => sum + b.SoDon, 0);
-  const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-  const bestBranch = branchReportData.reduce<BranchReportRow | null>((best, branch) => (!best || branch.DoanhThu > best.DoanhThu ? branch : best), null);
+  const avgOrderValue =
+    totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const bestBranch = branchReportData.reduce<BranchReportRow | null>(
+    (best, branch) =>
+      !best || branch.DoanhThu > best.DoanhThu ? branch : best,
+    null,
+  );
 
   // DATA DÀNH CHO BIỂU ĐỒ (Dạng cột thể hiện doanh thu theo từng chi nhánh)
-  const chartData = branchReportData.map(b => ({
-    name: getShortBranchName(b.TenCN),
-    DoanhThu: b.DoanhThu,
-    SoDon: b.SoDon,
-    TyLeDatChiTieu: b.TyLeDatChiTieu,
-    MauBieuDo: b.MauBieuDo
-  })).sort((a, b) => b.DoanhThu - a.DoanhThu);
+  const chartData = branchReportData
+    .map((b) => ({
+      name: getShortBranchName(b.TenCN),
+      DoanhThu: b.DoanhThu,
+      SoDon: b.SoDon,
+      TyLeDatChiTieu: b.TyLeDatChiTieu,
+      MauBieuDo: b.MauBieuDo,
+    }))
+    .sort((a, b) => b.DoanhThu - a.DoanhThu);
 
   const maxRevenue = Math.max(...chartData.map((item) => item.DoanhThu), 0);
 
   const totalPages = Math.ceil(branchReportData.length / pageSize);
-  const paginatedBranchData = branchReportData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginatedBranchData = branchReportData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handleApplyFilter = () => {
     if (draftDateFrom > draftDateTo) {
@@ -280,79 +339,387 @@ export default function ReportsPage() {
     setBranchFilter(draftBranch);
   };
 
-  const handleExportExcel = () => { alert("Đang xuất Excel...") };
-  const handleExportPDF = () => { alert("Đang xuất PDF...") };
+  const getReportFileName = (extension: "xlsx" | "pdf") => {
+    return `bao-cao-doanh-thu-${dateFrom}-den-${dateTo}.${extension}`;
+  };
+
+  const getExportRows = () => {
+    return branchReportData.map((branch, index) => ({
+      STT: index + 1,
+      "Mã chi nhánh": branch.MaCN,
+      "Tên chi nhánh": branch.TenCN,
+      "Số đơn": branch.SoDon,
+      "Doanh thu": branch.DoanhThu,
+      "Doanh thu TB/đơn": branch.TrungBinhDon,
+      "So kỳ trước (%)": branch.SoKyTruoc,
+      "Đạt chỉ tiêu (%)": branch.TyLeDatChiTieu,
+    }));
+  };
+
+  const handleExportExcel = () => {
+    if (branchReportData.length === 0) {
+      alert("Không có dữ liệu để xuất Excel");
+      return;
+    }
+
+    const exportRows = getExportRows();
+
+    exportRows.push({
+      STT: "" as any,
+      "Mã chi nhánh": "",
+      "Tên chi nhánh": "Tổng cộng",
+      "Số đơn": totalOrders,
+      "Doanh thu": totalRevenue,
+      "Doanh thu TB/đơn": avgOrderValue,
+      "So kỳ trước (%)": "" as any,
+      "Đạt chỉ tiêu (%)": "" as any,
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 14 },
+      { wch: 35 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 16 },
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "BaoCaoDoanhThu");
+    XLSX.writeFile(workbook, getReportFileName("xlsx"));
+  };
+
+  const handleExportPDF = () => {
+    if (branchReportData.length === 0) {
+      alert("Không có dữ liệu để xuất PDF");
+      return;
+    }
+
+    const rowsHtml = branchReportData
+      .map(
+        (branch, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${branch.MaCN}</td>
+          <td>${branch.TenCN}</td>
+          <td class="right">${branch.SoDon.toLocaleString("vi-VN")}</td>
+          <td class="right">${formatCurrency(branch.DoanhThu)}</td>
+          <td class="right">${formatCurrency(branch.TrungBinhDon)}</td>
+          <td class="center">${branch.SoKyTruoc >= 0 ? "+" : ""}${branch.SoKyTruoc}%</td>
+          <td class="center">${branch.TyLeDatChiTieu}%</td>
+        </tr>
+      `,
+      )
+      .join("");
+
+    const printWindow = window.open("", "_blank");
+
+    if (!printWindow) {
+      alert("Trình duyệt đang chặn cửa sổ in PDF. Hãy cho phép pop-up.");
+      return;
+    }
+
+    printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Báo cáo doanh thu</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 24px;
+            color: #111827;
+          }
+
+          h1 {
+            margin: 0 0 8px;
+            font-size: 22px;
+          }
+
+          .subtitle {
+            margin-bottom: 20px;
+            color: #4b5563;
+            font-size: 14px;
+          }
+
+          .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+          }
+
+          .card {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+          }
+
+          .card-title {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+          }
+
+          .card-value {
+            font-size: 16px;
+            font-weight: bold;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+
+          th, td {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+          }
+
+          th {
+            background: #f3f4f6;
+            text-align: left;
+          }
+
+          .right {
+            text-align: right;
+          }
+
+          .center {
+            text-align: center;
+          }
+
+          tfoot td {
+            font-weight: bold;
+            background: #f9fafb;
+          }
+
+          @media print {
+            button {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        <h1>Báo cáo doanh thu</h1>
+        <div class="subtitle">
+          Kỳ báo cáo: ${formatDateDisplay(dateFrom)} - ${formatDateDisplay(dateTo)}
+          ${branchFilter !== "all" && bestBranch ? ` · ${bestBranch.TenCN}` : ""}
+        </div>
+
+        <div class="summary">
+          <div class="card">
+            <div class="card-title">Tổng doanh thu</div>
+            <div class="card-value">${formatCurrency(totalRevenue)}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Tổng số đơn</div>
+            <div class="card-value">${totalOrders.toLocaleString("vi-VN")} đơn</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Doanh thu TB/đơn</div>
+            <div class="card-value">${formatCurrency(avgOrderValue)}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Chi nhánh cao nhất</div>
+            <div class="card-value">${bestBranch ? getShortBranchName(bestBranch.TenCN) : "—"}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mã CN</th>
+              <th>Chi nhánh</th>
+              <th class="right">Số đơn</th>
+              <th class="right">Doanh thu</th>
+              <th class="right">TB/đơn</th>
+              <th class="center">So kỳ trước</th>
+              <th class="center">Đạt chỉ tiêu</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+
+          <tfoot>
+            <tr>
+              <td></td>
+              <td></td>
+              <td>Tổng cộng</td>
+              <td class="right">${totalOrders.toLocaleString("vi-VN")}</td>
+              <td class="right">${formatCurrency(totalRevenue)}</td>
+              <td class="right">${formatCurrency(avgOrderValue)}</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <script>
+          window.onload = function () {
+            window.print();
+          };
+        </script>
+      </body>
+    </html>
+  `);
+
+    printWindow.document.close();
+  };
 
   return (
-    <MainLayout title="Báo cáo doanh thu" breadcrumb="Trang chủ / Báo cáo / Doanh thu">
+    <MainLayout
+      title="Báo cáo doanh thu"
+      breadcrumb="Trang chủ / Báo cáo / Doanh thu"
+    >
       <div className="space-y-6">
-        
         {/* TOOLBAR LỌC */}
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="flex flex-wrap items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Input type="date" value={draftDateFrom} onChange={(e) => setDraftDateFrom(e.target.value)} className="w-[150px]" />
-            <span className="text-muted-foreground">—</span>
-            <Input type="date" value={draftDateTo} onChange={(e) => setDraftDateTo(e.target.value)} className="w-[150px]" />
-          </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={draftDateFrom}
+                onChange={(e) => setDraftDateFrom(e.target.value)}
+                className="w-[150px]"
+              />
+              <span className="text-muted-foreground">—</span>
+              <Input
+                type="date"
+                value={draftDateTo}
+                onChange={(e) => setDraftDateTo(e.target.value)}
+                className="w-[150px]"
+              />
+            </div>
 
-          <Select value={draftBranch} onValueChange={setDraftBranch}>
-            <SelectTrigger className="w-[240px]"><SelectValue placeholder="Chi nhánh" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả chi nhánh</SelectItem>
-              {activeBranches.map((branch) => (<SelectItem key={branch.MaCN} value={branch.MaCN}>{branch.TenCN}</SelectItem>))}
-            </SelectContent>
-          </Select>
+            <Select value={draftBranch} onValueChange={setDraftBranch}>
+              <SelectTrigger className="w-[240px]">
+                <SelectValue placeholder="Chi nhánh" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+                {activeBranches.map((branch) => (
+                  <SelectItem key={branch.MaCN} value={branch.MaCN}>
+                    {branch.TenCN}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {/* Đã gỡ bỏ ô "Xem theo Ngày/Tuần/Tháng" vì API hiện tại gộp theo cả khoảng thời gian */}
+            {/* Đã gỡ bỏ ô "Xem theo Ngày/Tuần/Tháng" vì API hiện tại gộp theo cả khoảng thời gian */}
 
-          <Button variant="outline" onClick={handleApplyFilter}>Áp dụng</Button>
-          <Button variant="outline" className="gap-2" onClick={fetchReportData} disabled={isLoadingReport}>
-            <RefreshCw className={cn("h-4 w-4", isLoadingReport && "animate-spin")} /> Làm mới
-          </Button>
+            <Button variant="outline" onClick={handleApplyFilter}>
+              Áp dụng
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={fetchReportData}
+              disabled={isLoadingReport}
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", isLoadingReport && "animate-spin")}
+              />{" "}
+              Làm mới
+            </Button>
 
-          <div className="flex gap-2 xl:ml-auto">
-            <Button variant="outline" className="gap-2" onClick={handleExportExcel}><Download className="h-4 w-4" /> Xuất Excel</Button>
-            <Button variant="outline" className="gap-2" onClick={handleExportPDF}><FileText className="h-4 w-4" /> Xuất PDF</Button>
-          </div>
+            <div className="flex gap-2 xl:ml-auto">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleExportExcel}
+              >
+                <Download className="h-4 w-4" /> Xuất Excel
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleExportPDF}
+              >
+                <FileText className="h-4 w-4" /> Xuất PDF
+              </Button>
+            </div>
           </div>
           <div className="mt-3 text-sm text-muted-foreground">
-            Kỳ báo cáo: <span className="font-medium text-foreground">{formatDateDisplay(dateFrom)} - {formatDateDisplay(dateTo)}</span>
-            {branchFilter !== "all" && bestBranch ? <span> · {bestBranch.TenCN}</span> : null}
+            Kỳ báo cáo:{" "}
+            <span className="font-medium text-foreground">
+              {formatDateDisplay(dateFrom)} - {formatDateDisplay(dateTo)}
+            </span>
+            {branchFilter !== "all" && bestBranch ? (
+              <span> · {bestBranch.TenCN}</span>
+            ) : null}
           </div>
-          {reportError && <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">{reportError}</div>}
+          {reportError && (
+            <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {reportError}
+            </div>
+          )}
         </div>
 
         {/* THỐNG KÊ TỔNG QUAN (CARD) */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tổng doanh thu</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Tổng doanh thu
+              </p>
               <Wallet className="h-5 w-5 text-primary" />
             </div>
-            <p className="mt-2 text-2xl font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {formatCurrency(totalRevenue)}
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tổng số đơn</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Tổng số đơn
+              </p>
               <ReceiptText className="h-5 w-5 text-primary" />
             </div>
-            <p className="mt-2 text-2xl font-bold text-foreground">{totalOrders.toLocaleString("vi-VN")} đơn</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {totalOrders.toLocaleString("vi-VN")} đơn
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Doanh thu TB/đơn</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Doanh thu TB/đơn
+              </p>
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
-            <p className="mt-2 text-2xl font-bold text-foreground">{formatCurrency(avgOrderValue)}</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {formatCurrency(avgOrderValue)}
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Chi nhánh cao nhất</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Chi nhánh cao nhất
+              </p>
               <Store className="h-5 w-5 text-primary" />
             </div>
-            <p className="mt-2 truncate text-2xl font-bold text-primary" title={bestBranch?.TenCN}>{bestBranch ? getShortBranchName(bestBranch.TenCN) : "—"}</p>
+            <p
+              className="mt-2 truncate text-2xl font-bold text-primary"
+              title={bestBranch?.TenCN}
+            >
+              {bestBranch ? getShortBranchName(bestBranch.TenCN) : "—"}
+            </p>
           </div>
         </div>
 
@@ -362,13 +729,22 @@ export default function ReportsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Doanh thu các chi nhánh trong kỳ</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Doanh thu các chi nhánh trong kỳ
+                </h3>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">Sắp xếp theo doanh thu giảm dần, đơn vị trục dọc được rút gọn theo triệu/tỷ đồng.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Sắp xếp theo doanh thu giảm dần, đơn vị trục dọc được rút gọn
+                theo triệu/tỷ đồng.
+              </p>
             </div>
             <div className="rounded-md bg-muted px-3 py-2 text-right">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Cao nhất</p>
-              <p className="text-sm font-semibold text-foreground">{formatCompact(maxRevenue)} ₫</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Cao nhất
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                {formatCompact(maxRevenue)} ₫
+              </p>
             </div>
           </div>
           <div className="h-[390px]">
@@ -378,16 +754,39 @@ export default function ReportsPage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} barCategoryGap="24%" margin={{ top: 28, right: 16, left: 4, bottom: 34 }}>
+                <BarChart
+                  data={chartData}
+                  barCategoryGap="24%"
+                  margin={{ top: 28, right: 16, left: 4, bottom: 34 }}
+                >
                   <defs>
                     {chartColors.map((color, index) => (
-                      <linearGradient key={color} id={`revenueGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color} stopOpacity={0.95} />
-                        <stop offset="100%" stopColor={color} stopOpacity={0.7} />
+                      <linearGradient
+                        key={color}
+                        id={`revenueGradient-${index}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={color}
+                          stopOpacity={0.95}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={color}
+                          stopOpacity={0.7}
+                        />
                       </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid vertical={false} stroke="#E9ECEF" strokeDasharray="4 6" />
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="#E9ECEF"
+                    strokeDasharray="4 6"
+                  />
                   <XAxis
                     dataKey="name"
                     interval={0}
@@ -405,11 +804,24 @@ export default function ReportsPage() {
                     tickFormatter={formatCompact}
                     width={64}
                   />
-                  <Tooltip cursor={{ fill: "rgba(44, 110, 73, 0.08)" }} content={<ChartTooltip />} />
+                  <Tooltip
+                    cursor={{ fill: "rgba(44, 110, 73, 0.08)" }}
+                    content={<ChartTooltip />}
+                  />
                   <Bar dataKey="DoanhThu" radius={[8, 8, 0, 0]} maxBarSize={58}>
-                    <LabelList dataKey="DoanhThu" position="top" formatter={(value: number) => formatCompact(Number(value))} className="fill-muted-foreground text-[11px]" />
+                    <LabelList
+                      dataKey="DoanhThu"
+                      position="top"
+                      formatter={(value: number) =>
+                        formatCompact(Number(value))
+                      }
+                      className="fill-muted-foreground text-[11px]"
+                    />
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={`url(#revenueGradient-${index % chartColors.length})`} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={`url(#revenueGradient-${index % chartColors.length})`}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
@@ -418,8 +830,16 @@ export default function ReportsPage() {
           </div>
           <div className="mt-3 flex flex-wrap gap-3">
             {chartData.map((item, index) => (
-              <div key={item.name} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
+              <div
+                key={item.name}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{
+                    backgroundColor: chartColors[index % chartColors.length],
+                  }}
+                />
                 <span>{item.name}</span>
               </div>
             ))}
@@ -432,51 +852,115 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-muted">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mã CN</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chi nhánh</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Số đơn</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Doanh thu</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">TB/đơn</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">So kỳ trước</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Đạt chỉ tiêu</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Mã CN
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Chi nhánh
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Số đơn
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Doanh thu
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    TB/đơn
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    So kỳ trước
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Đạt chỉ tiêu
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {paginatedBranchData.map((branch) => (
                   <tr key={branch.MaCN} className="hover:bg-muted/50">
-                    <td className="px-4 py-3 text-sm font-semibold text-primary">{branch.MaCN}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{branch.TenCN}</td>
-                    <td className="px-4 py-3 text-right text-sm">{branch.SoDon.toLocaleString("vi-VN")}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold">{formatCurrency(branch.DoanhThu)}</td>
-                    <td className="px-4 py-3 text-right text-sm text-muted-foreground">{formatCurrency(branch.TrungBinhDon)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-primary">
+                      {branch.MaCN}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {branch.TenCN}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm">
+                      {branch.SoDon.toLocaleString("vi-VN")}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold">
+                      {formatCurrency(branch.DoanhThu)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-muted-foreground">
+                      {formatCurrency(branch.TrungBinhDon)}
+                    </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={cn("inline-flex items-center gap-1 text-sm font-medium", branch.SoKyTruoc >= 0 ? "text-[#198754]" : "text-[#DC3545]")}>
-                        {branch.SoKyTruoc >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {branch.SoKyTruoc >= 0 ? "+" : ""}{branch.SoKyTruoc}%
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 text-sm font-medium",
+                          branch.SoKyTruoc >= 0
+                            ? "text-[#198754]"
+                            : "text-[#DC3545]",
+                        )}
+                      >
+                        {branch.SoKyTruoc >= 0 ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                        {branch.SoKyTruoc >= 0 ? "+" : ""}
+                        {branch.SoKyTruoc}%
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div className={cn("h-full rounded-full", branch.TyLeDatChiTieu >= 80 ? "bg-[#198754]" : branch.TyLeDatChiTieu >= 60 ? "bg-[#F4A261]" : "bg-[#DC3545]")} style={{ width: `${branch.TyLeDatChiTieu}%` }} />
+                          <div
+                            className={cn(
+                              "h-full rounded-full",
+                              branch.TyLeDatChiTieu >= 80
+                                ? "bg-[#198754]"
+                                : branch.TyLeDatChiTieu >= 60
+                                  ? "bg-[#F4A261]"
+                                  : "bg-[#DC3545]",
+                            )}
+                            style={{ width: `${branch.TyLeDatChiTieu}%` }}
+                          />
                         </div>
-                        <span className="text-sm font-medium text-muted-foreground">{branch.TyLeDatChiTieu}%</span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {branch.TyLeDatChiTieu}%
+                        </span>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {paginatedBranchData.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-muted-foreground">Không có dữ liệu báo cáo</td></tr>
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-6 text-center text-sm text-muted-foreground"
+                    >
+                      Không có dữ liệu báo cáo
+                    </td>
+                  </tr>
                 )}
               </tbody>
               <tfoot>
                 <tr className="bg-muted font-semibold">
                   <td className="px-4 py-3 text-sm text-foreground"></td>
-                  <td className="px-4 py-3 text-sm text-foreground">Tổng cộng</td>
-                  <td className="px-4 py-3 text-right text-sm">{totalOrders.toLocaleString("vi-VN")}</td>
-                  <td className="px-4 py-3 text-right text-sm">{formatCurrency(totalRevenue)}</td>
-                  <td className="px-4 py-3 text-right text-sm text-muted-foreground">{formatCurrency(avgOrderValue)}</td>
-                  <td className="px-4 py-3"></td><td className="px-4 py-3"></td>
+                  <td className="px-4 py-3 text-sm text-foreground">
+                    Tổng cộng
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm">
+                    {totalOrders.toLocaleString("vi-VN")}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm">
+                    {formatCurrency(totalRevenue)}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm text-muted-foreground">
+                    {formatCurrency(avgOrderValue)}
+                  </td>
+                  <td className="px-4 py-3"></td>
+                  <td className="px-4 py-3"></td>
                 </tr>
               </tfoot>
             </table>

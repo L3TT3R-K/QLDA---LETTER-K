@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronRight,
   Coffee,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
@@ -59,7 +60,6 @@ const navItems: NavItem[] = [
       { title: "Xuất/Hủy", href: "/inventory/export" },
       { title: "Điều chuyển", href: "/inventory/transfer" },
       { title: "Kiểm kho", href: "/inventory/audit" },
-      
     ],
   },
   {
@@ -71,8 +71,6 @@ const navItems: NavItem[] = [
       { title: "Sản phẩm", href: "/catalog/products" },
       { title: "Nguyên liệu", href: "/catalog/ingredients" },
       { title: "Công thức", href: "/catalog/recipes" },
-      
-      
     ],
   },
   {
@@ -83,7 +81,6 @@ const navItems: NavItem[] = [
     children: [
       { title: "Chi nhánh", href: "/system/branches" },
       { title: "Nhân viên", href: "/system/employees" },
-      
     ],
   },
   {
@@ -91,6 +88,12 @@ const navItems: NavItem[] = [
     href: "/reports",
     group: "report",
     icon: <BarChart3 className="h-5 w-5" />,
+  },
+  {
+    title: "Nhật ký hệ thống",
+    href: "/logs",
+    group: "logs",
+    icon: <ScrollText className="h-5 w-5" />,
   },
 ];
 
