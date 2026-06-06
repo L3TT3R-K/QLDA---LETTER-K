@@ -182,7 +182,7 @@ Thực hiện các file SQL theo đúng thứ tự:
 
 ```text
 postgres/
-├── database.sql
+├── database.sql: chạy 2 đợt (đã có phân chia bằng ghi chú trong file mockdata.sql)
 ├── constraint.sql
 ├── trigger.sql
 └── mockdata.sql
@@ -270,13 +270,50 @@ http://localhost:8080
 
 # Frontend Setup & Run
 
-## Bước 1: Di chuyển vào thư mục Frontend
+## Bước 1: Clone Source Code
+
+Tải source code Frontend từ GitHub:
+
+```bash
+git clone <repository-url>
+```
+
+Ví dụ:
+
+```bash
+git clone https://github.com/<username>/<repository>.git
+```
+
+Sau khi clone thành công:
 
 ```bash
 cd UI-QLDA
 ```
 
-## Bước 2: Cài đặt thư viện
+## Bước 2: Cài đặt môi trường Node.js
+
+Tải và cài đặt Node.js bản LTS.
+
+Kiểm tra:
+
+```bash
+node -v
+npm -v
+```
+
+Nếu terminal hiển thị phiên bản Node.js và npm thì môi trường đã được cài đặt thành công.
+
+## Bước 3: Mở Project và cài đặt thư viện
+
+Mở thư mục Frontend bằng Visual Studio Code.
+
+Đảm bảo terminal đang đứng tại thư mục:
+
+```text
+UI-QLDA
+```
+
+Cài đặt toàn bộ dependency:
 
 ```bash
 npm install
@@ -288,7 +325,7 @@ Hoặc:
 npm i
 ```
 
-## Bước 3: Tạo file môi trường
+## Bước 4: Cấu hình file môi trường
 
 Tạo file:
 
@@ -302,35 +339,56 @@ Ví dụ:
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
 ```
 
+Giải thích:
+
+* NEXT_PUBLIC_API_URL là biến môi trường dùng để khai báo địa chỉ API của Backend.
+* Với Next.js, các biến môi trường cần sử dụng ở phía trình duyệt phải bắt đầu bằng tiền tố `NEXT_PUBLIC_`.
+
 Lưu ý:
 
 * URL trên chỉ là ví dụ.
-* Cần thay đổi theo địa chỉ Backend thực tế nếu có khác biệt.
+* Khi triển khai thực tế cần thay bằng địa chỉ Backend tương ứng.
 
-## Bước 4: Chạy Frontend
+## Bước 5: Chạy Frontend
 
 ```bash
 npm run dev
 ```
 
-Hoặc sử dụng file hỗ trợ:
+Hoặc:
 
 ```bash
 run-dev.bat
 ```
 
-## Kiểm tra Frontend
-
-Nếu chạy thành công sẽ hiển thị:
+Nếu chạy thành công:
 
 ```text
+> project-name@0.1.0 dev
+> next dev
+
 ▲ Next.js
 
 Local:    http://localhost:3000
-Network:  http://xxx.xxx.xxx.xxx:3000
+Network:  http://192.168.x.x:3000
 ```
 
-Truy cập hệ thống tại:
+Frontend mặc định hoạt động tại:
+
+```text
+http://localhost:3000
+```
+
+## Bước 6: Kiểm tra kết nối Backend
+
+Để sử dụng đầy đủ chức năng của hệ thống:
+
+* Backend phải được khởi động trước Frontend.
+* Kiểm tra biến môi trường `NEXT_PUBLIC_API_URL`.
+* Kiểm tra Backend có đang chạy đúng cổng hay không.
+* Kiểm tra các API endpoint được gọi đúng địa chỉ.
+
+Nếu Frontend và Backend đều hoạt động bình thường, người dùng có thể truy cập hệ thống tại:
 
 ```text
 http://localhost:3000
@@ -340,7 +398,7 @@ http://localhost:3000
 
 # Startup Order
 
-Để hệ thống hoạt động chính xác, cần khởi động theo thứ tự sau:
+Để hệ thống hoạt động chính xác:
 
 ```text
 1. PostgreSQL Database
@@ -351,23 +409,39 @@ http://localhost:3000
         ↓
 4. Next.js Frontend
         ↓
-5. Truy cập hệ thống tại:
-   http://localhost:3000
+5. Truy cập hệ thống
 ```
 
 ---
 
 # Common Issues
 
-| Lỗi                             | Nguyên nhân                            | Cách xử lý                                    |
-| ------------------------------- | -------------------------------------- | --------------------------------------------- |
-| npm is not recognized           | Chưa cài Node.js hoặc chưa thêm PATH   | Cài lại Node.js LTS                           |
-| mvn is not recognized           | Chưa cài Maven                         | Cài Maven và thêm PATH                        |
-| Port 3000 already in use        | Frontend bị trùng cổng                 | Đổi cổng hoặc tắt ứng dụng đang sử dụng       |
-| Port 8080 already in use        | Backend bị trùng cổng                  | Đổi server.port trong Spring Boot             |
-| Cannot connect to database      | PostgreSQL chưa chạy hoặc sai cấu hình | Kiểm tra PostgreSQL và application.properties |
-| Frontend không lấy được dữ liệu | Backend chưa chạy hoặc sai API URL     | Kiểm tra NEXT_PUBLIC_API_URL                  |
-| Build failed                    | Thiếu dependency                       | Chạy lại npm install hoặc mvn clean install   |
+| Lỗi                             | Nguyên nhân                            | Cách xử lý                         |
+| ------------------------------- | -------------------------------------- | ---------------------------------- |
+| npm is not recognized           | Chưa cài Node.js hoặc chưa thêm PATH   | Cài lại Node.js LTS                |
+| mvn is not recognized           | Chưa cài Maven                         | Cài Maven và thêm PATH             |
+| Module not found                | Thiếu dependency                       | Chạy lại npm install               |
+| Port 3000 already in use        | Frontend bị trùng cổng                 | Đổi cổng hoặc tắt tiến trình       |
+| Port 8080 already in use        | Backend bị trùng cổng                  | Đổi server.port                    |
+| Cannot connect to database      | PostgreSQL chưa chạy hoặc sai cấu hình | Kiểm tra PostgreSQL                |
+| Frontend không lấy được dữ liệu | Backend chưa chạy hoặc sai API URL     | Kiểm tra NEXT_PUBLIC_API_URL       |
+| Build failed                    | Thiếu dependency                       | npm install hoặc mvn clean install |
 
+---
+
+# Conclusion
+
+Quy trình triển khai hệ thống gồm các bước:
+
+1. Tạo và cấu hình PostgreSQL Database.
+2. Import toàn bộ SQL Scripts.
+3. Build và chạy Spring Boot Backend.
+4. Clone và chạy Next.js Frontend.
+5. Kiểm tra kết nối giữa Frontend và Backend.
+6. Truy cập hệ thống thông qua trình duyệt tại:
+
+```text
+http://localhost:3000
 ```
-```
+
+Sau khi hoàn tất các bước trên, hệ thống quản lý Phụng Lộc Coffee có thể được sử dụng đầy đủ các chức năng quản lý bán hàng, kho, nhân viên và báo cáo thống kê.
