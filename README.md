@@ -1,285 +1,266 @@
-# Phụng Lộc Coffee - Hệ thống quản lý chuỗi cửa hàng cà phê
+## Project Structure
 
-## 1. Giới thiệu dự án
+```text
+QLDA---LETTER-K/
+│
+├── UI-QLDA/                                     # Frontend Application (Next.js)
+│   │
+│   ├── app/                                     # App Router Pages
+│   │   ├── admin/                               # Chức năng quản trị hệ thống
+│   │   ├── catalog/                             # Quản lý danh mục sản phẩm
+│   │   ├── employee/                            # Quản lý nhân viên
+│   │   ├── inventory/                           # Quản lý kho
+│   │   ├── login/                               # Đăng nhập
+│   │   ├── logs/                                # Nhật ký hệ thống
+│   │   ├── manager/                             # Chức năng quản lý
+│   │   ├── pos/                                 # Point Of Sale (Bán hàng)
+│   │   ├── reports/                             # Báo cáo - Thống kê
+│   │   ├── system/                              # Cấu hình hệ thống
+│   │   ├── globals.css                          # Global Styles
+│   │   ├── layout.tsx                           # Layout chính
+│   │   └── page.tsx                             # Trang chủ
+│   │
+│   ├── components/                              # Reusable Components
+│   │   ├── auth/                                # Components xác thực
+│   │   ├── dashboard/                           # Components Dashboard
+│   │   ├── layout/                              # Header, Sidebar, Footer
+│   │   ├── pos/                                 # Components bán hàng
+│   │   ├── ui/                                  # Shared UI Components
+│   │   └── theme-provider.tsx                   # Theme Provider
+│   │
+│   ├── hooks/                                   # Custom React Hooks
+│   ├── lib/                                     # Utility Libraries
+│   ├── public/                                  # Static Assets
+│   ├── services/
+│   │   └── api.js                               # API Communication Layer
+│   │
+│   ├── styles/                                  # CSS Stylesheets
+│   │   └── globals.css
+│   │
+│   ├── electron.js                              # Desktop Runtime (Electron)
+│   ├── next.config.mjs                          # Next.js Configuration
+│   ├── tsconfig.json                            # TypeScript Configuration
+│   ├── package.json                             # Frontend Dependencies
+│   └── package-lock.json
+│
+├── backend/                                     # Spring Boot Backend
+│   │
+│   ├── src/main/java/com/phungloccoffee/backend/
+│   │   ├── controller/                          # REST API Controllers
+│   │   ├── dto/                                 # Data Transfer Objects
+│   │   ├── entity/                              # Database Entities
+│   │   ├── repository/                          # Data Access Layer
+│   │   ├── security/                            # Authentication & Authorization
+│   │   ├── service/                             # Business Logic Layer
+│   │   ├── utils/                               # Utility Classes
+│   │   └── BackendApplication.java              # Main Application
+│   │
+│   ├── src/main/resources/                      # Application Configurations
+│   ├── src/test/                                # Unit Tests
+│   │
+│   ├── pom.xml                                  # Maven Dependencies
+│   ├── mvnw
+│   ├── mvnw.cmd
+│   └── target/                                  # Build Output
+│
+├── postgres/                                    # Database Scripts
+│   │
+│   ├── database.sql                             # Tạo bảng dữ liệu
+│   ├── constraint.sql                           # Khóa chính, khóa ngoại
+│   ├── trigger.sql                              # Trigger nghiệp vụ
+│   └── mockdata.sql                             # Dữ liệu mẫu
+│
+├── README.md
+├── package.json
+└── package-lock.json
+```
 
-**Phụng Lộc Coffee** là hệ thống quản lý chuỗi cửa hàng cà phê, được xây dựng nhằm hỗ trợ quản lý bán hàng, tồn kho, nguyên liệu, chi nhánh và báo cáo doanh thu cho mô hình nhiều chi nhánh.
+## Frontend Modules
 
-Hiện tại, Phụng Lộc Coffee có nhiều chi nhánh hoạt động độc lập, việc quản lý bán hàng và kho bằng Excel gây ra nhiều vấn đề như sai lệch tồn kho, khó kiểm soát hao hụt nguyên liệu, thiếu báo cáo tổng hợp và khó đánh giá hiệu suất từng chi nhánh.
+| Module    | Chức năng                        |
+| --------- | -------------------------------- |
+| Login     | Đăng nhập hệ thống               |
+| POS       | Tạo hóa đơn và bán hàng tại quầy |
+| Inventory | Quản lý tồn kho và nhập hàng     |
+| Catalog   | Quản lý danh mục và sản phẩm     |
+| Employee  | Quản lý nhân viên                |
+| Reports   | Thống kê và báo cáo              |
+| Logs      | Theo dõi nhật ký hoạt động       |
+| Admin     | Quản trị hệ thống                |
+| Manager   | Các chức năng dành cho quản lý   |
+| System    | Cấu hình hệ thống                |
 
-Dự án hướng đến việc xây dựng một hệ thống tập trung giúp đồng bộ dữ liệu giữa các chi nhánh, hỗ trợ bán hàng tại POS, quản lý kho, quản lý công thức pha chế và cung cấp báo cáo doanh thu theo thời gian thực.
+## Backend Architecture
 
----
+```text
+Frontend (Next.js)
+        │
+        ▼
+Controller Layer
+        │
+        ▼
+Service Layer
+        │
+        ▼
+Repository Layer
+        │
+        ▼
+PostgreSQL Database
+```
 
-## 2. Mục tiêu dự án
+### Controller Layer
 
-- Quản lý tập trung dữ liệu của toàn bộ chuỗi cửa hàng.
-- Hỗ trợ bán hàng tại quầy thông qua chức năng POS.
-- Tự động trừ kho nguyên liệu theo định mức công thức pha chế.
-- Quản lý nhập kho, xuất kho, điều chuyển kho và kiểm kho.
-- Theo dõi doanh thu, tồn kho và hiệu suất từng chi nhánh.
-- Giảm sai lệch tồn kho và hạn chế hao hụt nguyên liệu.
-- Hỗ trợ hoạt động offline khi mất mạng và đồng bộ dữ liệu khi có mạng trở lại.
+Tiếp nhận HTTP Request từ Frontend và trả về dữ liệu dưới dạng JSON.
 
----
+### Service Layer
 
-## 3. Phạm vi chức năng
+Xử lý nghiệp vụ của hệ thống như bán hàng, quản lý kho, quản lý nhân viên và thống kê.
 
-### 3.1. Quản lý bán hàng POS
+### Repository Layer
 
-- Tạo hóa đơn bán hàng.
-- Chọn sản phẩm từ menu.
-- Tính tổng tiền đơn hàng.
-- Ghi nhận giao dịch bán hàng.
-- Tự động cập nhật tồn kho sau khi bán.
+Tương tác trực tiếp với cơ sở dữ liệu thông qua Spring Data JPA.
 
-### 3.2. Quản lý menu
+### Entity Layer
 
-- Thêm, sửa, xóa sản phẩm.
-- Quản lý giá bán sản phẩm.
-- Quản lý trạng thái kinh doanh của sản phẩm.
-- Phân loại sản phẩm theo nhóm.
+Ánh xạ giữa các bảng trong PostgreSQL và các đối tượng Java.
 
-### 3.3. Quản lý nguyên liệu và công thức
+### Security Layer
 
-- Quản lý danh sách nguyên liệu.
-- Quản lý đơn vị tính.
-- Thiết lập định mức nguyên liệu cho từng sản phẩm.
-- Tự động trừ nguyên liệu theo công thức khi phát sinh giao dịch bán hàng.
+Thực hiện xác thực người dùng và phân quyền truy cập hệ thống.
 
-### 3.4. Quản lý kho
+```
+```
+# Installation & Running Guide
 
-- Nhập kho nguyên liệu.
-- Xuất kho nguyên liệu.
-- Điều chuyển nguyên liệu giữa các chi nhánh.
-- Kiểm kê tồn kho.
-- Theo dõi tồn kho tối thiểu.
-- Cảnh báo nguyên liệu sắp hết.
+## Prerequisites
 
-### 3.5. Quản lý chi nhánh
-
-- Quản lý thông tin chi nhánh.
-- Theo dõi doanh thu theo chi nhánh.
-- Theo dõi tồn kho theo chi nhánh.
-- Quản lý nhân viên theo chi nhánh.
-
-### 3.6. Quản lý nhân viên và tài khoản
-
-- Quản lý thông tin nhân viên.
-- Cấp tài khoản đăng nhập.
-- Phân quyền người dùng theo vai trò.
-- Theo dõi trạng thái hoạt động của tài khoản.
-
-### 3.7. Báo cáo thống kê
-
-- Báo cáo doanh thu theo ngày, tháng, chi nhánh.
-- Báo cáo tồn kho.
-- Báo cáo nhập - xuất - tồn.
-- Báo cáo sản phẩm bán chạy.
-- Báo cáo hiệu suất từng chi nhánh.
-
----
-
-## 4. Người dùng hệ thống
-
-| Vai trò | Mô tả |
-|---|---|
-| Quản trị viên | Quản lý toàn bộ hệ thống, tài khoản, chi nhánh, nhân viên và dữ liệu chung |
-| Quản lý chi nhánh | Theo dõi bán hàng, kho và nhân viên tại chi nhánh |
-| Nhân viên bán hàng | Thực hiện bán hàng, tạo hóa đơn, xử lý đơn tại POS |
-| Nhân viên kho | Quản lý nhập kho, xuất kho, điều chuyển và kiểm kho |
-
----
-
-## 5. Công nghệ sử dụng
-
-> Có thể chỉnh lại phần này theo đúng source code thực tế của nhóm.
-
-### Backend
-
-- Java
-- Spring Boot
-- Spring Data JPA
-- RESTful API
-- Lombok
-
-### Database
-
-- PostgreSQL
+Trước khi chạy hệ thống, cần cài đặt các phần mềm sau:
 
 ### Frontend
 
-- HTML
-- CSS
-- JavaScript
-- Bootstrap
+* Node.js (LTS Version)
+* npm
 
-### Công cụ phát triển
-
-- Git / GitHub
-- Postman
-- IntelliJ IDEA / VS Code
-- pgAdmin
-
----
-
-## 6. Kiến trúc hệ thống
-
-Hệ thống được thiết kế theo mô hình nhiều lớp:
-
-```text
-Client / UI
-    ↓
-Controller Layer
-    ↓
-Service Layer
-    ↓
-Repository Layer
-    ↓
-Database
-```
-
-### Mô tả các lớp
-
-- **Client / UI**: Giao diện người dùng, hỗ trợ thao tác bán hàng, quản lý kho, quản lý dữ liệu và xem báo cáo.
-- **Controller Layer**: Tiếp nhận request từ client và trả response.
-- **Service Layer**: Xử lý nghiệp vụ chính của hệ thống.
-- **Repository Layer**: Làm việc với cơ sở dữ liệu thông qua JPA.
-- **Database**: Lưu trữ dữ liệu tập trung của hệ thống.
-
----
-
-## 7. Cấu trúc thư mục tham khảo
-
-```text
-phung-loc-coffee/
-│
-├── backend/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   └── com/phungloccoffee/backend/
-│   │   │   │       ├── controller/
-│   │   │   │       ├── service/
-│   │   │   │       ├── repository/
-│   │   │   │       ├── entity/
-│   │   │   │       ├── dto/
-│   │   │   │       └── config/
-│   │   │   │
-│   │   │   └── resources/
-│   │   │       └── application.yml
-│   │   │
-│   │   └── test/
-│   │
-│   └── pom.xml
-│
-├── frontend/
-│   ├── index.html
-│   ├── assets/
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── img/
-│   └── pages/
-│
-├── database/
-│   ├── schema.sql
-│   ├── mockdata.sql
-│   └── trigger.sql
-│
-└── README.md
-```
-
----
-
-## 8. Hướng dẫn cài đặt và chạy dự án
-
-### 8.1. Yêu cầu môi trường
-
-Cần cài đặt trước:
-
-- Java JDK 17 hoặc phiên bản phù hợp với dự án.
-- Maven.
-- PostgreSQL.
-- Git.
-- Trình duyệt web.
-- IDE như IntelliJ IDEA hoặc VS Code.
-
----
-
-### 8.2. Clone source code
+Kiểm tra:
 
 ```bash
-git clone <link-repository>
-cd phung-loc-coffee
+node -v
+npm -v
 ```
+
+### Backend
+
+* JDK 17+
+* Maven 3.x
+
+Kiểm tra:
+
+```bash
+java -version
+mvn -version
+```
+
+### Database
+
+* PostgreSQL 15 hoặc mới hơn
 
 ---
 
-### 8.3. Tạo cơ sở dữ liệu PostgreSQL
+# Database Setup
 
-Đăng nhập PostgreSQL và tạo database:
+## Bước 1: Tạo Database
+
+Mở PostgreSQL và tạo database:
 
 ```sql
-CREATE DATABASE phungloc_db;
+CREATE DATABASE phungloccoffee;
 ```
 
-Sau đó chạy lần lượt các file SQL trong thư mục `database` nếu có:
+## Bước 2: Import Database Scripts
+
+Thực hiện các file SQL theo đúng thứ tự:
 
 ```text
-schema.sql
-mockdata.sql
-trigger.sql
+postgres/
+├── database.sql
+├── constraint.sql
+├── trigger.sql
+└── mockdata.sql
 ```
+
+Thứ tự thực thi:
+
+```text
+1. database.sql
+2. constraint.sql
+3. trigger.sql
+4. mockdata.sql
+```
+
+Lưu ý: Việc thực thi sai thứ tự có thể gây lỗi khóa ngoại hoặc trigger.
 
 ---
 
-### 8.4. Cấu hình kết nối database
+# Backend Setup & Run
 
-Mở file:
-
-```text
-backend/src/main/resources/application.yml
-```
-
-Cấu hình ví dụ:
-
-```yml
-server:
-  port: 8080
-
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/phungloc_db
-    username: postgres
-    password: 123456
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-```
-
----
-
-### 8.5. Chạy Backend
-
-Di chuyển vào thư mục backend:
+## Bước 1: Di chuyển vào thư mục Backend
 
 ```bash
 cd backend
 ```
 
-Chạy ứng dụng:
+## Bước 2: Cấu hình Database
+
+Mở file:
+
+```text
+backend/src/main/resources/application.properties
+```
+
+Cập nhật thông tin kết nối PostgreSQL:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/phungloccoffee
+spring.datasource.username=postgres
+spring.datasource.password=your_password
+```
+
+## Bước 3: Build Project
+
+```bash
+mvn clean install
+```
+
+Nếu build thành công sẽ xuất hiện thư mục:
+
+```text
+target/
+```
+
+## Bước 4: Chạy Backend
+
+### Cách 1: Maven
 
 ```bash
 mvn spring-boot:run
 ```
 
-Backend mặc định chạy tại:
+### Cách 2: File Jar
+
+```bash
+java -jar target/*.jar
+```
+
+## Kiểm tra Backend
+
+Khi chạy thành công, terminal sẽ hiển thị:
+
+```text
+Started BackendApplication
+Tomcat started on port(s): 8080
+```
+
+Backend mặc định hoạt động tại:
 
 ```text
 http://localhost:8080
@@ -287,86 +268,106 @@ http://localhost:8080
 
 ---
 
-### 8.6. Chạy Frontend
+# Frontend Setup & Run
 
-Nếu frontend là HTML/CSS/JS thuần, có thể mở trực tiếp file:
+## Bước 1: Di chuyển vào thư mục Frontend
 
-```text
-frontend/index.html
+```bash
+cd UI-QLDA
 ```
 
-Hoặc dùng Live Server trong VS Code để chạy giao diện.
+## Bước 2: Cài đặt thư viện
+
+```bash
+npm install
+```
+
+Hoặc:
+
+```bash
+npm i
+```
+
+## Bước 3: Tạo file môi trường
+
+Tạo file:
+
+```text
+.env.local
+```
+
+Ví dụ:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
+```
+
+Lưu ý:
+
+* URL trên chỉ là ví dụ.
+* Cần thay đổi theo địa chỉ Backend thực tế nếu có khác biệt.
+
+## Bước 4: Chạy Frontend
+
+```bash
+npm run dev
+```
+
+Hoặc sử dụng file hỗ trợ:
+
+```bash
+run-dev.bat
+```
+
+## Kiểm tra Frontend
+
+Nếu chạy thành công sẽ hiển thị:
+
+```text
+▲ Next.js
+
+Local:    http://localhost:3000
+Network:  http://xxx.xxx.xxx.xxx:3000
+```
+
+Truy cập hệ thống tại:
+
+```text
+http://localhost:3000
+```
 
 ---
 
-## 9. Một số API chính
+# Startup Order
 
-| Method | API | Chức năng |
-|---|---|---|
-| POST | `/api/auth/login` | Đăng nhập hệ thống |
-| GET | `/api/sanpham` | Lấy danh sách sản phẩm |
-| POST | `/api/sanpham` | Thêm sản phẩm |
-| PUT | `/api/sanpham/{id}` | Cập nhật sản phẩm |
-| DELETE | `/api/sanpham/{id}` | Xóa hoặc ngừng kinh doanh sản phẩm |
-| GET | `/api/nguyenlieu` | Lấy danh sách nguyên liệu |
-| POST | `/api/nguyenlieu` | Thêm nguyên liệu |
-| GET | `/api/nhapkho` | Lấy danh sách phiếu nhập kho |
-| POST | `/api/nhapkho` | Tạo phiếu nhập kho |
-| GET | `/api/xuatkho` | Lấy danh sách phiếu xuất kho |
-| POST | `/api/xuatkho` | Tạo phiếu xuất kho |
-| GET | `/api/baocao/doanhthu` | Xem báo cáo doanh thu |
-| GET | `/api/baocao/tonkho` | Xem báo cáo tồn kho |
+Để hệ thống hoạt động chính xác, cần khởi động theo thứ tự sau:
 
----
-
-## 10. Tài khoản demo
-
-> Cập nhật lại theo dữ liệu mockdata thực tế của nhóm.
-
-| Vai trò | Tài khoản | Mật khẩu |
-|---|---|---|
-| Quản trị viên | `admin01` | `1` |
-| Nhân viên kho | `nvkho01` | `1` |
-| Nhân viên bán hàng | `nvbh01` | `1` |
+```text
+1. PostgreSQL Database
+        ↓
+2. Import SQL Scripts
+        ↓
+3. Spring Boot Backend
+        ↓
+4. Next.js Frontend
+        ↓
+5. Truy cập hệ thống tại:
+   http://localhost:3000
+```
 
 ---
 
-## 11. Tiêu chí thành công
+# Common Issues
 
-Dự án được xem là thành công khi:
+| Lỗi                             | Nguyên nhân                            | Cách xử lý                                    |
+| ------------------------------- | -------------------------------------- | --------------------------------------------- |
+| npm is not recognized           | Chưa cài Node.js hoặc chưa thêm PATH   | Cài lại Node.js LTS                           |
+| mvn is not recognized           | Chưa cài Maven                         | Cài Maven và thêm PATH                        |
+| Port 3000 already in use        | Frontend bị trùng cổng                 | Đổi cổng hoặc tắt ứng dụng đang sử dụng       |
+| Port 8080 already in use        | Backend bị trùng cổng                  | Đổi server.port trong Spring Boot             |
+| Cannot connect to database      | PostgreSQL chưa chạy hoặc sai cấu hình | Kiểm tra PostgreSQL và application.properties |
+| Frontend không lấy được dữ liệu | Backend chưa chạy hoặc sai API URL     | Kiểm tra NEXT_PUBLIC_API_URL                  |
+| Build failed                    | Thiếu dependency                       | Chạy lại npm install hoặc mvn clean install   |
 
-- Sai lệch tồn kho giữa các chi nhánh nhỏ hơn 3%.
-- POS xử lý giao dịch trong thời gian dưới 2 giây.
-- Báo cáo doanh thu được cập nhật trong vòng 5 phút.
-- Hệ thống hoạt động ổn định trong giờ cao điểm.
-- Dữ liệu bán hàng, tồn kho và chi nhánh được quản lý tập trung.
-
----
-
-## 12. Rủi ro và hướng xử lý
-
-| Rủi ro | Hướng xử lý |
-|---|---|
-| Mất kết nối mạng | Cho phép POS lưu tạm dữ liệu cục bộ và đồng bộ lại khi có mạng |
-| Xung đột dữ liệu khi đồng bộ | Thiết kế cơ chế kiểm tra phiên bản dữ liệu và ghi log đồng bộ |
-| Nhân viên nhập sai dữ liệu | Kiểm tra ràng buộc dữ liệu ở frontend, backend và database |
-| Server quá tải giờ cao điểm | Tối ưu truy vấn, phân trang dữ liệu, cache báo cáo cần thiết |
-| Sai lệch tồn kho | Ghi nhận đầy đủ nhập, xuất, bán hàng, điều chuyển và kiểm kho |
-
----
-
-## 13. Thành viên nhóm
-
-| STT | Họ tên | Vai trò |
-|---|---|---|
-| 1 |  | Nhóm trưởng |
-| 2 |  | Thành viên |
-| 3 |  | Thành viên |
-| 4 |  | Thành viên |
-| 5 |  | Thành viên |
-
----
-
-## 14. Ghi chú
-
-README này được xây dựng dựa trên yêu cầu bài toán **Hệ thống quản lý chuỗi cửa hàng cà phê - Phụng Lộc Coffee**. Một số phần như công nghệ, API, tài khoản demo và cấu trúc thư mục có thể cần chỉnh lại theo source code thực tế của nhóm.
+```
+```

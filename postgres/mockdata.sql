@@ -1,3 +1,6 @@
+----Bắt đầu chạy mockdata thứ 1----
+
+
 BEGIN;
 
 -- ==============================================================================
@@ -315,9 +318,9 @@ INSERT INTO thanhtoan (matt, mahd, phuongthuc, sotien, trangthai, issynced, crea
 
 COMMIT;
 
+----Kết thúc chạy mockdata giai đoạn 1----
 
-
-
+----Bắt đầu chạy mockdata thứ 2----
 DO $$
 DECLARE
     v_ngay_hien_tai DATE;
