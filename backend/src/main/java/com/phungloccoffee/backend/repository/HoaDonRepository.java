@@ -50,7 +50,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
         LEFT JOIN nhanvien nv ON ca.manv = nv.manv
         WHERE (:maCN IS NULL OR h.macn = :maCN)
         ORDER BY h.createdat DESC NULLS LAST
-        LIMIT :limit
         """, nativeQuery = true)
-    List<DonHangGanNhatResponse> layDonHangGanNhat(@Param("maCN") String maCN, @Param("limit") int limit);
+    List<DonHangGanNhatResponse> layDonHangGanNhatRaw(@Param("maCN") String maCN);
 }

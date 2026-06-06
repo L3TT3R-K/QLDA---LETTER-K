@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -30,6 +30,7 @@ interface Invoice {
 interface RevenueChartProps {
   invoices: Invoice[];
   branches: Branch[];
+  hideFilter?: boolean;
 }
 
 interface ChartRow {
@@ -60,7 +61,6 @@ const formatDateLabel = (value: string) => {
 const addDays = (dateString: string, days: number) => {
   const date = new Date(dateString);
   date.setDate(date.getDate() + days);
-
   return date.toISOString().slice(0, 10);
 };
 
@@ -76,59 +76,36 @@ const isCompletedInvoice = (invoice: Invoice) => {
 
 const getLatestDate = (invoices: Invoice[]) => {
   const completedInvoices = invoices.filter(isCompletedInvoice);
-
-  if (completedInvoices.length === 0) {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  return completedInvoices
-    .map((invoice) => getDateOnly(invoice.NgayLap))
-    .sort()
-    .at(-1)!;
+  if (completedInvoices.length === 0) return new Date().toISOString().slice(0, 10);
+  return completedInvoices.map((invoice) => getDateOnly(invoice.NgayLap)).sort().at(-1)!;
 };
 
 const getShortBranchName = (name: string) => {
-  return name
-    .replace("Phụng Lộc Coffee - ", "")
-    .replace("Chi nhánh ", "")
-    .trim();
+  return name.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", "").trim();
 };
 
-export function RevenueChart({ invoices, branches }: RevenueChartProps) {
+export function RevenueChart({ invoices, branches, hideFilter = false }: RevenueChartProps) {
   const [branchFilter, setBranchFilter] = useState("all");
 
-  const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
+  useEffect(() => {
+    if (hideFilter) setBranchFilter("all");
+  }, [hideFilter]);
 
-  const selectedBranches =
-    branchFilter === "all"
-      ? activeBranches.slice(0, 5)
-      : activeBranches.filter((branch) => branch.MaCN === branchFilter);
+  const activeBranches = branches.filter((branch) => branch.TrangThai === 1);
+  const selectedBranches = branchFilter === "all" ? activeBranches.slice(0, 5) : activeBranches.filter((branch) => branch.MaCN === branchFilter);
 
   const chartData = useMemo(() => {
     const latestDate = getLatestDate(invoices);
-
-    const lastSevenDays = Array.from({ length: 7 }, (_, index) =>
-      addDays(latestDate, index - 6),
-    );
+    const lastSevenDays = Array.from({ length: 7 }, (_, index) => addDays(latestDate, index - 6));
 
     return lastSevenDays.map((date) => {
-      const row: ChartRow = {
-        date: formatDateLabel(date),
-      };
-
+      const row: ChartRow = { date: formatDateLabel(date) };
       selectedBranches.forEach((branch) => {
         const revenue = invoices
-          .filter(
-            (invoice) =>
-              isCompletedInvoice(invoice) &&
-              invoice.MaCN === branch.MaCN &&
-              getDateOnly(invoice.NgayLap) === date,
-          )
+          .filter((invoice) => isCompletedInvoice(invoice) && invoice.MaCN === branch.MaCN && getDateOnly(invoice.NgayLap) === date)
           .reduce((sum, invoice) => sum + Number(invoice.TongTien || 0), 0);
-
         row[getShortBranchName(branch.TenCN)] = revenue;
       });
-
       return row;
     });
   }, [invoices, selectedBranches]);
@@ -140,54 +117,30 @@ export function RevenueChart({ invoices, branches }: RevenueChartProps) {
           Doanh thu 7 ngày gần nhất
         </h3>
 
-        <select
-          value={branchFilter}
-          onChange={(event) => setBranchFilter(event.target.value)}
-          className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
-        >
-          <option value="all">Tất cả chi nhánh</option>
-          {activeBranches.map((branch) => (
-            <option key={branch.MaCN} value={branch.MaCN}>
-              {branch.TenCN}
-            </option>
-          ))}
-        </select>
+        {!hideFilter && (
+          <select
+            value={branchFilter}
+            onChange={(event) => setBranchFilter(event.target.value)}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+          >
+            <option value="all">Tất cả chi nhánh</option>
+            {activeBranches.map((branch) => (
+              <option key={branch.MaCN} value={branch.MaCN}>{branch.TenCN}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E9ECEF" />
-
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 12, fill: "#6C757D" }}
-              axisLine={{ stroke: "#E9ECEF" }}
-            />
-
-            <YAxis
-              tick={{ fontSize: 12, fill: "#6C757D" }}
-              axisLine={{ stroke: "#E9ECEF" }}
-              tickFormatter={formatCurrency}
-            />
-
-            <Tooltip
-              formatter={(value: number) =>
-                new Intl.NumberFormat("vi-VN").format(Number(value)) + " ₫"
-              }
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #E9ECEF",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              }}
-            />
-
+            <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#6C757D" }} axisLine={{ stroke: "#E9ECEF" }} />
+            <YAxis tick={{ fontSize: 12, fill: "#6C757D" }} axisLine={{ stroke: "#E9ECEF" }} tickFormatter={formatCurrency} />
+            <Tooltip formatter={(value: number) => new Intl.NumberFormat("vi-VN").format(Number(value)) + " ₫"} />
             <Legend />
-
             {selectedBranches.map((branch, index) => {
               const key = getShortBranchName(branch.TenCN);
-
               return (
                 <Line
                   key={branch.MaCN}
@@ -195,10 +148,7 @@ export function RevenueChart({ invoices, branches }: RevenueChartProps) {
                   dataKey={key}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
-                  dot={{
-                    fill: colors[index % colors.length],
-                    strokeWidth: 2,
-                  }}
+                  dot={{ fill: colors[index % colors.length], strokeWidth: 2 }}
                 />
               );
             })}

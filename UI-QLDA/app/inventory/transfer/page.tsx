@@ -1232,26 +1232,29 @@ export default function InventoryTransferPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-          <Select
-            value={branchFilter}
-            onValueChange={(value) => {
-              setBranchFilter(value);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Chi nhánh" />
-            </SelectTrigger>
+          {/* ĐÃ SỬA: Ẩn bộ lọc chi nhánh nếu bị giới hạn quyền */}
+          {!isBranchRestricted && (
+            <Select
+              value={branchFilter}
+              onValueChange={(value) => {
+                setBranchFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Chi nhánh" />
+              </SelectTrigger>
 
-            <SelectContent>
-              <SelectItem value="all">Tất cả chi nhánh</SelectItem>
-              {activeBranches.map((branch) => (
-                <SelectItem key={branch.MaCN} value={branch.MaCN}>
-                  {branch.TenCN}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectContent>
+                <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+                {activeBranches.map((branch) => (
+                  <SelectItem key={branch.MaCN} value={branch.MaCN}>
+                    {branch.TenCN}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <Select
             value={statusFilter}

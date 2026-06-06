@@ -135,21 +135,7 @@ const getMonthRangeParams = () => {
   };
 };
 
-const getStatusKey = (value?: string, quantity = 0): StockStatus => {
-  const normalized = String(value || "").trim().toLowerCase();
-
-  if (normalized.includes("tồn âm") || quantity < 0) return "danger";
-  if (normalized.includes("cần nhập") || normalized.includes("nguy")) {
-    return "danger";
-  }
-  if (normalized.includes("cảnh báo") || normalized.includes("duoi")) {
-    return "warning";
-  }
-  if (normalized.includes("hết") || quantity === 0) return "outOfStock";
-
-  return "normal";
-};
-
+// ĐÃ SỬA: Hàm này chia trạng thái cực chuẩn, Tồn < Min sẽ ra đúng màu Vàng (warning)
 const mapReportStock = (
   item: BaoCaoTonKhoResponse,
   branchNames: Map<string, string>,
@@ -157,14 +143,15 @@ const mapReportStock = (
   const branchName = branchNames.get(item.maCN) || item.maCN;
   const quantity = item.soLuongTon || 0;
   const minQuantity = item.tonToiThieu || 0;
-  const status =
-    quantity < 0
-      ? "danger"
-      : quantity === 0
-        ? "outOfStock"
-        : quantity < minQuantity
-          ? "danger"
-          : getStatusKey(item.trangThai, quantity);
+  
+  let status: StockStatus = "normal";
+  if (quantity < 0) {
+      status = "danger";
+  } else if (quantity === 0) {
+      status = "outOfStock";
+  } else if (quantity < minQuantity) {
+      status = "warning"; 
+  }
 
   return {
     maNL: item.maNL,
@@ -217,11 +204,8 @@ const downloadCsv = (
 export default function InventoryStockPage() {
   const [inventoryData, setInventoryData] = useState<StockRow[]>([]);
   const [branches, setBranches] = useState<ApiBranch[]>([]);
-  const [stockWarnings, setStockWarnings] = useState<BaoCaoTonKhoResponse[]>(
-    [],
-  );
-  const [warningSummary, setWarningSummary] =
-    useState<CanhBaoTonKhoTongHopResponse | null>(null);
+  const [stockWarnings, setStockWarnings] = useState<BaoCaoTonKhoResponse[]>([]);
+  const [warningSummary, setWarningSummary] = useState<CanhBaoTonKhoTongHopResponse | null>(null);
   const [lossReports, setLossReports] = useState<BaoCaoHaoHutResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -351,23 +335,16 @@ export default function InventoryStockPage() {
   }, [searchQuery, branchFilter, statusFilter]);
 
   const enrichedInventory = useMemo(() => {
-    return inventoryData.map((item) => {
-      let statusKey: StockStatus = "normal";
-      if (item.trangThai === "Hết hàng") statusKey = "outOfStock";
-      else if (item.trangThai === "Nguy hiểm") statusKey = "danger";
-      else if (item.trangThai === "Cảnh báo") statusKey = "warning";
-
-      return {
-        MaNL: item.maNL,
-        TenNL: item.tenNguyenLieu,
-        DonVi: item.donVi,
-        TenCN: item.chiNhanh,
-        MaCN: item.maCN || item.chiNhanh, 
-        SoLuongTon: item.tonHienTai,
-        TonToiThieu: item.tonToiThieu,
-        Status: statusKey,
-      };
-    });
+    return inventoryData.map((item) => ({
+      MaNL: item.maNL,
+      TenNL: item.tenNguyenLieu,
+      DonVi: item.donVi,
+      TenCN: item.chiNhanh,
+      MaCN: item.maCN || item.chiNhanh, 
+      SoLuongTon: item.tonHienTai,
+      TonToiThieu: item.tonToiThieu,
+      Status: item.Status, 
+    }));
   }, [inventoryData]);
 
   const activeBranches = useMemo(() => {
@@ -412,8 +389,6 @@ export default function InventoryStockPage() {
   const warningCount = enrichedInventory.filter((item) => item.Status === "warning").length;
   const dangerCount = enrichedInventory.filter((item) => item.Status === "danger").length;
   const outOfStockCount = enrichedInventory.filter((item) => item.Status === "outOfStock").length;
-  const totalWarningCount =
-    warningSummary?.tongCanhBao ?? stockWarnings.length;
   const lossCount = lossReports.length;
 
   const handleExportExcel = () => {
@@ -485,7 +460,7 @@ export default function InventoryStockPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Cảnh báo</p>
                 <p className="text-2xl font-bold text-[#856404]">
-                  {totalWarningCount || warningCount + dangerCount}
+                  {warningCount + dangerCount}
                 </p>
               </div>
             </div>

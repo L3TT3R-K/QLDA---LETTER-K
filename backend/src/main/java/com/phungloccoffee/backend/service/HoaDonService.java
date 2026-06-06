@@ -116,7 +116,9 @@ public class HoaDonService {
     public List<DonHangGanNhatResponse> layDonHangGanNhat(String maCN, int limit) {
         String maCNHopLe = SecurityUtils.resolveInventoryBranch(maCN);
         int safeLimit = Math.max(1, Math.min(limit, 20));
-        return hoaDonRepository.layDonHangGanNhat(maCNHopLe, safeLimit);
+        return hoaDonRepository.layDonHangGanNhatRaw(maCNHopLe).stream()
+                .limit(safeLimit)
+                .toList();
     }
 
     private String taoMaHoaDon(String maCN) {

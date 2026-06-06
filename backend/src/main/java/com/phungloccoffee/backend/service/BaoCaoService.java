@@ -111,29 +111,25 @@ public class BaoCaoService {
 
     public List<BaoCaoTonKhoResponse> layDuoiTonToiThieu(String maCN) {
         List<BaoCaoTonKhoResponse> ketQua = new ArrayList<>();
-        List<ChiNhanh> danhSachChiNhanh = layChiNhanhCanKiemTra(maCN);
-        List<NguyenLieu> danhSachNguyenLieu = nguyenLieuRepository.findAll();
+        List<TonKho> danhSachTonKho = isBlank(maCN) ? tonKhoRepository.findAll() : tonKhoRepository.findByMaCN(maCN);
 
-        for (ChiNhanh chiNhanh : danhSachChiNhanh) {
-            for (NguyenLieu nl : danhSachNguyenLieu) {
-                TonKho tonKho = tonKhoRepository.findByMaCNAndMaNL(chiNhanh.getMaCN(), nl.getMaNL());
-                double soLuongTon = tonKho != null ? valueOrZero(tonKho.getSoLuongTon()) : 0.0;
-                double tonToiThieu = valueOrZero(nl.getTonToiThieu());
+        for (TonKho tk : danhSachTonKho) {
+            NguyenLieu nl = nguyenLieuRepository.findById(tk.getMaNL()).orElse(null);
+            if (nl == null) continue;
 
-                if (soLuongTon >= 0 && soLuongTon < tonToiThieu) {
-                    String thongDiep = tonKho == null
-                            ? "Nguyên liệu chưa có bản ghi tồn kho tại chi nhánh"
-                            : "Nguyên liệu dưới mức tồn tối thiểu";
-                    ketQua.add(taoCanhBaoTonKho(
-                            chiNhanh.getMaCN(),
-                            nl,
-                            soLuongTon,
-                            "Cần nhập hàng",
-                            "DUOI_TON_TOI_THIEU",
-                            "CANH_BAO",
-                            thongDiep
-                    ));
-                }
+            double soLuongTon = valueOrZero(tk.getSoLuongTon());
+            double tonToiThieu = valueOrZero(nl.getTonToiThieu());
+
+            if (soLuongTon >= 0 && soLuongTon < tonToiThieu) {
+                ketQua.add(taoCanhBaoTonKho(
+                        tk.getMaCN(),
+                        nl,
+                        soLuongTon,
+                        "Cần nhập hàng",
+                        "DUOI_TON_TOI_THIEU",
+                        "CANH_BAO",
+                        "Nguyên liệu dưới mức tồn tối thiểu"
+                ));
             }
         }
         return ketQua;
@@ -203,13 +199,6 @@ public class BaoCaoService {
                 .mucDo(mucDo)
                 .thongDiep(thongDiep)
                 .build();
-    }
-
-    private List<ChiNhanh> layChiNhanhCanKiemTra(String maCN) {
-        if (isBlank(maCN)) {
-            return chiNhanhRepository.findAll();
-        }
-        return chiNhanhRepository.findById(maCN).map(List::of).orElse(List.of());
     }
 
     private double valueOrZero(Double value) {
