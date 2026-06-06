@@ -447,8 +447,9 @@ http://localhost:3000
 Sau khi hoàn tất các bước trên, hệ thống quản lý Phụng Lộc Coffee có thể được sử dụng đầy đủ các chức năng quản lý bán hàng, kho, nhân viên và báo cáo thống kê.
 
 
-# Tài khoản từ file mockdata (tài khoản/ mật khẩu)
-Admin: admin/ 123456
-Nhân viên bán hàng của chi nhánh 1: cashier_cn01/ 123456
-Nhân viên kho của chi nhánh 1: stock_cn01/ 123456
-Quản lý của chi nhánh 1: manager_cn01/ 123456
+# Tài khoản từ file mockdata (tài khoản/mật khẩu)
+
+Admin: admin / 123456<br>
+Nhân viên bán hàng của chi nhánh 1: cashier_cn01 / 123456<br>
+Nhân viên kho của chi nhánh 1: stock_cn01 / 123456<br>
+Quản lý của chi nhánh 1: manager_cn01 / 123456
