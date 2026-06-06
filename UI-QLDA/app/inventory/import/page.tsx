@@ -652,9 +652,11 @@ export default function ImportPage() {
       setIsLoading(true);
       const user = getCurrentUser();
       const effectiveMaCN =
-        user?.chucVu === "NHANVIEN_KHO" && user.maCN
-          ? user.maCN
-          : filterMaCN;
+    (user?.chucVu === "NHANVIEN_KHO" ||
+      user?.chucVu === "QUANLY_CHINHANH") &&
+    user.maCN
+      ? user.maCN
+      : filterMaCN;
       const receiptsResponse = await api.get<ApiImportReceipt[]>(
         "/api/nhapkho",
         {
