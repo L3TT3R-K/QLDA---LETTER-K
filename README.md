@@ -1,3 +1,6 @@
+## link repository của dự án
+https://github.com/L3TT3R-K/QLDA---LETTER-K#
+
 ## Project Structure
 
 ```text
