@@ -3,11 +3,8 @@ package com.phungloccoffee.backend.service;
 import com.phungloccoffee.backend.dto.SanPhamRequest;
 import com.phungloccoffee.backend.entity.SanPham;
 import com.phungloccoffee.backend.repository.SanPhamRepository;
-import com.phungloccoffee.backend.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -18,11 +15,7 @@ public class SanPhamService {
   private final SanPhamRepository sanPhamRepository;
   private final AuditLogService auditLogService;
 
-  private void requireAdminAccess() {
-      if (!SecurityUtils.canAccessAllBranches()) {
-          throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ Admin mới có quyền thao tác dữ liệu hệ thống");
-      }
-  }
+  // ĐÃ XÓA HÀM requireAdminAccess() GÂY CHẶN QUYỀN VÔ LÝ
 
   public List<SanPham> getAll() {
     return sanPhamRepository.findAll(); 
@@ -34,7 +27,6 @@ public class SanPhamService {
   }
 
   public SanPham create(SanPhamRequest request) {
-    requireAdminAccess(); 
     if (request.getMaSP() == null || request.getMaSP().isBlank()) throw new RuntimeException("Ma san pham khong duoc de trong");
     if (sanPhamRepository.existsById(request.getMaSP())) throw new RuntimeException("Ma san pham da ton tai: " + request.getMaSP());
 
@@ -45,7 +37,6 @@ public class SanPhamService {
   }
 
   public SanPham update(String maSP, SanPhamRequest request) {
-    requireAdminAccess(); 
     SanPham sanPham = getById(maSP);
     SanPham oldValue = SanPham.builder().maSP(sanPham.getMaSP()).tenSP(sanPham.getTenSP()).giaHienTai(sanPham.getGiaHienTai()).isTopping(sanPham.getIsTopping()).trangThai(sanPham.getTrangThai()).build();
 
@@ -60,7 +51,6 @@ public class SanPhamService {
   }
 
   public void delete(String maSP) {
-    requireAdminAccess(); 
     SanPham sanPham = getById(maSP);
     SanPham oldValue = SanPham.builder().maSP(sanPham.getMaSP()).tenSP(sanPham.getTenSP()).giaHienTai(sanPham.getGiaHienTai()).isTopping(sanPham.getIsTopping()).trangThai(sanPham.getTrangThai()).build();
     sanPham.setTrangThai(0);
