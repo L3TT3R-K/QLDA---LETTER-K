@@ -36,7 +36,8 @@ import {
   LabelList,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import api from "@/services/api"; // Chèn thư viện gọi API
+import api from "@/services/api"; 
+import { getCurrentUser } from "@/lib/auth"; // ĐÃ THÊM IMPORT Auth
 
 // --- INTERFACES ---
 interface Branch {
@@ -161,18 +162,26 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 
 // --- COMPONENT CHÍNH ---
 export default function ReportsPage() {
+  // PHÂN QUYỀN
+  const currentUser = getCurrentUser() as any;
+  const role = String(currentUser?.chucVu || currentUser?.role || currentUser?.Role || "").toUpperCase();
+  const isAdmin = role === "ADMIN" || role === "QUAN_TRI" || role === "QUANTRIVIEN";
+  const isBranchRestricted = !isAdmin;
+  const scopedBranchCode = isBranchRestricted ? (currentUser?.maCN || currentUser?.MaCN) : null;
+
   const [branches, setBranches] = useState<ReportBranch[]>([]);
-  const [apiData, setApiData] = useState<ApiReportResponse[]>([]); // Hứng data từ DB
+  const [apiData, setApiData] = useState<ApiReportResponse[]>([]);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [reportError, setReportError] = useState("");
 
   const [draftDateFrom, setDraftDateFrom] = useState("2026-05-01");
   const [draftDateTo, setDraftDateTo] = useState("2026-05-31");
-  const [draftBranch, setDraftBranch] = useState("all");
+  // Mặc định chọn chi nhánh của Quản lý nếu bị giới hạn
+  const [draftBranch, setDraftBranch] = useState(isBranchRestricted && scopedBranchCode ? scopedBranchCode : "all");
 
   const [dateFrom, setDateFrom] = useState("2026-05-01");
   const [dateTo, setDateTo] = useState("2026-05-31");
-  const [branchFilter, setBranchFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState(isBranchRestricted && scopedBranchCode ? scopedBranchCode : "all");
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -193,8 +202,12 @@ export default function ReportsPage() {
         TrangThai: Number(b.trangThai ?? 1),
       }));
 
-      setBranches(formatted);
+      // Nếu là Quản lý, lọc bớt các chi nhánh khác
+      const filteredBranches = isBranchRestricted && scopedBranchCode 
+        ? formatted.filter((b: any) => b.MaCN === scopedBranchCode)
+        : formatted;
 
+      setBranches(filteredBranches);
       localStorage.setItem(branchStorageKey, JSON.stringify(activeBranches));
     } catch (error) {
       console.error("Lỗi khi tải danh sách chi nhánh từ API:", error);
@@ -204,27 +217,29 @@ export default function ReportsPage() {
       const formatted = storedBranches.map((b, index) => ({
         MaCN: b.MaCN,
         TenCN: b.TenCN,
-        ShortName: b.TenCN.replace("Phụng Lộc Coffee - ", "").replace(
-          "Chi nhánh ",
-          "",
-        ),
+        ShortName: b.TenCN.replace("Phụng Lộc Coffee - ", "").replace("Chi nhánh ", ""),
         ChiTieu: targetByBranch[b.MaCN] || 80000000,
         MauBieuDo: chartColors[index % chartColors.length],
         TrangThai: Number(b.TrangThai ?? 1),
       }));
-      setBranches(formatted);
+      
+      const filteredBranches = isBranchRestricted && scopedBranchCode 
+        ? formatted.filter((b: any) => b.MaCN === scopedBranchCode)
+        : formatted;
+
+      setBranches(filteredBranches);
     }
   };
 
-  // 2. GỌI API BÁO CÁO TỪ SPRING BOOT
   const fetchReportData = async () => {
     setIsLoadingReport(true);
     setReportError("");
 
     try {
-      // Định dạng ngày có giờ để khớp với LocalDateTime của Backend
       const res = await api.get("/api/baocao/doanhthu-chinhanh", {
         params: {
+          // Bơm mã chi nhánh vào nếu bị giới hạn
+          ...(scopedBranchCode ? { maCN: scopedBranchCode } : {}),
           tuNgay: `${dateFrom}T00:00:00`,
           denNgay: `${dateTo}T23:59:59`,
         },
@@ -232,7 +247,7 @@ export default function ReportsPage() {
       setApiData(res.data);
     } catch (error) {
       console.error("Lỗi khi tải báo cáo:", error);
-      setApiData([]); // Xóa data nếu lỗi
+      setApiData([]);
       setReportError(
         "Không tải được dữ liệu báo cáo. Vui lòng kiểm tra kết nối backend.",
       );
@@ -248,12 +263,13 @@ export default function ReportsPage() {
   useEffect(() => {
     fetchReportData();
     setCurrentPage(1);
-  }, [dateFrom, dateTo]); // Tự động gọi API khi Ngày thay đổi
+  }, [dateFrom, dateTo]);
 
   const activeBranches = useMemo(
     () => branches.filter((b) => b.TrangThai === 1),
     [branches],
   );
+  
   const selectedBranches = useMemo(
     () =>
       branchFilter === "all"
@@ -262,10 +278,8 @@ export default function ReportsPage() {
     [branches, activeBranches, branchFilter],
   );
 
-  // 3. MERGE API DATA VỚI BRANCH ĐỂ TẠO RA DỮ LIỆU BẢNG ĐẦY ĐỦ
   const branchReportData: BranchReportRow[] = useMemo(() => {
     return selectedBranches.map((branch) => {
-      // Tìm xem chi nhánh này có doanh thu trả về từ API không
       const apiRow = apiData.find((d) => d.maCN === branch.MaCN);
 
       const DoanhThu = apiRow ? apiRow.tongDoanhThu : 0;
@@ -299,7 +313,6 @@ export default function ReportsPage() {
     });
   }, [apiData, selectedBranches]);
 
-  // CÁC CHỈ SỐ TỔNG
   const totalRevenue = branchReportData.reduce((sum, b) => sum + b.DoanhThu, 0);
   const totalOrders = branchReportData.reduce((sum, b) => sum + b.SoDon, 0);
   const avgOrderValue =
@@ -310,7 +323,6 @@ export default function ReportsPage() {
     null,
   );
 
-  // DATA DÀNH CHO BIỂU ĐỒ (Dạng cột thể hiện doanh thu theo từng chi nhánh)
   const chartData = branchReportData
     .map((b) => ({
       name: getShortBranchName(b.TenCN),
@@ -322,7 +334,6 @@ export default function ReportsPage() {
     .sort((a, b) => b.DoanhThu - a.DoanhThu);
 
   const maxRevenue = Math.max(...chartData.map((item) => item.DoanhThu), 0);
-
   const totalPages = Math.ceil(branchReportData.length / pageSize);
   const paginatedBranchData = branchReportData.slice(
     (currentPage - 1) * pageSize,
@@ -430,151 +441,48 @@ export default function ReportsPage() {
         <meta charset="UTF-8" />
         <title>Báo cáo doanh thu</title>
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 24px;
-            color: #111827;
-          }
-
-          h1 {
-            margin: 0 0 8px;
-            font-size: 22px;
-          }
-
-          .subtitle {
-            margin-bottom: 20px;
-            color: #4b5563;
-            font-size: 14px;
-          }
-
-          .summary {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-          }
-
-          .card {
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 12px;
-          }
-
-          .card-title {
-            font-size: 11px;
-            color: #6b7280;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-          }
-
-          .card-value {
-            font-size: 16px;
-            font-weight: bold;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-          }
-
-          th, td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-          }
-
-          th {
-            background: #f3f4f6;
-            text-align: left;
-          }
-
-          .right {
-            text-align: right;
-          }
-
-          .center {
-            text-align: center;
-          }
-
-          tfoot td {
-            font-weight: bold;
-            background: #f9fafb;
-          }
-
-          @media print {
-            button {
-              display: none;
-            }
-          }
+          body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+          h1 { margin: 0 0 8px; font-size: 22px; }
+          .subtitle { margin-bottom: 20px; color: #4b5563; font-size: 14px; }
+          .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+          .card { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; }
+          .card-title { font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 6px; }
+          .card-value { font-size: 16px; font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #d1d5db; padding: 8px; }
+          th { background: #f3f4f6; text-align: left; }
+          .right { text-align: right; }
+          .center { text-align: center; }
+          tfoot td { font-weight: bold; background: #f9fafb; }
+          @media print { button { display: none; } }
         </style>
       </head>
-
       <body>
         <h1>Báo cáo doanh thu</h1>
         <div class="subtitle">
           Kỳ báo cáo: ${formatDateDisplay(dateFrom)} - ${formatDateDisplay(dateTo)}
           ${branchFilter !== "all" && bestBranch ? ` · ${bestBranch.TenCN}` : ""}
         </div>
-
         <div class="summary">
-          <div class="card">
-            <div class="card-title">Tổng doanh thu</div>
-            <div class="card-value">${formatCurrency(totalRevenue)}</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Tổng số đơn</div>
-            <div class="card-value">${totalOrders.toLocaleString("vi-VN")} đơn</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Doanh thu TB/đơn</div>
-            <div class="card-value">${formatCurrency(avgOrderValue)}</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Chi nhánh cao nhất</div>
-            <div class="card-value">${bestBranch ? getShortBranchName(bestBranch.TenCN) : "—"}</div>
-          </div>
+          <div class="card"><div class="card-title">Tổng doanh thu</div><div class="card-value">${formatCurrency(totalRevenue)}</div></div>
+          <div class="card"><div class="card-title">Tổng số đơn</div><div class="card-value">${totalOrders.toLocaleString("vi-VN")} đơn</div></div>
+          <div class="card"><div class="card-title">Doanh thu TB/đơn</div><div class="card-value">${formatCurrency(avgOrderValue)}</div></div>
+          <div class="card"><div class="card-title">Chi nhánh cao nhất</div><div class="card-value">${bestBranch ? getShortBranchName(bestBranch.TenCN) : "—"}</div></div>
         </div>
-
         <table>
           <thead>
             <tr>
-              <th>STT</th>
-              <th>Mã CN</th>
-              <th>Chi nhánh</th>
-              <th class="right">Số đơn</th>
-              <th class="right">Doanh thu</th>
-              <th class="right">TB/đơn</th>
-              <th class="center">So kỳ trước</th>
-              <th class="center">Đạt chỉ tiêu</th>
+              <th>STT</th><th>Mã CN</th><th>Chi nhánh</th><th class="right">Số đơn</th><th class="right">Doanh thu</th><th class="right">TB/đơn</th><th class="center">So kỳ trước</th><th class="center">Đạt chỉ tiêu</th>
             </tr>
           </thead>
-
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-
+          <tbody>${rowsHtml}</tbody>
           <tfoot>
             <tr>
-              <td></td>
-              <td></td>
-              <td>Tổng cộng</td>
-              <td class="right">${totalOrders.toLocaleString("vi-VN")}</td>
-              <td class="right">${formatCurrency(totalRevenue)}</td>
-              <td class="right">${formatCurrency(avgOrderValue)}</td>
-              <td></td>
-              <td></td>
+              <td></td><td></td><td>Tổng cộng</td><td class="right">${totalOrders.toLocaleString("vi-VN")}</td><td class="right">${formatCurrency(totalRevenue)}</td><td class="right">${formatCurrency(avgOrderValue)}</td><td></td><td></td>
             </tr>
           </tfoot>
         </table>
-
-        <script>
-          window.onload = function () {
-            window.print();
-          };
-        </script>
+        <script>window.onload = function() { window.print(); };</script>
       </body>
     </html>
   `);
@@ -608,21 +516,22 @@ export default function ReportsPage() {
               />
             </div>
 
-            <Select value={draftBranch} onValueChange={setDraftBranch}>
-              <SelectTrigger className="w-[240px]">
-                <SelectValue placeholder="Chi nhánh" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả chi nhánh</SelectItem>
-                {activeBranches.map((branch) => (
-                  <SelectItem key={branch.MaCN} value={branch.MaCN}>
-                    {branch.TenCN}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Đã gỡ bỏ ô "Xem theo Ngày/Tuần/Tháng" vì API hiện tại gộp theo cả khoảng thời gian */}
+            {/* ĐÃ SỬA: CHỈ HIỂN THỊ DROPDOWN NẾU LÀ ADMIN */}
+            {!isBranchRestricted && (
+              <Select value={draftBranch} onValueChange={setDraftBranch}>
+                <SelectTrigger className="w-[240px]">
+                  <SelectValue placeholder="Chi nhánh" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+                  {activeBranches.map((branch) => (
+                    <SelectItem key={branch.MaCN} value={branch.MaCN}>
+                      {branch.TenCN}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <Button variant="outline" onClick={handleApplyFilter}>
               Áp dụng

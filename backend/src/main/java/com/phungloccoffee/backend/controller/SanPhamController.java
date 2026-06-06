@@ -4,6 +4,7 @@ import com.phungloccoffee.backend.dto.SanPhamRequest;
 import com.phungloccoffee.backend.entity.SanPham;
 import com.phungloccoffee.backend.service.SanPhamService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,16 +46,19 @@ public class SanPhamController {
   }
 
   @PostMapping
+  @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH')")
   public SanPham create(@RequestBody SanPhamRequest request) {
     return sanPhamService.create(request);
   }
 
   @PutMapping("/{maSP}")
+  @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH')")
   public SanPham update(@PathVariable String maSP, @RequestBody SanPhamRequest request) {
     return sanPhamService.update(maSP, request);
   }
 
   @DeleteMapping("/{maSP}")
+  @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'QUANLY', 'ROLE_QUANLY', 'QUANLY_CHINHANH', 'ROLE_QUANLY_CHINHANH')")
   public String delete(@PathVariable String maSP) {
     sanPhamService.delete(maSP);
     return "Da ngung ban san pham: " + maSP;

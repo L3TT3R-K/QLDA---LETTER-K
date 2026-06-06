@@ -298,13 +298,23 @@ export default function InventoryAuditPage() {
 
         {/* TOOLBAR */}
         <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+          {!isBranchRestricted && (
           <Select value={branchFilter} onValueChange={setBranchFilter}>
-            <SelectTrigger className="w-[220px]"><SelectValue placeholder="Chi nhánh" /></SelectTrigger>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Chi nhánh" />
+            </SelectTrigger>
+
             <SelectContent>
-              {!isBranchRestricted && <SelectItem value="all">Tất cả chi nhánh</SelectItem>}
-              {activeBranches.map((b) => (<SelectItem key={b.MaCN} value={b.MaCN}>{b.TenCN}</SelectItem>))}
+              <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+
+              {activeBranches.map((b) => (
+                <SelectItem key={b.MaCN} value={b.MaCN}>
+                  {b.TenCN}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+        )}
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Tìm mã phiếu, nguyên liệu..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
